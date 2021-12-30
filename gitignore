@@ -4,8 +4,9 @@ __pycache__/
 *__pycache__*
 *write_data*
 *~
+*n2
 *.pyc
-# *.html
+*.html
 *.out
 *DS_Store*
 # *_build*
