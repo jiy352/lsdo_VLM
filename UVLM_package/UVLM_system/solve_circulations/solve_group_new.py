@@ -31,39 +31,55 @@ class SolveMatrix(Model):
                                 values=['fw_euler', 'bk_euler'],
                                 default='fw_euler')
         self.parameters.declare('nt', types=int)
+        self.parameters.declare('surface_names', types=list)
         self.parameters.declare('bd_vortex_shapes', types=list)
         # pass
 
     def define(self):
+        surface_names = self.parameters['surface_names']
         bd_vortex_shapes = self.parameters['bd_vortex_shapes']
+        method = self.parameters['method']
+        nt = self.parameters['nt']
+
+        bd_coll_pts_shapes = [
+            tuple(map(lambda i, j: i - j, item, (1, 1, 0)))
+            for item in bd_vortex_shapes
+        ]
+
+        # print('bd_coll_pts_shapes', bd_coll_pts_shapes)
+
+        bd_vtx_coords_names = [x + '_bd_vtx_coords' for x in surface_names]
+        coll_pts_coords_names = [x + '_coll_pts_coords' for x in surface_names]
+
+        bd_vtx_normals = [x + '_bd_vtx_normals' for x in surface_names]
+        aic_bd_proj_names = [x + '_aic_bd_proj' for x in surface_names]
+
         for i in range(len(bd_vortex_shapes)):
             nx = bd_vortex_shapes[i][0]
             ny = bd_vortex_shapes[i][1]
-        # nx = 2
-        # ny = 4
-        # nt = 5
 
-        method = self.parameters['method']
-        nt = self.parameters['nt']
         model = Model()
         '''1. add the rhs'''
-        model.add(RHS(nt=nt,bd_vortex_shapes=bd_vortex_shapes), 'RHS_group')
+        model.add(
+            RHS(nt=nt,
+                surface_names=surface_names,
+                bd_vortex_shapes=bd_vortex_shapes), 'RHS_group')
 
         nt = self.parameters['nt']
         '''2. compute A_mtx'''
         m = AssembleAic(
-            bd_coll_pts_names=['coll_coords'],
-            wake_vortex_pts_names=['bd_vortex_coords'],
-            bd_coll_pts_shapes=[((nx - 1), (ny - 1), 3)],
-            wake_vortex_pts_shapes=[(nx, ny, 3)],
+            bd_coll_pts_names=coll_pts_coords_names,
+            wake_vortex_pts_names=bd_vtx_coords_names,
+            bd_coll_pts_shapes=bd_coll_pts_shapes,
+            wake_vortex_pts_shapes=bd_vortex_shapes,
             full_aic_name='aic_bd'  # one line of wake vortex for fix wake
         )
         model.add(m, name='AssembleAic_bd')
         '''3. project the aic on to the bd_vertices'''
         m = Projection(
             input_vel_names=['aic_bd'],
-            normal_names=['bd_vtx_normals'],
-            output_vel_names=['aic_bd_proj'],  # this is b
+            normal_names=bd_vtx_normals,
+            output_vel_names=aic_bd_proj_names,  # this is b
             input_vel_shapes=[((nx - 1) * (ny - 1), (nx - 1) * (ny - 1), 3)
                               ],  #rotatonal_vel_shapes
             normal_shapes=[((nx - 1), (ny - 1), 3)],
@@ -75,7 +91,8 @@ class SolveMatrix(Model):
         M_shape = ((nx - 1) * (ny - 1), (nt - 1) * (ny - 1))
 
         M = model.declare_variable('M', shape=M_shape)
-        aic_bd_proj = model.declare_variable('aic_bd_proj',
+        # TODO: fix this for mls
+        aic_bd_proj = model.declare_variable(aic_bd_proj_names[i],
                                              shape=((nx - 1) * (ny - 1),
                                                     (nx - 1) * (ny - 1)))
         gamma_b = model.declare_variable('gamma_b',
@@ -126,7 +143,7 @@ class SolveMatrix(Model):
 
         M = self.declare_variable('M', shape=M_shape)
         print('MMMMM', M.shape)
-        aic_bd_proj = self.declare_variable('aic_bd_proj',
+        aic_bd_proj = self.declare_variable(aic_bd_proj_names[i],
                                             shape=((nx - 1) * (ny - 1),
                                                    (nx - 1) * (ny - 1)))
         print('nt----------', nt)
@@ -140,50 +157,9 @@ class SolveMatrix(Model):
 
 if __name__ == "__main__":
 
-    def generate_simple_mesh(nx, ny, nt=None):
-        if nt == None:
-            mesh = np.zeros((nx, ny, 3))
-            mesh[:, :, 0] = np.outer(np.arange(nx), np.ones(ny))
-            mesh[:, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T
-            mesh[:, :, 2] = 0.
-        else:
-            mesh = np.zeros((nt, nx, ny, 3))
-            for i in range(nt):
-                mesh[i, :, :, 0] = np.outer(np.arange(nx), np.ones(ny))
-                mesh[i, :, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T
-                mesh[i, :, :, 2] = 0.
-        return mesh
-
-    model_1 = Model()
-
-    frame_vel_val = np.array([1, 0, 1])
-    bd_vortex_coords_val = generate_simple_mesh(3, 4)
-    wake_coords_val = np.array([
-        [2., 0., 0.],
-        [2., 1., 0.],
-        [2., 2., 0.],
-        [2., 3., 0.],
-        [42., 0., 0.],
-        [42., 1., 0.],
-        [42., 2., 0.],
-        [42., 3., 0.],
-    ]).reshape(2, 4, 3)
-    # coll_val = np.random.random((4, 5, 3))
-
-    frame_vel = model_1.create_input('frame_vel', val=frame_vel_val)
-    bd_vortex_coords = model_1.create_input('bd_vortex_coords',
-                                            val=bd_vortex_coords_val)
-    wake_coords = model_1.create_input('wake_coords', val=wake_coords_val)
-    nx = 3
-    ny = 4
-    coll_pts = 0.25 * (bd_vortex_coords[0:nx-1, 0:ny-1, :] +\
-                                               bd_vortex_coords[0:nx-1, 1:ny, :] +\
-                                               bd_vortex_coords[1:, 0:ny-1, :]+\
-                                               bd_vortex_coords[1:, 1:, :])
-    model_1.register_output('coll_coords', coll_pts)
-    model_1.add(SolveMatrix())
-
-    sim = Simulator(model_1)
+    sim = Simulator(
+        SolveMatrix(nt=3, surface_names=['wing'],
+                    bd_vortex_shapes=[(2, 2, 3)]))
     sim.run()
     sim.visualize_implementation()
     # print('aic is', sim['aic'])

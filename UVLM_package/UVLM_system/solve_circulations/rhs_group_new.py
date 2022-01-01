@@ -39,13 +39,23 @@ class RHS(Model):
         self.parameters.declare('method',
                                 values=['fw_euler', 'bk_euler'],
                                 default='bk_euler')
+        self.parameters.declare('surface_names', types=list)
         self.parameters.declare('bd_vortex_shapes', types=list)
 
     def define(self):
         # mesh = 3,4,3
         nt = self.parameters['nt']
         bd_vortex_shapes = self.parameters['bd_vortex_shapes']
-        # nx = 2
+        surface_names = self.parameters['surface_names']
+
+        bd_vtx_coords_names = [x + '_bd_vtx_coords' for x in surface_names]
+        bd_vtx_normals = [x + '_bd_vtx_normals' for x in surface_names]
+        coll_pts_coords_names = [x + '_coll_pts_coords' for x in surface_names]
+        wake_coords_names = [x + '_wake_coords' for x in surface_names]
+        bd_coll_pts_shapes = [
+            tuple(map(lambda i, j: i - j, item, (1, 1, 0)))
+            for item in bd_vortex_shapes
+        ]
         # ny = 4
         for i in range(len(bd_vortex_shapes)):
             nx = bd_vortex_shapes[i][0]
@@ -66,15 +76,15 @@ class RHS(Model):
         self.add(m, name='KinematicVelocity')
 
         m = ComputeNormal(
-            vortex_coords_names=['bd_vortex_coords'],
-            normals_names=['bd_vtx_normals'],
+            vortex_coords_names=bd_vtx_coords_names,
+            normals_names=bd_vtx_normals,
             vortex_coords_shapes=[(nx, ny, 3)],
         )
         self.add(m, name='ComputeNormal')  # shape=(2,3,3)
 
         m = Projection(
             input_vel_names=['kinematic_vel'],
-            normal_names=['bd_vtx_normals'],
+            normal_names=bd_vtx_normals,
             output_vel_names=['b'],  # this is b
             input_vel_shapes=[((nx - 1) * (ny - 1), 3)],  #rotatonal_vel_shapes
             normal_shapes=[((nx - 1), (ny - 1), 3)],
@@ -83,17 +93,17 @@ class RHS(Model):
         '''2. compute M (bk_euler) or M\gamma_w (fw_euler)'''
         # print('shape in rhs_gourp_new==================', (nt, 4, 3))
         m = AssembleAic(
-            bd_coll_pts_names=['coll_coords'],
-            wake_vortex_pts_names=['wake_coords'],
-            bd_coll_pts_shapes=[((nx - 1), (ny - 1), 3)],
-            wake_vortex_pts_shapes=[(nt, ny, 3)],
+            bd_coll_pts_names=coll_pts_coords_names,
+            wake_vortex_pts_names=wake_coords_names,
+            bd_coll_pts_shapes=bd_coll_pts_shapes,
+            wake_vortex_pts_shapes=[(nt, ny, 3)],  #TODO: fix this bug later
             full_aic_name='aic_M'  # one line of wake vortex for fix wake
         )
         self.add(m, name='AssembleAic')
         '''3. project the aic on to the bd_vertices'''
         m = Projection(
             input_vel_names=['aic_M'],
-            normal_names=['bd_vtx_normals'],
+            normal_names=bd_vtx_normals,
             output_vel_names=['M'],  # this is b
             input_vel_shapes=[((nx - 1) * (ny - 1), (nt - 1) * (ny - 1), 3)
                               ],  #rotatonal_vel_shapes

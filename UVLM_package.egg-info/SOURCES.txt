@@ -4,5 +4,4 @@ UVLM_package/api.py
 UVLM_package.egg-info/PKG-INFO
 UVLM_package.egg-info/SOURCES.txt
 UVLM_package.egg-info/dependency_links.txt
-UVLM_package.egg-info/requires.txt
 UVLM_package.egg-info/top_level.txt

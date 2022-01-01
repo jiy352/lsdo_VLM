@@ -4,7 +4,7 @@ from ozone2.api import ODEProblem, Wrap, NativeSystem
 from UVLM_package.UVLM_system.ode_system_start import ODESystemModel  #, ODESystemNative, ODESystemNativeSparse
 # from ode_system_start import ODESystemModel  #, ODESystemNative, ODESystemNativeSparse
 # from ode_outputs_delta_p import Profil.eOutputSystem  #, ODESystemNative, ODESystemNativeSparse
-from UVLM_package.UVLM_system.ode_outputs_delta_p import ProfileOutputSystemModel  #, ODESystemNative, ODESystemNativeSparse
+from UVLM_package.UVLM_system.ode_outputs import ProfileOutputSystemModel  #, ODESystemNative, ODESystemNativeSparse
 import csdl
 import csdl_om
 import numpy as np
@@ -27,18 +27,23 @@ class ODEProblemTest(ODEProblem):
                                 state_name='gamma_w',
                                 shape=((nx - 1) * (ny - 1), 3))
         self.add_profile_output('C_l', state_name='gamma_w', shape=(1, ))
-        # self.add_field_output('field_output',
-        #                       state_name='gamma_w',
-        #                       coefficients_name='coefficients')
+        self.add_profile_output('gamma_b',
+                                state_name='gamma_w',
+                                shape=(nx - 1, ny - 1))
+
         # If dynamic == True, The parameter must have shape = (self.num_times, ... shape of parameter @ every timestep ...)
         # The ODE function will use the parameter value at timestep 't': parameter@ODEfunction[shape_p] = fullparameter[t, shape_p]
         for i in range(len(surface_names)):
             surface_name = surface_names[i]
             surface_shape = surface_shapes[i]
-            if dynamic_option==True:
-                self.add_parameter(surface_name,shape=(self.num_times,)+surface_shape, dynamic=dynamic_option)
+            if dynamic_option == True:
+                self.add_parameter(surface_name,
+                                   shape=(self.num_times, ) + surface_shape,
+                                   dynamic=dynamic_option)
             else:
-                self.add_parameter(surface_name,shape=(1,)+surface_shape, dynamic=dynamic_option)
+                self.add_parameter(surface_name,
+                                   shape=(1, ) + surface_shape,
+                                   dynamic=dynamic_option)
 
         # Inputs names correspond to respective upstream CSDL variables
         self.add_state(
@@ -53,9 +58,6 @@ class ODEProblemTest(ODEProblem):
 
         self.ode_system = Wrap(ODESystemModel)  # Uncomment for Method 1
         self.profile_outputs_system = Wrap(ProfileOutputSystemModel)
-        # self.profile_outputs_system = ProfileOutputSystem()
-        # self.ode_system = ODESystemNative()         # Uncomment for Method 2
-        # self.ode_system = ODESystemNativeSparse()   # Uncomment for Method 3
 
 
 # The CSDL Model containing the ODE integrator
@@ -93,11 +95,15 @@ class RunModel(csdl.Model):
             surface_shape = surface_shapes[i]
             surface_name = surface_names[i]
             # Add to csdl model which are fed into ODE Model
-            if dynamic_option==True:
-                self.create_input(surface_name,val=generate_simple_mesh(surface_shape[0], surface_shape[1], self.num_times))
+            if dynamic_option == True:
+                self.create_input(surface_name,
+                                  val=generate_simple_mesh(
+                                      surface_shape[0], surface_shape[1],
+                                      self.num_times))
             else:
-                self.create_input(surface_name, val=generate_simple_mesh(surface_shape[0], surface_shape[1], 1))
-                print('wing_1 in run_file',generate_simple_mesh(surface_shape[0], surface_shape[1], 1).shape )
+                self.create_input(surface_name,
+                                  val=generate_simple_mesh(
+                                      surface_shape[0], surface_shape[1], 1))
 
         h_stepsize = 1
 
@@ -108,7 +114,7 @@ class RunModel(csdl.Model):
         self.create_input('coefficients',
                           np.ones(num_times + 1) / (num_times + 1))
         self.create_input('gamam_w_0', np.zeros((nt - 1, ny - 1)))
-        
+
         # Timestep vector
         h_vec = np.ones(num_times) * h_stepsize
         self.create_input('h', h_vec)
@@ -119,19 +125,23 @@ class RunModel(csdl.Model):
             'surface_names': surface_names,
             'surface_shapes': surface_shapes,
             'delta_t': delta_t,
-            'bd_vortex_coords': bd_vortex_coords,
             'frame_vel': frame_vel,
-            'wake_coords': wake_coords,
+            'wake_coords': [wake_coords_val],
             'nt': nt,
         }
         profile_params_dict = {
-            'nt': nt,
-            'vortex_coords_shapes': vortex_coords_shapes,
-            'frame_vel_val': frame_vel,
+            'nt':
+            nt,
+            'surface_names':
+            surface_names,
+            'surface_shapes':
+            surface_shapes,
+            'frame_vel_val':
+            frame_vel,
             # 'delta_t': delta_t,
-            # 'bd_vortex_coords': bd_vortex_coords,
-            # 'frame_vel': frame_vel,
-            # 'wake_coords': wake_coords,
+            'surface_coords':
+            [generate_simple_mesh(surface_shape[0], surface_shape[1], 1)],
+            'wake_coords': [wake_coords_val],
         }
 
         # ODEProblem_instance
@@ -150,27 +160,29 @@ class RunModel(csdl.Model):
 def generate_simple_mesh(nx, ny, nt=None):
     if nt == None:
         mesh = np.zeros((nx, ny, 3))
-        mesh[:, :, 0] = np.outer(np.arange(nx), np.ones(ny)) + 0.25
+        mesh[:, :, 0] = np.outer(np.arange(nx), np.ones(ny))
         mesh[:, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T
         mesh[:, :, 2] = 0.
     else:
         mesh = np.zeros((nt, nx, ny, 3))
         for i in range(nt):
-            mesh[i, :, :, 0] = np.outer(np.arange(nx), np.ones(ny)) + 0.25
+            mesh[i, :, :, 0] = np.outer(np.arange(nx), np.ones(ny))
             mesh[i, :, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T
             mesh[i, :, :, 2] = 0.
     return mesh
 
-nt = 3
+
+nt = 4
 nx = 2
 ny = 2
-h_stepsize=1.
+h_stepsize = 1.
 dynamic_option = False
-surface_names = ['wing_1']
+surface_names = ['wing']
 surface_shapes = [(nx, ny, 3)]
 
 frame_vel_val = np.array([-1, 0, -1])
 delta_t = h_stepsize
+
 wake_coords_val_x = np.einsum(
     'i,j->ij',
     (2.25 + delta_t * np.arange(nt) * (-frame_vel_val[0])),
@@ -202,7 +214,7 @@ sim = csdl_om.Simulator(
     RunModel(
         num_timesteps=nt - 1,
         # num_nodes=1,
-        surface_names = surface_names,
+        surface_names=surface_names,
         surface_shapes=surface_shapes,
         delta_t=1,
         bd_vortex_coords=[bd_vortex_coords_val],
@@ -219,7 +231,7 @@ print('pressure difference is')
 print(sim.prob['delta_p'])
 
 # plot bd_vortex_coords
-plt.plot(bd_vortex_coords_val[:,:,0],bd_vortex_coords_val[:,:,1])
-plt.plot(bd_vortex_coords_val[:,:,0].T,bd_vortex_coords_val[:,:,1].T)
+plt.plot(bd_vortex_coords_val[:, :, 0], bd_vortex_coords_val[:, :, 1])
+plt.plot(bd_vortex_coords_val[:, :, 0].T, bd_vortex_coords_val[:, :, 1].T)
 plt.savefig('bd_vortex_coords.png')
 # sim.visualize_implementation()

@@ -42,7 +42,6 @@ class MeshPreprocessing(Model):
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
         for i in range(len(surface_names)):
-            print(surface_names)
             surface_name = surface_names[i]
             bd_vtx_coords_name = surface_name + '_bd_vtx_coords'
             coll_pts_coords_name = surface_name + '_coll_pts_coords'
@@ -50,13 +49,11 @@ class MeshPreprocessing(Model):
             span_name = surface_name + '_span_length'
             s_panel_name = surface_name + '_s_panel'
 
-            print(surface_shapes)
             nx = surface_shapes[i][1]
             ny = surface_shapes[i][2]
-            # def_mesh = self.declare_variable(surface_name, shape_by_conn=True)
+
             def_mesh = self.declare_variable(surface_name,
                                              shape=surface_shapes[i])
-            print(def_mesh.shape)
             bd_vtx_coords = self.create_output(bd_vtx_coords_name,
                                                shape=def_mesh.shape)
             bd_vtx_coords[:, 0:nx -
@@ -75,11 +72,11 @@ class MeshPreprocessing(Model):
 
             chords_vec = def_mesh[:, 0:nx - 1, :, :] - def_mesh[:, 1:, :, :]
             chords = csdl.pnorm(chords_vec, axis=(3))
-            self.register_output(chord_name, chords)
+            # self.register_output(chord_name, chords)
 
             span_vec = def_mesh[:, :, 0:ny - 1, :] - def_mesh[:, :, 1:, :]
             spans = csdl.pnorm(span_vec, axis=(2))
-            self.register_output(span_name, spans)
+            # self.register_output(span_name, spans)
             # TODO: need to fix this before computing the forces
 
             i = def_mesh[:, :-1, 1:, :] - def_mesh[:, 1:, :-1, :]
@@ -87,8 +84,8 @@ class MeshPreprocessing(Model):
             normals = csdl.cross(i, j, axis=3)
             s_panel = (csdl.sum(normals**2, axes=(3, )))**0.5 * 0.5
             # area = |ixj|/2
-            self.register_output(s_panel_name, s_panel)
-            print('******')
+
+            # self.register_output(s_panel_name, s_panel)
 
 
 if __name__ == "__main__":
