@@ -3,17 +3,8 @@ from csdl import Model
 import csdl
 import numpy as np
 from numpy.core.fromnumeric import size
-from UVLM_package.UVLM_system.solve_circulations.biot_savart_comp_org import BiotSvart
-# how to declare.options[]? Since I need 'if' statement
-# how to set values of the variables outside the class (Indep_var comp?)
-# why do we need a create input-how to set its value outside the class
-# How to use the same input
-# name of the comps, can it be something meaningful
-# size differnet than actual python code
-# what is the rule for registering outputs
-# cannot reshape chords
-# prjected vs wetted s_ref?
-# line 153 why cannot put 0.5 outside the ()
+# from UVLM_package.UVLM_system.solve_circulations.biot_savart_comp_org import BiotSvart
+from UVLM_package.UVLM_system.solve_circulations.biot_savart_comp_vc_temp import BiotSvart
 
 
 class AssembleAic(Model):
@@ -99,7 +90,6 @@ class AssembleAic(Model):
         aic_col_w = m1.create_output(full_aic_name, shape=aic_shape)
         row = 0
         col = 0
-        # print('shape_all', eval_pt_shapes, vortex_coords_shapes)
         for i in range(len(bd_coll_pts_shapes)):
             for j in range(len(wake_vortex_pts_shapes)):
                 aic_i_shape = (bd_coll_pts_shapes[i][0] *
@@ -118,11 +108,8 @@ class AssembleAic(Model):
                           col:col + delta_col, :] = csdl.reshape(
                               aic_i, new_shape=(delta_row, delta_col, 3))
                 col = col + delta_col
-                # print('finish inner loop******************')
             col = 0
             row = row + delta_row
-        # print('finish outter loop******************')
-
         self.register_output(full_aic_name, aic_col_w)
 
 

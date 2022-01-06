@@ -5,13 +5,23 @@ import csdl
 
 from UVLM_package.UVLM_system.solve_circulations.rhs_group_new import RHS
 from UVLM_package.UVLM_system.solve_circulations.assemble_aic import AssembleAic
-from UVLM_package.UVLM_system.solve_circulations.compute_normal_comp import ComputeNormal
 from UVLM_package.UVLM_system.solve_circulations.projection_comp import Projection
 
 
 class SolveMatrix(Model):
     """
     Solve the AIC linear system to obtain the vortex ring circulations.
+    A \gamma_b + b + M \gamma_w = 0
+
+    A        size: (A_row, A_col)
+        A_row = sum((nx[i] - 1) * (ny[i] - 1))
+        A_col = sum((nx[i] - 1) * (ny[i] - 1))
+    \gamma_b size: sum((nx[i] - 1) * (ny[i] - 1))
+    b        size: sum((nx[i] - 1) * (ny[i] - 1))
+    M        size: 
+        M_row = sum((nx[i] - 1) * (ny[i] - 1))
+        M_col = sum((nt - 1) * (ny[i] - 1))
+    \gamma_w size: sum((nt - 1) * (ny[i] - 1))
     Parameters
     ----------
     mtx[system_size, system_size] : numpy array
@@ -26,7 +36,6 @@ class SolveMatrix(Model):
         The vortex ring circulations obtained by solving the AIC linear system.
     """
     def initialize(self):
-        # self.parameters.declare('A_mtx_shape', types=tuple)
         self.parameters.declare('method',
                                 values=['fw_euler', 'bk_euler'],
                                 default='fw_euler')
@@ -126,9 +135,6 @@ class SolveMatrix(Model):
 
         y = csdl.einsum(aic_bd_proj, gamma_b,subscripts='ij,j->i') +\
                 csdl.einsum(M, gamma_w_flatten, subscripts='ij,j->i')+b
-
-        # y = csdl.einsum(aic_bd_proj, gamma_b,subscripts='ij,j->i') +\
-        #         csdl.einsum(M, gamma_b[3:], subscripts='ij,j->i')-b
 
         model.register_output('y', y)
 

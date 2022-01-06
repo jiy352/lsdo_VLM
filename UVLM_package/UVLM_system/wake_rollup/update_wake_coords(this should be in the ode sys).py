@@ -5,7 +5,7 @@ import numpy as np
 from numpy.core.fromnumeric import size
 
 
-class KinematicVelocity(Model):
+class UpdateWakeCoords(Model):
     """
     Compute various geometric properties for VLM analysis.
     These are used primarily to help compute postprocessing quantities,
@@ -16,12 +16,7 @@ class KinematicVelocity(Model):
     parameters
     ----------
     
-    delta_t
-    num_t
-    axis[str]
-
-    angular_vel[1,] rad/sec
-    bd_vtx_coords[num_evel_pts_x, num_evel_pts_y, 3] : csdl array 
+    x = x+v_total*delta_t
 
     Returns
     -------
@@ -71,19 +66,4 @@ class KinematicVelocity(Model):
 
 if __name__ == "__main__":
 
-    rotatonal_vel_names = ['r1', 'r2']
-    rotatonal_vel_shapes = [(10, 3), (5, 3)]
-    kinematic_vel_names = ['k1', 'k2']
-
-    model_1 = Model()
-    frame_vel_val = np.random.random((3, ))
-
-    frame_vel = model_1.create_input('frame_vel', val=frame_vel_val)
-    model_1.add(KinematicVelocity(
-        rotatonal_vel_names=rotatonal_vel_names,
-        rotatonal_vel_shapes=rotatonal_vel_shapes,
-        kinematic_vel_names=kinematic_vel_names,
-    ),
-                name='KinematicVelocity')
-    sim = Simulator(model_1)
-    sim.run()
+    pass

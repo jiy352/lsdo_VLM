@@ -207,8 +207,6 @@ wake_coords_val[:, :, 0] = wake_coords_val_x.reshape(nt, ny)
 wake_coords_val[:, :, 1] = wake_coords_val_y.reshape(nt, ny)
 wake_coords_val[:, :, 2] = wake_coords_val_z.reshape(nt, ny)
 
-vortex_coords_shapes = [(nx, ny, 3)]
-
 # Simulator Object: Note we are passing in a parameter that can be used in the ode system
 sim = csdl_om.Simulator(
     RunModel(

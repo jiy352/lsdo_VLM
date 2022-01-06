@@ -38,7 +38,7 @@ class InducedVelocity(Model):
     """
     def initialize(self):
         self.parameters.declare('aic_names', types=list)
-        self.parameters.declare('circulations_names', types=list)
+        self.parameters.declare('circulation_names', types=list)
 
         self.parameters.declare('aic_shapes', types=list)
         self.parameters.declare('circulations_shapes', types=list)
@@ -48,7 +48,7 @@ class InducedVelocity(Model):
     def define(self):
         # add_input
         aic_names = self.parameters['aic_names']
-        circulations_names = self.parameters['circulations_names']
+        circulation_names = self.parameters['circulation_names']
         aic_shapes = self.parameters['aic_shapes']
         circulations_shapes = self.parameters['circulations_shapes']
         v_induced_names = self.parameters['v_induced_names']
@@ -59,7 +59,7 @@ class InducedVelocity(Model):
 
             # input_names
             aic_name = aic_names[i]
-            circulations_name = circulations_names[i]
+            circulations_name = circulation_names[i]
 
             # output_name
             v_induced_name = v_induced_names[i]
@@ -101,7 +101,7 @@ if __name__ == "__main__":
         return mesh
 
     aic_names = ['aic']
-    circulations_names = ['circ']
+    circulation_names = ['circ']
     aic_shapes = [(36, 3)]
     circulations_shapes = [(6)]
     v_induced_names = ['v_ind']
@@ -113,7 +113,7 @@ if __name__ == "__main__":
     vor = model_1.create_input('aic', val=aic_val)
     col = model_1.create_input('circ', val=circulations_val)
     model_1.add(InducedVelocity(aic_names=aic_names,
-                                circulations_names=circulations_names,
+                                circulation_names=circulation_names,
                                 aic_shapes=aic_shapes,
                                 circulations_shapes=circulations_shapes,
                                 v_induced_names=v_induced_names),

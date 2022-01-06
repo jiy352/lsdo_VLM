@@ -17,7 +17,7 @@ class RHS(Model):
     such as wave CD, viscous CD, etc.
     Some of the quantities, like `normals`, are used to compute the RHS
     of the AIC linear system.
-    A \gamma_b = b - M \gamma_w
+    A \gamma_b + b + M \gamma_w = 0
     parameters
     ----------
 
@@ -43,20 +43,23 @@ class RHS(Model):
         self.parameters.declare('bd_vortex_shapes', types=list)
 
     def define(self):
-        # mesh = 3,4,3
         nt = self.parameters['nt']
         bd_vortex_shapes = self.parameters['bd_vortex_shapes']
         surface_names = self.parameters['surface_names']
 
         bd_vtx_coords_names = [x + '_bd_vtx_coords' for x in surface_names]
-        bd_vtx_normals = [x + '_bd_vtx_normals' for x in surface_names]
+        bd_vtx_normal_names = [x + '_bd_vtx_normals' for x in surface_names]
         coll_pts_coords_names = [x + '_coll_pts_coords' for x in surface_names]
         wake_coords_names = [x + '_wake_coords' for x in surface_names]
         bd_coll_pts_shapes = [
             tuple(map(lambda i, j: i - j, item, (1, 1, 0)))
             for item in bd_vortex_shapes
         ]
-        # ny = 4
+
+        wake_vortex_pts_shapes = [
+            tuple((nt, item[1], item[2])) for item in bd_vortex_shapes
+        ]
+
         for i in range(len(bd_vortex_shapes)):
             nx = bd_vortex_shapes[i][0]
             ny = bd_vortex_shapes[i][1]
@@ -69,46 +72,52 @@ class RHS(Model):
                                             shape=((nx - 1), (ny - 1), 3))
 
         m = KinematicVelocity(
-            rotatonal_vel_names=['rot_vel'],
-            rotatonal_vel_shapes=[((nx - 1) * (ny - 1), 3)],  # (2*3,3)
-            kinematic_vel_names=['kinematic_vel'],
+            surface_names=surface_names,
+            surface_shapes=bd_vortex_shapes,  # (2*3,3)
         )
         self.add(m, name='KinematicVelocity')
 
         m = ComputeNormal(
             vortex_coords_names=bd_vtx_coords_names,
-            normals_names=bd_vtx_normals,
+            normals_names=bd_vtx_normal_names,
             vortex_coords_shapes=[(nx, ny, 3)],
         )
         self.add(m, name='ComputeNormal')  # shape=(2,3,3)
 
         m = Projection(
             input_vel_names=['kinematic_vel'],
-            normal_names=bd_vtx_normals,
+            normal_names=bd_vtx_normal_names,
             output_vel_names=['b'],  # this is b
             input_vel_shapes=[((nx - 1) * (ny - 1), 3)],  #rotatonal_vel_shapes
             normal_shapes=[((nx - 1), (ny - 1), 3)],
         )
         self.add(m, name='Projection_k_vel')
         '''2. compute M (bk_euler) or M\gamma_w (fw_euler)'''
-        # print('shape in rhs_gourp_new==================', (nt, 4, 3))
         m = AssembleAic(
             bd_coll_pts_names=coll_pts_coords_names,
             wake_vortex_pts_names=wake_coords_names,
             bd_coll_pts_shapes=bd_coll_pts_shapes,
-            wake_vortex_pts_shapes=[(nt, ny, 3)],  #TODO: fix this bug later
+            wake_vortex_pts_shapes=wake_vortex_pts_shapes,
             full_aic_name='aic_M'  # one line of wake vortex for fix wake
         )
         self.add(m, name='AssembleAic')
+        '''3. compute the size of the full AIC (coll_pts_coords_names, wake_coords_names) matrix'''
+
+        aic_shape_row = aic_shape_col = 0
+
+        for i in range(len(bd_coll_pts_shapes)):
+            aic_shape_row += (bd_coll_pts_shapes[i][0] *
+                              bd_coll_pts_shapes[i][1])
+            aic_shape_col += ((wake_vortex_pts_shapes[i][0] - 1) *
+                              (wake_vortex_pts_shapes[i][1] - 1))
         '''3. project the aic on to the bd_vertices'''
         m = Projection(
             input_vel_names=['aic_M'],
-            normal_names=bd_vtx_normals,
+            normal_names=bd_vtx_normal_names,
             output_vel_names=['M'],  # this is b
-            input_vel_shapes=[((nx - 1) * (ny - 1), (nt - 1) * (ny - 1), 3)
+            input_vel_shapes=[(aic_shape_row, aic_shape_col, 3)
                               ],  #rotatonal_vel_shapes
-            normal_shapes=[((nx - 1), (ny - 1), 3)],
-        )
+            normal_shapes=bd_coll_pts_shapes)  # NOTE: need to fix this later
         self.add(m, name='Projection_aic')
 
         # if method == 'fw_euler':

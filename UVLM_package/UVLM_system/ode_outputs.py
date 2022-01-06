@@ -107,7 +107,6 @@ class ProfileOutputSystemModel(csdl.Model):
                                 0.5 * rho * 6) / (csdl.pnorm(-frame_vel)**2)
 
         # TODO: fix this hard coding using a csdl model
-
         self.register_output(
             'delta_p', csdl.reshape(delta_p,
                                     new_shape=(n, (nx - 1) * (ny - 1))))
