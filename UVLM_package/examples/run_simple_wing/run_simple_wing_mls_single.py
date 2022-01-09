@@ -111,12 +111,8 @@ class RunModel(csdl.Model):
         self.create_input('coefficients',
                           np.ones(num_times + 1) / (num_times + 1))
         for i in range(len(surface_names)):
-            surface_name = surface_names[i]
             surface_initial_condition_name = surface_name + '_gamam_w_0'
             surface_shape = surface_shapes[i]
-            # NOTE: this was create_input before
-            print('surface_initial_condition_name-------------',
-                  surface_initial_condition_name)
             self.create_input(surface_initial_condition_name,
                               np.zeros((nt - 1, surface_shape[1] - 1)))
 
@@ -179,13 +175,13 @@ def generate_simple_mesh(nx, ny, nt=None):
 
 nt = 4
 nx = 2
-ny = 3
+ny = 2
 h_stepsize = 1.
 dynamic_option = False
-surface_names = ['wing', 'wing1']
-# surface_names = ['wing']
-surface_shapes = [(nx, ny, 3), (nx, ny, 3)]
-# surface_shapes = [(nx, ny, 3)]
+# surface_names = ['wing', 'wing1']
+surface_names = ['wing']
+# surface_shapes = [(nx, ny, 3), (nx, ny, 3)]
+surface_shapes = [(nx, ny, 3)]
 
 frame_vel_val = np.array([-1, 0, -1])
 delta_t = h_stepsize
@@ -222,11 +218,11 @@ sim = csdl_om.Simulator(
         surface_names=surface_names,
         surface_shapes=surface_shapes,
         delta_t=1,
-        bd_vortex_coords=[bd_vortex_coords_val, bd_vortex_coords_val],
-        # bd_vortex_coords=[bd_vortex_coords_val],
+        # bd_vortex_coords=[bd_vortex_coords_val, bd_vortex_coords_val],
+        bd_vortex_coords=[bd_vortex_coords_val],
         frame_vel=frame_vel_val,
-        wake_coords=[wake_coords_val, wake_coords_val],
-        # wake_coords=[wake_coords_val],
+        # wake_coords=[wake_coords_val, wake_coords_val],
+        wake_coords=[wake_coords_val],
     ),
     mode='rev')
 # sim.prob.set_val(sim['gamma_w'], np.zeros((nt - 1, ny - 1)))

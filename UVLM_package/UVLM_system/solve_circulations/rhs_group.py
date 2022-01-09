@@ -84,11 +84,18 @@ class RHS(Model):
         )
         self.add(m, name='ComputeNormal')  # shape=(2,3,3)
 
+        kinematic_vel_names = [
+            x + '_kinematic_vel' for x in self.parameters['surface_names']
+        ]
+        kinematic_vel_shapes = [
+            tuple((item[0] * item[1], item[2])) for item in bd_coll_pts_shapes
+        ]
+
         m = Projection(
-            input_vel_names=['kinematic_vel'],
+            input_vel_names=kinematic_vel_names,
             normal_names=bd_vtx_normal_names,
-            output_vel_names=['b'],  # this is b
-            input_vel_shapes=[((nx - 1) * (ny - 1), 3)],  #rotatonal_vel_shapes
+            output_vel_names='b',  # this is b
+            input_vel_shapes=kinematic_vel_shapes,  #rotatonal_vel_shapes
             normal_shapes=bd_coll_pts_shapes,
         )
         self.add(m, name='Projection_k_vel')
@@ -116,7 +123,7 @@ class RHS(Model):
         m = Projection(
             input_vel_names=['aic_M'],
             normal_names=bd_vtx_normal_names,
-            output_vel_names=['M'],  # this is b
+            output_vel_names='M',  # this is b
             input_vel_shapes=[(aic_shape_row, aic_shape_col, 3)
                               ],  #rotatonal_vel_shapes
             normal_shapes=bd_coll_pts_shapes)  # NOTE: need to fix this later

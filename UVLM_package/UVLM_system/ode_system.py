@@ -34,6 +34,7 @@ class ODESystemModel(csdl.Model):
 
         bd_vortex_shapes = surface_shapes
         delta_t = self.parameters['delta_t']
+        gamma_b_shape = sum((i[0] - 1) * (i[1] - 1) for i in bd_vortex_shapes)
 
         frame_vel_val = self.parameters['frame_vel']
         wake_coords_val = self.parameters['wake_coords']
@@ -63,8 +64,7 @@ class ODESystemModel(csdl.Model):
                  name='solve_gamma_b_group')
 
         delta_t = self.parameters['delta_t']
-        gamma_b = self.declare_variable('gamma_b',
-                                        shape=((nx - 1) * (ny - 1), ))
+        gamma_b = self.declare_variable('gamma_b', shape=gamma_b_shape)
 
         self.add(SeperateGammab(surface_names=surface_names,
                                 surface_shapes=surface_shapes),

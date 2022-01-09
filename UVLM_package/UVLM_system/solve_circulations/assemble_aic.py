@@ -111,6 +111,8 @@ class AssembleAic(Model):
             col = 0
             row = row + delta_row
         self.register_output(full_aic_name, aic_col_w)
+        print('find bug 2--------------aic_bd shape', full_aic_name,
+              aic_col_w.shape)
 
 
 if __name__ == "__main__":

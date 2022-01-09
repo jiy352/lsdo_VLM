@@ -35,7 +35,7 @@ class Projection(Model):
         self.parameters.declare('input_vel_names', types=list)
         self.parameters.declare('normal_names', types=list)
 
-        self.parameters.declare('output_vel_names', types=list)
+        self.parameters.declare('output_vel_names', types=str)
 
         self.parameters.declare('input_vel_shapes', types=list)
         self.parameters.declare('normal_shapes', types=list)
@@ -48,41 +48,126 @@ class Projection(Model):
         input_vel_shapes = self.parameters['input_vel_shapes']
         normal_shapes = self.parameters['normal_shapes']
 
-        for i in range(len(input_vel_names)):
+        output_vel_name = output_vel_names
+        # there should only be one concatenated output
+        # for both kinematic vel and aic
 
-            # input_names
-            input_vel_name = input_vel_names[i]
-            normal_name = normal_names[i]
+        input_vel_shape_sum = 0
 
-            # output_name
-            output_vel_name = output_vel_names[i]
+        # project kinematic vel
+        if len(input_vel_shapes[0]) == 2:
+            output_shape = sum((i[0]) for i in input_vel_shapes)
+        # project aic
+        elif len(input_vel_shapes[0]) == 3:
+            output_shape = (sum((i[0]) for i in input_vel_shapes)) + (sum(
+                (i[1]) for i in input_vel_shapes))
 
-            # input_shapes
-            input_vel_shape = input_vel_shapes[i]
-            normal_shape = normal_shapes[i]
+        start = 0
+        if len(input_vel_names) > 1:
+            output_vel = self.create_output(output_vel_name,
+                                            shape=output_shape)
 
-            # declare_inputs
-            input_vel = self.declare_variable(input_vel_name,
-                                              shape=input_vel_shape)
+            for i in range(len(input_vel_names)):
 
-            normals = self.declare_variable(normal_name, shape=normal_shape)
-            # print('normals shape', normals.shape)
-            normals_reshaped = csdl.reshape(normals,
-                                            new_shape=(normals.shape[0] *
-                                                       normals.shape[1], 3))
-            # print('finsih reshape')
-            # print('input_vel shape', input_vel.shape)
+                # input_names
+                input_vel_name = input_vel_names[i]
+                normal_name = normal_names[i]
+
+                # input_shapes
+                input_vel_shape = input_vel_shapes[i]
+                normal_shape = normal_shapes[i]
+
+                # declare_inputs
+                input_vel = self.declare_variable(input_vel_name,
+                                                  shape=input_vel_shape)
+
+                normals = self.declare_variable(normal_name,
+                                                shape=normal_shape)
+                # print('normals shape', normals.shape)
+                normals_reshaped = csdl.reshape(
+                    normals,
+                    new_shape=(normals.shape[0] * normals.shape[1], 3))
+                # print('finsih reshape')
+                # print('input_vel shape', input_vel.shape)
+                if len(input_vel_shape) == 2:
+                    velocity_projections = csdl.einsum(input_vel,
+                                                       normals_reshaped,
+                                                       subscripts='ij,ij->i')
+                elif len(input_vel_shape) == 3:
+                    print(
+                        'Implementation error the dim of kinematic vel should be 2'
+                    )
+                    print(input_vel_name, normal_name, output_vel_name)
+                    exit()
+                    # velocity_projections = csdl.einsum(input_vel,
+                    #                                    normals_reshaped,
+                    #                                    subscripts='ijk,ik->ij')
+                # print('finsih velocity_projections')
+                delta = velocity_projections.shape[0]
+                output_vel[start:start + delta] = velocity_projections
+                start += delta
+
+        elif len(input_vel_names) == 1:
+            input_vel_name = input_vel_names[0]
+            input_vel_shape = input_vel_shapes[0]
+            # we need to concatenate the normal vectors
+            # into a whole vec to project the assembled aic matrix
+
+            normal_concatenated_shape = (sum(
+                (i[0] * i[1]) for i in normal_shapes), ) + (3, )
+
+            print('normal_concatenated_shape-----------',
+                  normal_concatenated_shape)
+
+            normal_concatenated = self.create_output(
+                'normal_concatenated' + '_' + output_vel_name,
+                shape=normal_concatenated_shape)
+
+            for i in range(len(normal_names)):
+
+                # input_names
+
+                normal_name = normal_names[i]
+
+                # input_shapes
+
+                normal_shape = normal_shapes[i]
+
+                # declare_inputs
+                input_vel = self.declare_variable(input_vel_name,
+                                                  shape=input_vel_shape)
+
+                normals = self.declare_variable(normal_name,
+                                                shape=normal_shape)
+                # print('normals shape', normals.shape)
+
+                normals_reshaped = csdl.reshape(
+                    normals,
+                    new_shape=(normals.shape[0] * normals.shape[1], 3))
+
+                delta = normals_reshaped.shape[0]
+                # print('find bug0-----------')
+                normal_concatenated[start:start + delta, :] = normals_reshaped
+                # print('finsih reshape')
+                # print('input_vel shape', input_vel.shape)
+                start += delta
+            # print('find bug1-----------')
             if len(input_vel_shape) == 2:
-                velocity_projections = csdl.einsum(input_vel,
-                                                   normals_reshaped,
-                                                   subscripts='ij,ij->i')
+                print('Implementation error the dim of aic should be 3')
+                print(input_vel_name, normal_name, output_vel_name)
+                # velocity_projections = csdl.einsum(input_vel,
+                #                                    normals_reshaped,
+                #                                    subscripts='ij,ij->i')
             elif len(input_vel_shape) == 3:
                 velocity_projections = csdl.einsum(input_vel,
-                                                   normals_reshaped,
+                                                   normal_concatenated,
                                                    subscripts='ijk,ik->ij')
-            # print('finsih velocity_projections')
-
-            self.register_output(output_vel_name, velocity_projections)
+                self.register_output(output_vel_name, velocity_projections)
+                # print('find bug2-----------')
+                print('find bug2--------------------', output_vel_name,
+                      velocity_projections.shape)
+                print('input shapes----------', input_vel_name,
+                      input_vel.shape, normal_concatenated.shape)
 
 
 if __name__ == "__main__":
