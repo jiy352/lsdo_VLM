@@ -66,7 +66,10 @@ class BiotSvart(Model):
             # input_names
             eval_pt_name = eval_pt_names[i]
             vortex_coords_name = vortex_coords_names[i]
-            circulation_name = circulation_names[i]
+            if self.parameters['vc'] == True:
+                circulation_name = circulation_names[i]
+            else:
+                circulation_name = None
 
             # output_name
             output_name = output_names[i]
