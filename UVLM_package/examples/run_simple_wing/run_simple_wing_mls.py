@@ -82,7 +82,7 @@ class RunModel(csdl.Model):
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
         delta_t = self.parameters['delta_t']
-        bd_vortex_coords = self.parameters['bd_vortex_coords']
+        # bd_vortex_coords = self.parameters['bd_vortex_coords']
         frame_vel = self.parameters['frame_vel']
         wake_coords = self.parameters['wake_coords']
 
@@ -98,10 +98,16 @@ class RunModel(csdl.Model):
                                       surface_shape[0], surface_shape[1],
                                       self.num_times))
             else:
-                self.create_input(surface_name,
-                                  val=generate_simple_mesh(
-                                      surface_shape[0], surface_shape[1], 1))
-
+                if surface_name == 'wing':
+                    self.create_input(surface_name,
+                                      val=generate_simple_mesh(
+                                          surface_shape[0], surface_shape[1],
+                                          1))
+                elif surface_name == 'wing1':
+                    self.create_input(surface_name,
+                                      val=generate_simple_mesh(
+                                          surface_shape[0], surface_shape[1],
+                                          1, offset))
         h_stepsize = 1
 
         # Create given inputs
@@ -162,24 +168,25 @@ class RunModel(csdl.Model):
             'subgroup', ['*'])
 
 
-def generate_simple_mesh(nx, ny, nt=None):
+def generate_simple_mesh(nx, ny, nt=None, offset=0):
     if nt == None:
         mesh = np.zeros((nx, ny, 3))
         mesh[:, :, 0] = np.outer(np.arange(nx), np.ones(ny))
-        mesh[:, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T
+        mesh[:, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T + offset
         mesh[:, :, 2] = 0.
     else:
         mesh = np.zeros((nt, nx, ny, 3))
         for i in range(nt):
             mesh[i, :, :, 0] = np.outer(np.arange(nx), np.ones(ny))
-            mesh[i, :, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T
+            mesh[i, :, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T + offset
             mesh[i, :, :, 2] = 0.
     return mesh
 
 
 nt = 4
 nx = 2
-ny = 3
+ny = 2
+offset = 20
 h_stepsize = 1.
 dynamic_option = False
 surface_names = ['wing', 'wing1']
@@ -208,12 +215,14 @@ wake_coords_val_y = (np.einsum(
     np.ones(nt),
 ) + (delta_t * np.arange(nt) * (-frame_vel_val[1])).reshape(-1, 1)).flatten()
 bd_vortex_coords_val = generate_simple_mesh(nx, ny)
-
+bd_vortex_coords_val_1 = generate_simple_mesh(nx, ny, offset=offset)
 wake_coords_val = np.zeros((nt, ny, 3))
 wake_coords_val[:, :, 0] = wake_coords_val_x.reshape(nt, ny)
 wake_coords_val[:, :, 1] = wake_coords_val_y.reshape(nt, ny)
 wake_coords_val[:, :, 2] = wake_coords_val_z.reshape(nt, ny)
 
+wake_coords_val_wing1 = wake_coords_val.copy()
+wake_coords_val_wing1[:, :, 1] = wake_coords_val_y.reshape(nt, ny) + offset
 # Simulator Object: Note we are passing in a parameter that can be used in the ode system
 sim = csdl_om.Simulator(
     RunModel(
@@ -222,10 +231,10 @@ sim = csdl_om.Simulator(
         surface_names=surface_names,
         surface_shapes=surface_shapes,
         delta_t=1,
-        bd_vortex_coords=[bd_vortex_coords_val, bd_vortex_coords_val],
+        # bd_vortex_coords=[bd_vortex_coords_val_1, bd_vortex_coords_val_1],
         # bd_vortex_coords=[bd_vortex_coords_val],
         frame_vel=frame_vel_val,
-        wake_coords=[wake_coords_val, wake_coords_val],
+        wake_coords=[wake_coords_val, wake_coords_val_wing1],
         # wake_coords=[wake_coords_val],
     ),
     mode='rev')
