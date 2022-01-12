@@ -22,15 +22,21 @@ class ProfileOutputSystemModel(csdl.Model):
         self.parameters.declare(
             'surface_coords', types=list
         )  #TODO: need to figure out how to get the parameters in outputs
+        self.parameters.declare('free_wake', default=True)
 
     def define(self):
+        print('enter ode outputs----------------------------')
+
         n = self.parameters['num_nodes']
         nt = self.parameters['nt']
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
         surface_coords = self.parameters['surface_coords']
 
-        wake_coords_val = self.parameters['wake_coords']
+        free_wake = self.parameters['free_wake']
+
+        if free_wake == False:
+            wake_coords_val = self.parameters['wake_coords']
         frame_vel_val = self.parameters['frame_vel_val']
 
         wake_coords_names = [x + '_wake_coords' for x in surface_names]
@@ -39,8 +45,6 @@ class ProfileOutputSystemModel(csdl.Model):
         nx = vor_coord_shapes[0][0]
         ny = vor_coord_shapes[0][1]
 
-        delta_t = 1.
-
         for i in range(len(surface_names)):
             surface_gamma_w_name = surface_names[i] + '_gamma_w'
             surface_gamma_w_out_name = surface_names[i] + '_gamma_w_out'
@@ -48,6 +52,17 @@ class ProfileOutputSystemModel(csdl.Model):
                                         val=np.zeros((n, nt - 1, ny - 1)))
             gamma_w_out = gamma_w + 0
             self.register_output(surface_gamma_w_out_name, gamma_w_out)
+
+            if free_wake == True:
+                surface_wake_coords_name = surface_names[i] + '_wake_coords'
+                surface_wake_coords_out_name = surface_names[
+                    i] + '_wake_coords_out'
+                wake_coords = self.create_input(surface_wake_coords_name,
+                                                val=np.zeros((n, nt, ny, 3)))
+                wake_coords_out = wake_coords + 0
+                self.register_output(surface_wake_coords_out_name,
+                                     wake_coords_out)
+            print('finish ode outputs----------------------------')
 
 
 if __name__ == "__main__":

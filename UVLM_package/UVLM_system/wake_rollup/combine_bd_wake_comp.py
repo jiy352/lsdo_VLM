@@ -47,9 +47,9 @@ S
             nx = surface_shapes[i][0]
             ny = surface_shapes[i][1]
 
-            wake_shape = (nt, ) + (ny, 3)
+            wake_shape = (1, nt, ny, 3)
             surface_gamma_b_shape = ((nx - 1) * (ny - 1))
-            surface_gamma_w_shape = ((nt - 1) * (ny - 1))
+            surface_gamma_w_shape = (1, (nt - 1), (ny - 1))
 
             # add_input name and shapes
             bd_vxt_coords = self.declare_variable(bd_vxt_coords_name,
@@ -65,13 +65,16 @@ S
             bd_n_wake_coords = self.create_output(bd_n_wake_coords_name,
                                                   shape=(nx + nt - 1, ny, 3))
             bd_n_wake_coords[:nx, :, :] = bd_vxt_coords
-            bd_n_wake_coords[nx:, :, :] = wake_coords[1:, :, :]
+            bd_n_wake_coords[nx:, :, :] = csdl.reshape(wake_coords,
+                                                       (nt, ny, 3))[1:, :, :]
+
             # compute output bd_n_wake_gamma
             bd_n_wake_gamma = self.create_output(bd_n_wake_circulation_name,
                                                  shape=(surface_gamma_b_shape +
-                                                        surface_gamma_w_shape))
+                                                        (nt - 1) * (ny - 1)))
             bd_n_wake_gamma[:surface_gamma_b_shape] = surface_gamma_b
-            bd_n_wake_gamma[surface_gamma_b_shape:] = surface_gamma_w
+            bd_n_wake_gamma[surface_gamma_b_shape:] = csdl.reshape(
+                surface_gamma_w, ((nt - 1) * (ny - 1)))
 
 
 if __name__ == "__main__":

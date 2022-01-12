@@ -137,7 +137,7 @@ class RunModel(csdl.Model):
             'surface_shapes': surface_shapes,
             'delta_t': delta_t,
             'frame_vel': frame_vel,
-            'wake_coords': [wake_coords_val, wake_coords_val],
+            'wake_coords': [wake_coords_val, wake_coords_val_wing1],
             'nt': nt,
         }
         profile_params_dict = {
@@ -152,7 +152,7 @@ class RunModel(csdl.Model):
             # 'delta_t': delta_t,
             'surface_coords':
             [generate_simple_mesh(surface_shape[0], surface_shape[1], 1)],
-            'wake_coords': [wake_coords_val, wake_coords_val],
+            'wake_coords': [wake_coords_val, wake_coords_val_wing1],
         }
 
         # ODEProblem_instance

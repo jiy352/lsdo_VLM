@@ -76,12 +76,19 @@ class AssembleAic(Model):
                 vortex_coords_shapes.append(wake_vortex_pts_shapes[j])
                 out_name = full_aic_name + str(i) + str(j)
                 output_names.append(out_name)
-
-        m = BiotSvart(eval_pt_names=eval_pt_names,
-                      vortex_coords_names=vortex_coords_names,
-                      eval_pt_shapes=eval_pt_shapes,
-                      vortex_coords_shapes=vortex_coords_shapes,
-                      output_names=output_names)
+        print('output_names~~~~~~~~~~~~~~~~~~~~~~~~~~~~', output_names)
+        print('output_names~~~~~~~~~~~~~~~~~~~~~~~~~~~~', eval_pt_names)
+        print('output_names~~~~~~~~~~~~~~~~~~~~~~~~~~~~', eval_pt_shapes)
+        print('output_names~~~~~~~~~~~~~~~~~~~~~~~~~~~~', vortex_coords_names)
+        print('output_names~~~~~~~~~~~~~~~~~~~~~~~~~~~~', vortex_coords_shapes)
+        print('output_names~~~~~~~~~~~~~~~~~~~~~~~~~~~~', )
+        m = BiotSvart(
+            eval_pt_names=eval_pt_names,
+            vortex_coords_names=vortex_coords_names,
+            eval_pt_shapes=eval_pt_shapes,
+            vortex_coords_shapes=vortex_coords_shapes,
+            output_names=output_names,
+        )
         self.add(m, name='aic_bd_w_seperate')
 
         aic_shape = (aic_shape_row, aic_shape_col, 3)

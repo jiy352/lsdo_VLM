@@ -35,6 +35,10 @@ class EvalWakeVel(Model):
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
         wake_coords_names = [x + '_wake_coords' for x in surface_names]
+
+        wake_coords_reshaped_names = [
+            x + '_wake_coords_reshaped' for x in surface_names
+        ]
         bdnwake_coords_names = [x + '_bdnwake_coords' for x in surface_names]
         output_names = [x + '_aic_wake' for x in surface_names]
         circulation_names = [x + '_bdnwake_gamma' for x in surface_names]
@@ -49,9 +53,14 @@ class EvalWakeVel(Model):
             for x, y in zip(surface_shapes, wake_vortex_pts_shapes)
         ]
         wake_vel_shapes = [(x[0] * x[1], 3) for x in wake_vortex_pts_shapes]
+        for i in range(len(surface_names)):
+            wake_coords_reshaped_name = wake_coords_reshaped_names[i]
+            ny = surface_shapes[i][1]
+            wake_coords_reshaped = self.declare_variable(
+                wake_coords_reshaped_name, shape=(nt, ny, 3))
 
         self.add(BiotSvart(
-            eval_pt_names=wake_coords_names,
+            eval_pt_names=wake_coords_reshaped_names,
             vortex_coords_names=bdnwake_coords_names,
             eval_pt_shapes=wake_vortex_pts_shapes,
             vortex_coords_shapes=bdnwake_shapes,
@@ -87,12 +96,23 @@ class EvalWakeVel(Model):
             kinematic_vel_name = kinematic_vel_names[i]
             v_induced_wake = model_wake_total_vel.declare_variable(
                 v_induced_wake_name, shape=wake_vel_shape)
-            kinematic_vel = model_wake_total_vel.declare_variable(
-                kinematic_vel_name, shape=wake_vel_shape)
-            v_total_wake = csdl.reshape((v_induced_wake + kinematic_vel),
+            # print('v_induced_wake shape=======================',
+            #       v_induced_wake.shape)
+            # !!TODO!! this needs to be fixed for more general cases to compute the undisturbed vel
+
+            # kinematic_vel = model_wake_total_vel.declare_variable(
+            #     kinematic_vel_name, shape=wake_vel_shape)
+            frame_vel = model_wake_total_vel.declare_variable('frame_vel',
+                                                              shape=(3, ))
+            frame_vel_expand = csdl.expand(frame_vel,
+                                           wake_vel_shape,
+                                           indices='i->ji')
+            v_total_wake = csdl.reshape((v_induced_wake + frame_vel_expand),
                                         new_shape=(wake_vortex_pts_shape))
             model_wake_total_vel.register_output(v_total_wake_names[i],
                                                  v_total_wake)
+            print('v_total_wake shape=======================',
+                  v_total_wake.shape)
         self.add(model_wake_total_vel, name='wake_total_vel')
 
 

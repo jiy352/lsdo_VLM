@@ -173,9 +173,9 @@ def generate_simple_mesh(nx, ny, nt=None):
     return mesh
 
 
-nt = 4
-nx = 2
-ny = 2
+nt = 10
+nx = 3
+ny = 20
 h_stepsize = 1.
 dynamic_option = False
 # surface_names = ['wing', 'wing1']

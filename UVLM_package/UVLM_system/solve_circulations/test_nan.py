@@ -67,10 +67,7 @@ class BiotSvart(Model):
             eval_pt_name = eval_pt_names[i]
             vortex_coords_name = vortex_coords_names[i]
             if self.parameters['vc'] == True:
-                if circulation_names != None:
-                    circulation_name = circulation_names[i]
-                else:
-                    circulation_name = None
+                circulation_name = circulation_names[i]
             else:
                 circulation_name = None
 
@@ -274,31 +271,18 @@ class BiotSvart(Model):
 
 if __name__ == "__main__":
 
-    def generate_simple_mesh(nx, ny, nt=None):
-        if nt == None:
-            mesh = np.zeros((nx, ny, 3))
-            mesh[:, :, 0] = np.outer(np.arange(nx), np.ones(ny))
-            mesh[:, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T
-            mesh[:, :, 2] = 0.
-        else:
-            mesh = np.zeros((nt, nx, ny, 3))
-            for i in range(nt):
-                mesh[i, :, :, 0] = np.outer(np.arange(nx), np.ones(ny))
-                mesh[i, :, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T
-                mesh[i, :, :, 2] = 0.
-        return mesh
+    eval_pt_names = ['wing_coll_pts_coords']
+    vortex_coords_names = ['wing_wake_coords_reshaped']
+    nt = 1
 
-    nt = 6
-    nx = 3
-    ny = 4
-
-    eval_pt_names = ['col']
-    vortex_coords_names = ['vor']
     # eval_pt_shapes = [(nx, ny, 3)]
     # vortex_coords_shapes = [(nx, ny, 3)]
 
     eval_pt_shapes = [(2, 3, 3)]
-    vortex_coords_shapes = [(nx, ny, 3)]
+    vortex_coords_shapes = [(5, 4, 3)]
+
+    nx = 5
+    ny = 4
 
     output_names = ['aic']
 
@@ -307,15 +291,23 @@ if __name__ == "__main__":
     # circulations_val = np.zeros(
     #     (nx - 1, ny - 1))  ####################the size of this is important
     # circulations_val[:2, :] = np.random.random((2, ny - 1))
-    circulations_val = np.ones((nx - 1, ny - 1)) * 0.5
+    circulations_val = np.ones((5 - 1, 4 - 1)) * 0.5
+    col_val = np.array([[[0.75, 0.5, 0.], [0.75, 1.5, 0.], [0.75, 2.5, 0.]],
+                        [[1.75, 0.5, 0.], [1.75, 1.5, 0.], [1.75, 2.5, 0.]]])
+    vor_val = np.array([[[2.25, 0., 0.], [2.25, 1., 0.], [2.25, 2., 0.],
+                         [2.25, 3., 0.]],
+                        [[2.25, 0., 0.], [2.25, 1., 0.], [2.25, 2., 0.],
+                         [2.25, 3., 0.]],
+                        [[2.25, 0., 0.], [2.25, 1., 0.], [2.25, 2., 0.],
+                         [2.25, 3., 0.]],
+                        [[2.25, 0., 0.], [2.25, 1., 0.], [2.25, 2., 0.],
+                         [2.25, 3., 0.]],
+                        [[2.25, 0., 0.], [2.25, 1., 0.], [2.25, 2., 0.],
+                         [2.25, 3., 0.]]])
 
-    vor_val = generate_simple_mesh(nx, ny)
-    col_val = 0.25 * (vor_val[:-1, :-1, :] + vor_val[:-1, 1:, :] +
-                      vor_val[1:, :-1, :] + vor_val[1:, 1:, :])
     # col_val = generate_simple_mesh(nx, ny)
-
-    vor = model_1.create_input('vor', val=vor_val)
-    col = model_1.create_input('col', val=col_val)
+    eval_pt = model_1.create_input('col', val=col_val)
+    vortex_coords = model_1.create_input('vor', val=vor_val)
     circulations = model_1.create_input('circulations',
                                         val=circulations_val.reshape(
                                             1, nx - 1, ny - 1))
@@ -330,11 +322,11 @@ if __name__ == "__main__":
                           circulation_names=['circulations']),
                 name='BiotSvart_group')
     sim = Simulator(model_1)
+    sim.run()
 
     print(sim['vor'])
     print(sim[output_names[0]])
     # sim.visualize_implementation()
-    sim.run()
 
     a_l = 1.25643
     kinematic_viscocity = 1.48 * 1e-5

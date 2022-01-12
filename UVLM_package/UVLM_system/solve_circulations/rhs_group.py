@@ -100,9 +100,22 @@ class RHS(Model):
         )
         self.add(m, name='Projection_k_vel')
         '''2. compute M (bk_euler) or M\gamma_w (fw_euler)'''
+
+        wake_coords_reshaped_names = [
+            x + '_wake_coords_reshaped' for x in surface_names
+        ]
+        for i in range(len(surface_names)):
+            wake_coords_reshaped_name = wake_coords_reshaped_names[i]
+            ny = bd_vortex_shapes[i][1]
+            wake_coords = self.declare_variable(wake_coords_names[i],
+                                                shape=(1, nt, ny, 3))
+            wake_coords_reshaped = csdl.reshape(wake_coords, (nt, ny, 3))
+            self.register_output(wake_coords_reshaped_name,
+                                 wake_coords_reshaped)
+
         m = AssembleAic(
             bd_coll_pts_names=coll_pts_coords_names,
-            wake_vortex_pts_names=wake_coords_names,
+            wake_vortex_pts_names=wake_coords_reshaped_names,
             bd_coll_pts_shapes=bd_coll_pts_shapes,
             wake_vortex_pts_shapes=wake_vortex_pts_shapes,
             full_aic_name='aic_M'  # one line of wake vortex for fix wake

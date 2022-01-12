@@ -87,7 +87,7 @@ class RHS(Model):
         m = Projection(
             input_vel_names=['kinematic_vel'],
             normal_names=bd_vtx_normal_names,
-            output_vel_names=['b'],  # this is b
+            output_vel_names='b',  # this is b
             input_vel_shapes=[((nx - 1) * (ny - 1), 3)],  #rotatonal_vel_shapes
             normal_shapes=[((nx - 1), (ny - 1), 3)],
         )
@@ -114,7 +114,7 @@ class RHS(Model):
         m = Projection(
             input_vel_names=['aic_M'],
             normal_names=bd_vtx_normal_names,
-            output_vel_names=['M'],  # this is b
+            output_vel_names='M',  # this is b
             input_vel_shapes=[(aic_shape_row, aic_shape_col, 3)
                               ],  #rotatonal_vel_shapes
             normal_shapes=bd_coll_pts_shapes)  # NOTE: need to fix this later

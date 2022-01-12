@@ -88,7 +88,7 @@ class SolveMatrix(Model):
         m = Projection(
             input_vel_names=['aic_bd'],
             normal_names=bd_vtx_normals,
-            output_vel_names=aic_bd_proj_names,  # this is b
+            output_vel_names=aic_bd_proj_names[0],  # this is b
             input_vel_shapes=[((nx - 1) * (ny - 1), (nx - 1) * (ny - 1), 3)
                               ],  #rotatonal_vel_shapes
             normal_shapes=[((nx - 1), (ny - 1), 3)],
