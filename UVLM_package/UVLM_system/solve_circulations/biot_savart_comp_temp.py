@@ -167,12 +167,12 @@ class BiotSvart(Model):
 
         # step 2 r1_norm, r2_norm
         r1_norm = csdl.einsum(
-            csdl.sum(r1**2 + 1e-8, axes=(1, ))**0.5,
+            csdl.sum(r1**2, axes=(1, ))**0.5,
             ones_3_val,
             subscripts='i,k->ik',
         )
         r2_norm = csdl.einsum(
-            csdl.sum(r2**2 + 1e-8, axes=(1, ))**0.5,
+            csdl.sum(r2**2, axes=(1, ))**0.5,
             ones_3_val,
             subscripts='i,k->ik',
         )
@@ -200,8 +200,8 @@ class BiotSvart(Model):
                 circulations, new_shape=((nx - 1),
                                          (ny - 1))) / kinematic_viscocity
 
-            r_c = (4 * a_l * kinematic_viscocity * sigma * time_current +
-                   1e-8)**0.5  # size = (nt-1, ny-1)
+            r_c = (4 * a_l * kinematic_viscocity * sigma *
+                   time_current)**0.5  # size = (nt-1, ny-1)
 
             r2_r1_norm_sq = csdl.sum((r2 - r1)**2, axes=(1, ))
 
