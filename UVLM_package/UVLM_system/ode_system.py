@@ -1,3 +1,5 @@
+from os import times_result
+from random import random
 import csdl
 from csdl_om import Simulator
 from numpy.core.fromnumeric import shape
@@ -9,6 +11,7 @@ from UVLM_package.UVLM_preprocessing.mesh_preprocessing_comp import MeshPreproce
 
 from UVLM_package.UVLM_system.wake_rollup.seperate_gamma_b import SeperateGammab
 from UVLM_package.UVLM_system.wake_rollup.wake_total_vel_group import WakeTotalVel
+from random import randrange
 
 
 class ODESystemModel(csdl.Model):
@@ -52,6 +55,9 @@ class ODESystemModel(csdl.Model):
         wake_vel_shapes = [(x[0] * x[1], 3) for x in wake_vortex_pts_shapes]
 
         ode_bd_vortex_shapes = ode_surface_shape
+
+        if free_wake == True:
+            vel_coeff = self.create_input('vel_coeff', shape=(n, nt - 1))
 
         for i in range(len(surface_names)):
             nx = bd_vortex_shapes[i][0]
@@ -105,46 +111,114 @@ class ODESystemModel(csdl.Model):
 
                 print('surface_wake_coords----------------',
                       surface_wake_coords.shape)
-                # surface_dwake_coords_dt = self.create_output(
-                #     surface_dwake_coords_dt_name, shape=(n, nt, ny, 3))
+                surface_dwake_coords_dt = self.create_output(
+                    surface_dwake_coords_dt_name, shape=(n, nt, ny, 3))
 
-            for i in range(n):
+            for j in range(n):
                 gamma_b_last = csdl.reshape(surface_gamma_b[(nx - 2) *
                                                             (ny - 1):],
                                             new_shape=(1, 1, ny - 1))
 
-                surface_dgammaw_dt[i,
+                surface_dgammaw_dt[j,
                                    0, :] = (gamma_b_last -
-                                            surface_gamma_w[i, 0, :]) / delta_t
-                surface_dgammaw_dt[i, 1:, :] = (
-                    surface_gamma_w[i, :(surface_gamma_w.shape[1] - 1), :] -
-                    surface_gamma_w[i, 1:, :]) / delta_t
+                                            surface_gamma_w[j, 0, :]) / delta_t
+                surface_dgammaw_dt[j, 1:, :] = (
+                    surface_gamma_w[j, :(surface_gamma_w.shape[1] - 1), :] -
+                    surface_gamma_w[j, 1:, :]) / delta_t
                 if free_wake == True:
+                    # here, we compute the wake coords
+                    # The zero th column will always be the T.E. won't change forever
+                    # when suppose nt=4 0,1,2,3
+
+                    # t=0       [TE,              TE,                 TE,                TE]
+                    # t = 1,    [TE,              TE+v_ind(TE,w+bd),  TE,                TE] -> bracket 0-1
+                    # c11 = TE+v_ind(TE,w+bd)
+
+                    # t = 2,    [TE,              TE+v_ind(t=1, bracket 0),  c11+v_ind(t=1, bracket 1),   TE] ->  bracket 0-1-2
+                    # c21 =  TE+v_ind(t=1, bracket 0)
+                    # c22 =  c11+v_ind(t=1, bracket 1)
+
+                    # t = 3,    [TE,              TE+v_ind(t=2, bracket 0),  c21+vind(t=2, bracket 1), c22+vind(t=2, bracket 2)] -> bracket 0-1-2-3
+                    # Then, the shedding is
+
+                    zeros = self.create_input('zeros',
+                                              val=np.zeros((1, 1, ny, 3)))
+
+                    surface_dwake_coords_dt[0, 0, :, :] = zeros
+
+                    frame_vel_expand = -csdl.expand(
+                        frame_vel, shape=(1, nt - 1, ny, 3), indices='i->jkli')
+
+                    wake_total_vel_final = csdl.einsum(
+                        vel_coeff,  #3,3
+                        frame_vel_expand,
+                        subscripts='ij,ijkl->ijkl')
+
+                    print('shapes in ode_system', )
+                    print('wake_total_vel_final', wake_total_vel_final.shape)
+                    print(
+                        'shapes in ode_system',
+                        surface_wake_coords[j, :(surface_wake_coords.shape[1] -
+                                                 1), :, :].shape)
+                    print('shapes in ode_system',
+                          surface_wake_coords[j, 1:, :, :].shape)
+
+                    # self.add(
+                    #     WakeTotalVel(surface_names=surface_names,
+                    #                  surface_shapes=surface_shapes,
+                    #                  nt=nt), 'Wake_total_vel_group')
+
+                    wake_total_vel = self.declare_variable(
+                        v_total_wake_names[i], val=np.zeros(
+                            (nt, ny, 3)))  # nt*ny,3
+                    wake_total_vel_reshaped = csdl.reshape(
+                        wake_total_vel, (1, nt, ny, 3))
+
                     self.add(
                         WakeTotalVel(surface_names=surface_names,
                                      surface_shapes=surface_shapes,
                                      nt=nt), 'Wake_total_vel_group')
-                    wake_total_vel = self.declare_variable(
-                        v_total_wake_names[i], shape=(nt, ny, 3))  # nt*ny,3
+
+                    surface_dwake_coords_dt[0, 1:, :, :] = (
+                        surface_wake_coords[j, :(surface_wake_coords.shape[1] -
+                                                 1), :, :] -
+                        surface_wake_coords[j, 1:, :, :]
+                    ) / delta_t + wake_total_vel_reshaped[:, 1:, :, :]
+                    # + wake_total_vel_reshaped[:, :(
+                    # surface_wake_coords.shape[1] - 1), :, :]
+
+                    #  + frame_vel_expand
 
                     # print(
                     #     'shapes to linear comb', surface_wake_coords.shape,
                     # surface_wake_coords[i, :(surface_gamma_w.shape[1] -
                     #                          1), :, :].shape,
                     # surface_wake_coords[i, 1:, :, :].shape)
+                    # print('vel_coeff shape-----------', vel_coeff.shape)
+                    # print('wake_total_vel_reshaped shape-----------',
+                    #       wake_total_vel_reshaped.shape)
+                    # wake_total_vel_reshaped = csdl.reshape(
+                    #     wake_total_vel, (1, nt, ny, 3))
 
-                    surface_dwake_coords_dt = csdl.reshape(
-                        wake_total_vel, (1, nt, ny, 3))
-                    self.register_output(surface_dwake_coords_dt_name,
-                                         surface_dwake_coords_dt)
+                    # test if the fix wake coords influence for free wake
 
-                    # (
-                    # surface_wake_coords[i, :
-                    #                     (surface_gamma_w.shape[1]), :, :] -
-                    # surface_wake_coords[i, 1:, :, :]) / delta_t
-                    #    + csdl.reshape(
-                    #        wake_total_vel,
-                    #        (1, nt, ny, 3))
+                    # wake_total_vel_final = csdl.einsum(
+                    #     vel_coeff,
+                    #     wake_total_vel_reshaped,
+                    #     subscripts='ij,ijkl->ijkl') / delta_t
+                    # surface_dwake_coords_dt = wake_total_vel_final
+
+                    # frame_vel_expand = -csdl.expand(
+                    #     frame_vel, shape=(1, nt, ny, 3), indices='i->jkli')
+
+                    # wake_total_vel_final = csdl.einsum(
+                    #     vel_coeff,
+                    #     frame_vel_expand,
+                    #     subscripts='ij,ijkl->ijkl') / delta_t
+
+                    # surface_dwake_coords_dt = wake_total_vel_final
+                    # self.register_output(surface_dwake_coords_dt_name,
+                    #                      surface_dwake_coords_dt)
         print('finish ode system----------------------------')
 
 
@@ -221,12 +295,12 @@ if __name__ == "__main__":
                                             val=np.zeros(
                                                 ((nx - 1) * (ny - 1), 3)))
     TE = [wake_coords_val.reshape(nt, ny, 3)[0, :, :]]
-    bd_vortex_coords = model_1.create_input('wing_wake_coords',
-                                            val=np.einsum(
-                                                'i,jk->ijk',
-                                                np.ones(nt),
-                                                TE[0],
-                                            ).reshape(1, nt, ny, 3))
+    # bd_vortex_coords = model_1.create_input('wing_wake_coords',
+    #                                         val=np.einsum(
+    #                                             'i,jk->ijk',
+    #                                             np.ones(nt),
+    #                                             TE[0],
+    #                                         ).reshape(1, nt, ny, 3))
 
     model_1.add(
         ODESystemModel(

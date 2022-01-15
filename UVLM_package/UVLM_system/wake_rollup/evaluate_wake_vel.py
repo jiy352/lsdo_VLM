@@ -107,7 +107,7 @@ class EvalWakeVel(Model):
             frame_vel_expand = csdl.expand(frame_vel,
                                            wake_vel_shape,
                                            indices='i->ji')
-            v_total_wake = csdl.reshape((v_induced_wake + frame_vel_expand),
+            v_total_wake = csdl.reshape((v_induced_wake - frame_vel_expand),
                                         new_shape=(wake_vortex_pts_shape))
             model_wake_total_vel.register_output(v_total_wake_names[i],
                                                  v_total_wake)

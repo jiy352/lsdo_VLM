@@ -167,12 +167,12 @@ class BiotSvart(Model):
 
         # step 2 r1_norm, r2_norm
         r1_norm = csdl.einsum(
-            csdl.sum(r1**2 + 1e-8, axes=(1, ))**0.5,
+            csdl.sum(r1**2 + self.parameters['eps'], axes=(1, ))**0.5,
             ones_3_val,
             subscripts='i,k->ik',
         )
         r2_norm = csdl.einsum(
-            csdl.sum(r2**2 + 1e-8, axes=(1, ))**0.5,
+            csdl.sum(r2**2 + self.parameters['eps'], axes=(1, ))**0.5,
             ones_3_val,
             subscripts='i,k->ik',
         )
@@ -201,7 +201,7 @@ class BiotSvart(Model):
                                          (ny - 1))) / kinematic_viscocity
 
             r_c = (4 * a_l * kinematic_viscocity * sigma * time_current +
-                   1e-8)**0.5  # size = (nt-1, ny-1)
+                   self.parameters['eps'])**0.5  # size = (nt-1, ny-1)
 
             r2_r1_norm_sq = csdl.sum((r2 - r1)**2, axes=(1, ))
 
@@ -246,12 +246,13 @@ class BiotSvart(Model):
             # pertubation = 0.01219
             # v_induced_line = array1 * csdl.expand(
             #     array2, array1.shape, 'i->ij') / (
-            #         r1_x_r2_norm_sq + pertubation * 1e-6
+            #         r1_x_r2_norm_sq + pertubation * self.parameters['eps']
             #     )  # TODO: fix this later
 
             v_induced_line = array1 * csdl.expand(
-                array2, array1.shape, 'i->ij') / (r1_x_r2_norm_sq + 1 * 1e-6
-                                                  )  # TODO: fix this later
+                array2, array1.shape, 'i->ij') / (
+                    r1_x_r2_norm_sq + 1 * self.parameters['eps']
+                )  # TODO: fix this later
 
             # r1_dot_r2 = csdl.dot(r1, r2, axis=1)
             # r1_dot_r2_expand = csdl.expand(r1_dot_r2,

@@ -183,7 +183,7 @@ class SolveMatrix(Model):
         solve.nonlinear_solver = NewtonSolver(
             solve_subsystems=False,
             maxiter=10,
-            iprint=False,
+            iprint=True,
         )
         solve.linear_solver = ScipyKrylov()
 

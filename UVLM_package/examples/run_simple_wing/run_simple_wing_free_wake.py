@@ -1,3 +1,4 @@
+from re import T
 import matplotlib.pyplot as plt
 import openmdao.api as om
 from ozone2.api import ODEProblem, Wrap, NativeSystem
@@ -10,6 +11,10 @@ import csdl_om
 import numpy as np
 
 from UVLM_package.UVLM_preprocessing.generate_simple_mesh import *
+
+import sys
+
+sys.setrecursionlimit(2000)
 
 
 class ODEProblemTest(ODEProblem):
@@ -37,6 +42,7 @@ class ODEProblemTest(ODEProblem):
 
         # If dynamic == True, The parameter must have shape = (self.num_times, ... shape of parameter @ every timestep ...)
         # The ODE function will use the parameter value at timestep 't': parameter@ODEfunction[shape_p] = fullparameter[t, shape_p]
+
         for i in range(len(surface_names)):
             surface_name = surface_names[i]
             surface_shape = surface_shapes[i]
@@ -48,6 +54,11 @@ class ODEProblemTest(ODEProblem):
                 self.add_parameter(surface_name,
                                    shape=(1, ) + surface_shape,
                                    dynamic=dynamic_option)
+
+        if free_wake == True:
+            self.add_parameter('vel_coeff',
+                               dynamic=True,
+                               shape=(self.num_times, self.num_times))
 
         # Inputs names correspond to respective upstream CSDL variables
         for i in range(len(surface_names)):
@@ -128,13 +139,14 @@ class RunModel(csdl.Model):
         # Initial condition for state
         self.create_input('coefficients',
                           np.ones(num_times + 1) / (num_times + 1))
+
         for i in range(len(surface_names)):
             surface_initial_condition_name = surface_name + '_gamma_w_0'
             surface_shape = surface_shapes[i]
             self.create_input(surface_initial_condition_name,
                               np.zeros((nt - 1, surface_shape[1] - 1)))
-            if free_wake == True:
 
+            if free_wake == True:
                 surface_wake_initial_condition_name = surface_name + '_wake_coords_0'
                 surface_wake_initial_condition = self.create_input(
                     surface_wake_initial_condition_name,
@@ -143,6 +155,9 @@ class RunModel(csdl.Model):
                         np.ones(nt),
                         TE[i],
                     ))
+                # val=wake_coords_val,
+                # )
+
                 # print('surface_wake_initial_condition-----',
                 #       surface_wake_initial_condition.shape)
 
@@ -177,12 +192,25 @@ class RunModel(csdl.Model):
             free_wake,
         }
 
+        # # add the dynamic parameter
+        # vel_coeff = np.zeros((nt - 1, nt))
+
+        # for i in range(nt - 1):
+        #     vel_coeff[i, nt - 1 - i:] = 1.
+
+        # add the dynamic parameter
+        vel_coeff = np.zeros((nt - 1, nt - 1))
+
+        for i in range(nt - 1):
+            vel_coeff[i, i:nt - 1] = 1.
+
+        self.create_input('vel_coeff', vel_coeff)
+
         # ODEProblem_instance
-        ODEProblem = ODEProblemTest(
-            'ForwardEuler',
-            'time-marching',
-            num_times,
-        )
+        ODEProblem = ODEProblemTest('ForwardEuler',
+                                    'time-marching',
+                                    num_times,
+                                    visualization='end')
         # visualization='during')
         self.add(
             ODEProblem.create_model(ODE_parameters=params_dict,
@@ -191,9 +219,9 @@ class RunModel(csdl.Model):
 
 
 free_wake = True
-nt = 3
+nt = 4
 nx = 2
-ny = 2
+ny = 5
 h_stepsize = 1.
 dynamic_option = False
 surface_names = ['wing']
@@ -206,8 +234,8 @@ delta_t = h_stepsize
 wake_coords_val = compute_wake_coords(nx, ny, nt, h_stepsize,
                                       frame_vel_val).reshape(1, nt, ny, 3)
 TE = [wake_coords_val.reshape(nt, ny, 3)[0, :, :]]
-if free_wake == True:
-    wake_coords_val = None
+# if free_wake == True:
+#     wake_coords_val = None
 # Simulator Object: Note we are passing in a parameter that can be used in the ode system
 sim = csdl_om.Simulator(
     RunModel(
