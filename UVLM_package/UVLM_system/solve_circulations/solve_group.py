@@ -43,6 +43,7 @@ class SolveMatrix(Model):
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('bd_vortex_shapes', types=list)
         self.parameters.declare('n', default=1)
+        self.parameters.declare('delta_t')
         # pass
 
     def define(self):
@@ -51,6 +52,7 @@ class SolveMatrix(Model):
         method = self.parameters['method']
         nt = self.parameters['nt']
         n = self.parameters['n']
+        delta_t = self.parameters['delta_t']
 
         bd_coll_pts_shapes = [
             tuple(map(lambda i, j: i - j, item, (1, 1, 0)))
@@ -74,9 +76,12 @@ class SolveMatrix(Model):
         model = Model()
         '''1. add the rhs'''
         model.add(
-            RHS(nt=nt,
+            RHS(
+                nt=nt,
                 surface_names=surface_names,
-                bd_vortex_shapes=bd_vortex_shapes), 'RHS_group')
+                bd_vortex_shapes=bd_vortex_shapes,
+                delta_t=delta_t,
+            ), 'RHS_group')
 
         nt = self.parameters['nt']
         '''2. compute A_mtx'''
@@ -85,7 +90,8 @@ class SolveMatrix(Model):
             wake_vortex_pts_names=bd_vtx_coords_names,
             bd_coll_pts_shapes=bd_coll_pts_shapes,
             wake_vortex_pts_shapes=bd_vortex_shapes,
-            full_aic_name='aic_bd'  # one line of wake vortex for fix wake
+            full_aic_name='aic_bd',
+            delta_t=delta_t,  # one line of wake vortex for fix wake
         )
         model.add(m, name='AssembleAic_bd')
         '''3. project the aic on to the bd_vertices'''
@@ -96,8 +102,7 @@ class SolveMatrix(Model):
             aic_shape_col += ((bd_coll_pts_shapes[i][0]) *
                               (bd_coll_pts_shapes[i][1]))
         aic_bd_proj_name = 'aic_bd_proj'
-        print('find bug 2--------------aic_bd shape', aic_shape_row,
-              aic_shape_col)
+
         m = Projection(
             input_vel_names=['aic_bd'],
             normal_names=bd_vtx_normals,
@@ -122,9 +127,8 @@ class SolveMatrix(Model):
         M = model.declare_variable('M', shape=M_shape)
         # TODO: fix this for mls
         gamma_b_shape = sum((i[0] - 1) * (i[1] - 1) for i in bd_vortex_shapes)
-        print('gamma_b_shape--------------', gamma_b_shape)
+
         aic_bd_proj_shape = (gamma_b_shape, ) + (gamma_b_shape, )
-        print('aic_bd_proj_shape--------------', aic_bd_proj_shape)
 
         aic_bd_proj = model.declare_variable(aic_bd_proj_name,
                                              shape=(aic_bd_proj_shape))
@@ -160,7 +164,7 @@ class SolveMatrix(Model):
         elif method == 'fw_euler':
             gamma_w = model.declare_variable('gamma_w',
                                              shape=(n, nt - 1, sum_ny))
-            print('gamma_w----before------', gamma_w.shape)
+
             gamma_w_reshaped = csdl.reshape(gamma_w,
                                             new_shape=(nt - 1, sum_ny))
 
@@ -168,11 +172,11 @@ class SolveMatrix(Model):
                 gamma_w_reshaped,
                 new_shape=(gamma_w_reshaped.shape[0] *
                            gamma_w_reshaped.shape[1], ))
-        print('shape---------------------',
-              csdl.einsum(aic_bd_proj, gamma_b, subscripts='ij,j->i').shape)
-        print('M shape', M.shape, gamma_w_flatten.shape)
-        print(csdl.einsum(M, gamma_w_flatten, subscripts='ij,j->i').shape)
-        print(b.shape)
+        # print('shape---------------------',
+        #       csdl.einsum(aic_bd_proj, gamma_b, subscripts='ij,j->i').shape)
+        # print('M shape', M.shape, gamma_w_flatten.shape)
+        # print(csdl.einsum(M, gamma_w_flatten, subscripts='ij,j->i').shape)
+        # print(b.shape)
         y = csdl.einsum(aic_bd_proj, gamma_b,subscripts='ij,j->i') +\
                 csdl.einsum(M, gamma_w_flatten, subscripts='ij,j->i')+b
 
@@ -182,21 +186,21 @@ class SolveMatrix(Model):
         solve.declare_state('gamma_b', residual='y')
         solve.nonlinear_solver = NewtonSolver(
             solve_subsystems=False,
-            maxiter=10,
-            iprint=True,
+            maxiter=2,
+            iprint=False,
         )
         solve.linear_solver = ScipyKrylov()
 
         M = self.declare_variable('M', shape=M_shape)
-        print('MMMMM', M.shape)
+        # print('MMMMM', M.shape)
         aic_bd_proj = self.declare_variable(aic_bd_proj_name,
                                             shape=(aic_shape_row,
                                                    aic_shape_col))
-        print('nt----------', nt)
+        # print('nt----------', nt)
         gamma_w = self.declare_variable(
             'gamma_w',
             shape=(1, nt - 1, gamma_b[(nx - 2) * (ny - 1):].shape[0]))
-        print('gamma_w----------', gamma_w.shape)
+        # print('gamma_w----------', gamma_w.shape)
 
         gamma_b = solve(M, aic_bd_proj, gamma_w)
 

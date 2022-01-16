@@ -54,8 +54,6 @@ class InducedVelocity(Model):
         v_induced_names = self.parameters['v_induced_names']
 
         for i in range(len(aic_names)):
-            print(i)
-            print('************')
 
             # input_names
             aic_name = aic_names[i]
@@ -80,7 +78,6 @@ class InducedVelocity(Model):
             v_induced = csdl.einsum(aic_reshaped,
                                     circulations,
                                     subscripts='ijk,j->ik')
-            print('v_induced', v_induced.shape)
             self.register_output(v_induced_name, v_induced)
 
 

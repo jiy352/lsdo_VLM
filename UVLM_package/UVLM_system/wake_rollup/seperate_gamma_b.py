@@ -43,7 +43,7 @@ class SeperateGammab(Model):
             ny = surface_shape[1]
             surface_gamma_b = gamma_b[start:start + (nx - 1) * (ny - 1)]
             start += (nx - 1) * (ny - 1)
-            print(surface_gamma_b_name, surface_gamma_b.shape)
+            # print(surface_gamma_b_name, surface_gamma_b.shape)
             self.register_output(surface_gamma_b_name, surface_gamma_b)
 
 

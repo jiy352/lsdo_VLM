@@ -49,7 +49,6 @@ class ComputeNormal(Model):
 
             # output_name
             normals_name = normals_names[i]
-            print('normals_name----------------------------', normals_name)
 
             # input_shapes
             vortex_coords_shape = vortex_coords_shapes[i]
@@ -63,8 +62,6 @@ class ComputeNormal(Model):
             norms = (csdl.sum(normals**2, axes=(2, )))**0.5
             norms_expanded = csdl.expand(norms, norms.shape + (3, ), 'ij->ija')
             normals_normalized = normals / norms_expanded
-            print('normals_normalized-shape---------------------------',
-                  normals_normalized.shape, i.shape, normals.shape)
 
             self.register_output(normals_name, normals_normalized)
 

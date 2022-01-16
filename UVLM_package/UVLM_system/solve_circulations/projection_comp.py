@@ -4,16 +4,6 @@ import csdl
 import numpy as np
 from numpy.core.fromnumeric import size
 import random
-# how to declare.options[]? Since I need 'if' statement
-# how to set values of the variables outside the class (Indep_var comp?)
-# why do we need a create input-how to set its value outside the class
-# How to use the same input
-# name of the comps, can it be something meaningful
-# size differnet than actual python code
-# what is the rule for registering outputs
-# cannot reshape chords
-# projected vs wetted s_ref?
-# line 153 why cannot put 0.5 outside the ()
 
 
 class Projection(Model):
@@ -87,8 +77,7 @@ class Projection(Model):
                 normals_reshaped = csdl.reshape(
                     normals,
                     new_shape=(normals.shape[0] * normals.shape[1], 3))
-                # print('finsih reshape')
-                # print('input_vel shape', input_vel.shape)
+
                 if len(input_vel_shape) == 2:
                     velocity_projections = csdl.einsum(input_vel,
                                                        normals_reshaped,
@@ -99,10 +88,7 @@ class Projection(Model):
                     )
                     print(input_vel_name, normal_name, output_vel_name)
                     exit()
-                    # velocity_projections = csdl.einsum(input_vel,
-                    #                                    normals_reshaped,
-                    #                                    subscripts='ijk,ik->ij')
-                # print('finsih velocity_projections')
+
                 delta = velocity_projections.shape[0]
                 output_vel[start:start + delta] = velocity_projections
                 start += delta
@@ -115,9 +101,6 @@ class Projection(Model):
 
             normal_concatenated_shape = (sum(
                 (i[0] * i[1]) for i in normal_shapes), ) + (3, )
-
-            print('normal_concatenated_shape-----------',
-                  normal_concatenated_shape)
 
             normal_concatenated = self.create_output(
                 'normal_concatenated' + '_' + output_vel_name,
@@ -146,15 +129,12 @@ class Projection(Model):
                     new_shape=(normals.shape[0] * normals.shape[1], 3))
 
                 delta = normals_reshaped.shape[0]
-                # print('find bug0-----------')
                 normal_concatenated[start:start + delta, :] = normals_reshaped
-                # print('finsih reshape')
-                # print('input_vel shape', input_vel.shape)
+
                 start += delta
-            # print('find bug1-----------')
             if len(input_vel_shape) == 2:
-                print('warning: the dim of aic should be 3')
-                print(input_vel_name, normal_name, output_vel_name)
+                # print('warning: the dim of aic should be 3')
+                # print(input_vel_name, normal_name, output_vel_name)
                 velocity_projections = csdl.einsum(input_vel,
                                                    normals_reshaped,
                                                    subscripts='ij,ij->i')
@@ -164,11 +144,6 @@ class Projection(Model):
                                                    normal_concatenated,
                                                    subscripts='ijk,ik->ij')
                 self.register_output(output_vel_name, velocity_projections)
-                # print('find bug2-----------')
-                print('find bug2--------------------', output_vel_name,
-                      velocity_projections.shape)
-                print('input shapes----------', input_vel_name,
-                      input_vel.shape, normal_concatenated.shape)
 
 
 if __name__ == "__main__":

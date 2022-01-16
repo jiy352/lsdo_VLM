@@ -41,9 +41,11 @@ class RHS(Model):
                                 default='bk_euler')
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('bd_vortex_shapes', types=list)
+        self.parameters.declare('delta_t')
 
     def define(self):
         nt = self.parameters['nt']
+        delta_t = self.parameters['delta_t']
         bd_vortex_shapes = self.parameters['bd_vortex_shapes']
         surface_names = self.parameters['surface_names']
 
@@ -118,7 +120,8 @@ class RHS(Model):
             wake_vortex_pts_names=wake_coords_reshaped_names,
             bd_coll_pts_shapes=bd_coll_pts_shapes,
             wake_vortex_pts_shapes=wake_vortex_pts_shapes,
-            full_aic_name='aic_M'  # one line of wake vortex for fix wake
+            full_aic_name='aic_M',
+            delta_t=delta_t,  # one line of wake vortex for fix wake
         )
         self.add(m, name='AssembleAic')
         '''3. compute the size of the full AIC (coll_pts_coords_names, wake_coords_names) matrix'''
@@ -131,7 +134,7 @@ class RHS(Model):
             aic_shape_col += ((wake_vortex_pts_shapes[i][0] - 1) *
                               (wake_vortex_pts_shapes[i][1] - 1))
 
-        print('aic_M-----------', (aic_shape_row, aic_shape_col, 3))
+        # print('aic_M-----------', (aic_shape_row, aic_shape_col, 3))
         '''3. project the aic on to the bd_vertices'''
         m = Projection(
             input_vel_names=['aic_M'],

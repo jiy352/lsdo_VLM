@@ -28,10 +28,12 @@ class EvalWakeVel(Model):
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('surface_shapes', types=list)
         self.parameters.declare('nt')
+        self.parameters.declare('delta_t')
 
     def define(self):
         # add_input name and shapes
         nt = self.parameters['nt']
+        delta_t = self.parameters['delta_t']
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
         wake_coords_names = [x + '_wake_coords' for x in surface_names]
@@ -66,6 +68,7 @@ class EvalWakeVel(Model):
             vortex_coords_shapes=bdnwake_shapes,
             output_names=output_names,
             circulation_names=circulation_names,
+            delta_t=delta_t,
             vc=True,
         ),
                  name='evaluate_wake_aics')
@@ -111,8 +114,7 @@ class EvalWakeVel(Model):
                                         new_shape=(wake_vortex_pts_shape))
             model_wake_total_vel.register_output(v_total_wake_names[i],
                                                  v_total_wake)
-            print('v_total_wake shape=======================',
-                  v_total_wake.shape)
+
         self.add(model_wake_total_vel, name='wake_total_vel')
 
 

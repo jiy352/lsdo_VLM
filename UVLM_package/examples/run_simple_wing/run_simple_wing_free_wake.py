@@ -1,20 +1,13 @@
-from re import T
 import matplotlib.pyplot as plt
 import openmdao.api as om
-from ozone2.api import ODEProblem, Wrap, NativeSystem
-from UVLM_package.UVLM_system.ode_system import ODESystemModel  #, ODESystemNative, ODESystemNativeSparse
-# from ode_system_start import ODESystemModel  #, ODESystemNative, ODESystemNativeSparse
-# from ode_outputs_delta_p import Profil.eOutputSystem  #, ODESystemNative, ODESystemNativeSparse
-from UVLM_package.UVLM_system.ode_outputs_mls import ProfileOutputSystemModel  #, ODESystemNative, ODESystemNativeSparse
-import csdl
+from ozone2.api import ODEProblem, Wrap
+
+from UVLM_package.UVLM_system.ode_system import ODESystemModel
+from UVLM_package.UVLM_system.ode_outputs_mls import ProfileOutputSystemModel
 import csdl_om
 import numpy as np
 
 from UVLM_package.UVLM_preprocessing.generate_simple_mesh import *
-
-import sys
-
-sys.setrecursionlimit(2000)
 
 
 class ODEProblemTest(ODEProblem):
@@ -54,11 +47,6 @@ class ODEProblemTest(ODEProblem):
                 self.add_parameter(surface_name,
                                    shape=(1, ) + surface_shape,
                                    dynamic=dynamic_option)
-
-        if free_wake == True:
-            self.add_parameter('vel_coeff',
-                               dynamic=True,
-                               shape=(self.num_times, self.num_times))
 
         # Inputs names correspond to respective upstream CSDL variables
         for i in range(len(surface_names)):
@@ -103,7 +91,6 @@ class RunModel(csdl.Model):
 
         # We also passed in parameters to this ODE model in ODEproblem.create_model() in 'run.py' which we can access here.
         # for now, we just make frame_vel, bd_vortex_coords, as static parameters
-        # self.parameters.declare('bd_vortex_coords', types=list)
         self.parameters.declare('frame_vel')
         self.parameters.declare('wake_coords', types=list)
 
@@ -134,7 +121,7 @@ class RunModel(csdl.Model):
                                   val=generate_simple_mesh(
                                       surface_shape[0], surface_shape[1], 1))
 
-        h_stepsize = 1
+        h_stepsize = delta_t
 
         # Initial condition for state
         self.create_input('coefficients',
@@ -155,11 +142,6 @@ class RunModel(csdl.Model):
                         np.ones(nt),
                         TE[i],
                     ))
-                # val=wake_coords_val,
-                # )
-
-                # print('surface_wake_initial_condition-----',
-                #       surface_wake_initial_condition.shape)
 
         # Timestep vector
         h_vec = np.ones(num_times) * h_stepsize
@@ -192,25 +174,11 @@ class RunModel(csdl.Model):
             free_wake,
         }
 
-        # # add the dynamic parameter
-        # vel_coeff = np.zeros((nt - 1, nt))
-
-        # for i in range(nt - 1):
-        #     vel_coeff[i, nt - 1 - i:] = 1.
-
-        # add the dynamic parameter
-        vel_coeff = np.zeros((nt - 1, nt - 1))
-
-        for i in range(nt - 1):
-            vel_coeff[i, i:nt - 1] = 1.
-
-        self.create_input('vel_coeff', vel_coeff)
-
         # ODEProblem_instance
         ODEProblem = ODEProblemTest('ForwardEuler',
                                     'time-marching',
                                     num_times,
-                                    visualization='end')
+                                    visualization=None)
         # visualization='during')
         self.add(
             ODEProblem.create_model(ODE_parameters=params_dict,
@@ -222,32 +190,29 @@ free_wake = True
 nt = 4
 nx = 2
 ny = 5
-h_stepsize = 1.
+h_stepsize = delta_t = 1.
 dynamic_option = False
 surface_names = ['wing']
 surface_shapes = [(nx, ny, 3)]
 
 frame_vel_val = np.array([-1, 0, -1])
-delta_t = h_stepsize
 
-# bd_vortex_coords_val = generate_simple_mesh(nx, ny)
 wake_coords_val = compute_wake_coords(nx, ny, nt, h_stepsize,
                                       frame_vel_val).reshape(1, nt, ny, 3)
 TE = [wake_coords_val.reshape(nt, ny, 3)[0, :, :]]
-# if free_wake == True:
-#     wake_coords_val = None
+if free_wake == True:
+    wake_coords_val = None
+
 # Simulator Object: Note we are passing in a parameter that can be used in the ode system
-sim = csdl_om.Simulator(
-    RunModel(
-        num_timesteps=nt - 1,
-        # num_nodes=1,
-        surface_names=surface_names,
-        surface_shapes=surface_shapes,
-        delta_t=1,
-        frame_vel=frame_vel_val,
-        wake_coords=[wake_coords_val],
-    ),
-    mode='rev')
+sim = csdl_om.Simulator(RunModel(
+    num_timesteps=nt - 1,
+    surface_names=surface_names,
+    surface_shapes=surface_shapes,
+    delta_t=delta_t,
+    frame_vel=frame_vel_val,
+    wake_coords=[wake_coords_val],
+),
+                        mode='rev')
 sim.prob.run_model()
 # Checktotals
 print('wake circulation strength is')

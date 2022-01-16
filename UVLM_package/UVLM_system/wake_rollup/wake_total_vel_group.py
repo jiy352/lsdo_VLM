@@ -30,10 +30,12 @@ class WakeTotalVel(Model):
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('surface_shapes', types=list)
         self.parameters.declare('nt')
+        self.parameters.declare('delta_t')
 
     def define(self):
         # add_input name and shapes
         nt = self.parameters['nt']
+        delta_t = self.parameters['delta_t']
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
         wake_coords_names = [x + '_wake_coords' for x in surface_names]
@@ -54,6 +56,7 @@ class WakeTotalVel(Model):
             surface_names=surface_names,
             surface_shapes=surface_shapes,
             nt=nt,
+            delta_t=delta_t,
         ),
                  name='EvalWakeVel')
 
@@ -81,6 +84,7 @@ if __name__ == "__main__":
     nt = 2
     model_1 = Model()
     frame_vel_val = np.random.random((3, ))
+    delta_t = 1
     for i in range(2):
         bd_vxt_coords_name = surface_names[i] + '_bd_vtx_coords'
         wake_coords_name = surface_names[i] + '_wake_coords'
@@ -113,6 +117,7 @@ if __name__ == "__main__":
         surface_names=surface_names,
         surface_shapes=surface_shapes,
         nt=nt,
+        delta_t=delta_t,
     ),
                 name='WakeTotalVels')
 

@@ -2,7 +2,7 @@ import csdl
 from csdl_om import Simulator
 from ozone2.api import NativeSystem
 import numpy as np
-from UVLM_package.UVLM_system.solve_circulations.solve_group_new import SolveMatrix
+from UVLM_package.UVLM_system.solve_circulations.solve_group import SolveMatrix
 from UVLM_package.UVLM_preprocessing.mesh_preprocessing_comp import MeshPreprocessing
 
 
@@ -25,7 +25,6 @@ class ProfileOutputSystemModel(csdl.Model):
         self.parameters.declare('free_wake', default=True)
 
     def define(self):
-        print('enter ode outputs----------------------------')
 
         n = self.parameters['num_nodes']
         nt = self.parameters['nt']
@@ -62,7 +61,6 @@ class ProfileOutputSystemModel(csdl.Model):
                 wake_coords_out = wake_coords + 0
                 self.register_output(surface_wake_coords_out_name,
                                      wake_coords_out)
-            print('finish ode outputs----------------------------')
 
 
 if __name__ == "__main__":

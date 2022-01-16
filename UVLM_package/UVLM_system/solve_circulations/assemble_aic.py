@@ -40,10 +40,13 @@ class AssembleAic(Model):
         self.parameters.declare('wake_vortex_pts_shapes', types=list)
         self.parameters.declare('full_aic_name', types=str)
 
+        self.parameters.declare('delta_t')
+
     def define(self):
         # add_input
         bd_coll_pts_names = self.parameters['bd_coll_pts_names']
         wake_vortex_pts_names = self.parameters['wake_vortex_pts_names']
+        delta_t = self.parameters['delta_t']
 
         bd_coll_pts_shapes = self.parameters['bd_coll_pts_shapes']
         wake_vortex_pts_shapes = self.parameters['wake_vortex_pts_shapes']
@@ -76,18 +79,14 @@ class AssembleAic(Model):
                 vortex_coords_shapes.append(wake_vortex_pts_shapes[j])
                 out_name = full_aic_name + str(i) + str(j)
                 output_names.append(out_name)
-        print('output_names~~~~~~~~~~~~~~~~~~~~~~~~~~~~', output_names)
-        print('output_names~~~~~~~~~~~~~~~~~~~~~~~~~~~~', eval_pt_names)
-        print('output_names~~~~~~~~~~~~~~~~~~~~~~~~~~~~', eval_pt_shapes)
-        print('output_names~~~~~~~~~~~~~~~~~~~~~~~~~~~~', vortex_coords_names)
-        print('output_names~~~~~~~~~~~~~~~~~~~~~~~~~~~~', vortex_coords_shapes)
-        print('output_names~~~~~~~~~~~~~~~~~~~~~~~~~~~~', )
+
         m = BiotSvart(
             eval_pt_names=eval_pt_names,
             vortex_coords_names=vortex_coords_names,
             eval_pt_shapes=eval_pt_shapes,
             vortex_coords_shapes=vortex_coords_shapes,
             output_names=output_names,
+            delta_t=delta_t,
         )
         self.add(m, name='aic_bd_w_seperate')
 
@@ -118,8 +117,6 @@ class AssembleAic(Model):
             col = 0
             row = row + delta_row
         self.register_output(full_aic_name, aic_col_w)
-        print('find bug 2--------------aic_bd shape', full_aic_name,
-              aic_col_w.shape)
 
 
 if __name__ == "__main__":
