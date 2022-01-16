@@ -96,13 +96,19 @@ class ODESystemModel(csdl.Model):
             surface_dgammaw_dt_name = surface_name + '_dgammaw_dt'
             surface_gamma_b_name = surface_name + '_gamma_b'
 
-            surface_gamma_w = self.create_input(surface_gamma_w_name, val=val)
+            surface_gamma_w = self.declare_variable(surface_gamma_w_name,
+                                                    shape=val.shape)
             surface_gamma_b = self.declare_variable(surface_gamma_b_name,
                                                     shape=((nx - 1) *
                                                            (ny - 1), ))
             surface_dgammaw_dt = self.create_output(surface_dgammaw_dt_name,
                                                     shape=(n, nt - 1, ny - 1))
             if free_wake == True:
+
+                self.add(
+                    WakeTotalVel(surface_names=surface_names,
+                                 surface_shapes=surface_shapes,
+                                 nt=nt), 'Wake_total_vel_group')
                 surface_wake_coords_name = surface_name + '_wake_coords'
                 surface_dwake_coords_dt_name = surface_name + '_dwake_coords_dt'
 
@@ -168,22 +174,20 @@ class ODESystemModel(csdl.Model):
                     #                  surface_shapes=surface_shapes,
                     #                  nt=nt), 'Wake_total_vel_group')
 
+                    # nt*ny,3
+
                     wake_total_vel = self.declare_variable(
-                        v_total_wake_names[i], val=np.zeros(
-                            (nt, ny, 3)))  # nt*ny,3
+                        v_total_wake_names[i], val=np.zeros((nt, ny, 3)))
+
                     wake_total_vel_reshaped = csdl.reshape(
                         wake_total_vel, (1, nt, ny, 3))
-
-                    self.add(
-                        WakeTotalVel(surface_names=surface_names,
-                                     surface_shapes=surface_shapes,
-                                     nt=nt), 'Wake_total_vel_group')
 
                     surface_dwake_coords_dt[0, 1:, :, :] = (
                         surface_wake_coords[j, :(surface_wake_coords.shape[1] -
                                                  1), :, :] -
                         surface_wake_coords[j, 1:, :, :]
-                    ) / delta_t + wake_total_vel_reshaped[:, 1:, :, :]
+                    ) / delta_t + wake_total_vel_reshaped[:, :(
+                        surface_wake_coords.shape[1] - 1), :, :]
                     # + wake_total_vel_reshaped[:, :(
                     # surface_wake_coords.shape[1] - 1), :, :]
 
@@ -288,7 +292,7 @@ if __name__ == "__main__":
     frame_vel_val = np.array([-1, 0, -1])
     mesh_val = generate_simple_mesh_mesh(3, 4).reshape(1, 3, 4, 3)
     val = np.array([[[0., 0., 0.], [0., 0., 0.], [0., 0., 0.], [0., 0., 0.]]])
-    bd_vortex_coords = model_1.create_input('gamma_w', val=val)
+    bd_vortex_coords = model_1.create_input('wing_gamma_w', val=val)
 
     bd_vortex_coords = model_1.create_input('wing', val=mesh_val)
     bd_vortex_coords = model_1.create_input('wing_rot_vel',
