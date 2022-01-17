@@ -6,9 +6,12 @@ import numpy as np
 from numpy.core.fromnumeric import size
 
 from scipy.sparse import csc_matrix
+from UVLM_package.UVLM_system.wake_rollup.combine_bd_wake_comp import BdnWakeCombine
+from UVLM_package.UVLM_system.solve_circulations.biot_savart_comp_vc_temp import BiotSvart
+from UVLM_package.UVLM_system.solve_circulations.induced_velocity_comp import InducedVelocity
 
 
-class CL(Model):
+class EvalPtsVel(Model):
     """
     Compute various geometric properties for VLM analysis.
     These are used primarily to help compute postprocessing quantities,
@@ -33,137 +36,207 @@ class CL(Model):
         on bound vertices collcation pts induces by the wakes
     """
     def initialize(self):
-        self.parameters.declare('nt', default=5)
-        self.parameters.declare('method',
-                                values=['fw_euler', 'bk_euler'],
-                                default='bk_euler')
-        self.parameters.declare('bd_vortex_shapes', types=list)
+        self.parameters.declare('eval_pts_names', types=list)
+        self.parameters.declare('eval_pts_shapes', types=list)
+        self.parameters.declare('eval_pts_location', default=0.25)
+        self.parameters.declare('surface_names', types=list)
+        self.parameters.declare('surface_shapes', types=list)
+        # stands for quarter-chord
+        self.parameters.declare('nt')
+        self.parameters.declare('delta_t')
 
     def define(self):
+        eval_pts_names = self.parameters['eval_pts_names']
+        eval_pts_shapes = self.parameters['eval_pts_shapes']
+        surface_names = self.parameters['surface_names']
+        surface_shapes = self.parameters['surface_shapes']
+        eval_pts_location = self.parameters['eval_pts_location']
+
         nt = self.parameters['nt']
-        bd_vortex_shapes = self.parameters['bd_vortex_shapes']
+        delta_t = self.parameters['delta_t']
 
-        system_size = 0
-        for i in range(len(bd_vortex_shapes)):
-            nx = bd_vortex_shapes[i][0]
-            ny = bd_vortex_shapes[i][1]
-            system_size += (nx - 1) * (ny - 1)
-        data = [np.ones(system_size)]
-        rows = [np.arange(system_size)]
-        cols = [np.arange(system_size)]
+        bdnwake_coords_names = [x + '_bdnwake_coords' for x in surface_names]
 
-        ind_1 = 0
-        ind_2 = 0
+        wake_coords_reshaped_names = [
+            x + '_wake_coords_reshaped' for x in surface_names
+        ]
 
-        for i in range(len(bd_vortex_shapes)):
-            nx = bd_vortex_shapes[i][0]
-            ny = bd_vortex_shapes[i][1]
-            num = (nx - 1) * (ny - 1)
+        wake_vortex_pts_shapes = [
+            tuple((nt, item[1], 3)) for item in surface_shapes
+        ]
 
-            ind_2 += num
+        bdnwake_shapes = [
+            (x[0] + y[0] - 1, x[1], 3)
+            for x, y in zip(surface_shapes, wake_vortex_pts_shapes)
+        ]
+        output_names = [x + '_aic_force' for x in surface_names]
+        circulation_names = [x + '_bdnwake_gamma' for x in surface_names]
 
-            arange = np.arange(num).reshape((nx - 1), (ny - 1))
+        aic_shapes = [(x[0] * x[1] * (y[0] - 1) * (y[1] - 1), 3)
+                      for x, y in zip(eval_pts_shapes, bdnwake_shapes)]
 
-            data_ = -np.ones((nx - 2) * (ny - 1))
-            rows_ = ind_1 + arange[1:, :].flatten()
-            cols_ = ind_1 + arange[:-1, :].flatten()
+        circulations_shapes = [
+            ((x[0] - 1) * (x[1] - 1) + (y[0] - 1) * (y[1] - 1))
+            for x, y in zip(surface_shapes, wake_vortex_pts_shapes)
+        ]
+        v_induced_wake_names = [
+            x + '_eval_pts_induced_vel' for x in surface_names
+        ]
+        v_total_eval_names = [x + '_eval_total_vel' for x in surface_names]
+        # eval_pts_coords_shapes = [(x[0] - 1, x[1] - 1, 3)
+        #                           for x in eval_pts_shapes]
 
-            data.append(data_)
-            rows.append(rows_)
-            cols.append(cols_)
-            ind_1 += num
+        eval_vel_shapes = [(x[0] * x[1], 3) for x in eval_pts_shapes]
+        # TODO: might change here for higher order numerical method
+        n = 1
+        ode_surface_shapes = [(n, ) + item for item in surface_shapes]
 
-        data = np.concatenate(data)
-        rows = np.concatenate(rows)
-        cols = np.concatenate(cols)
-        mtx_val = csc_matrix((data, (rows, cols)),
-                             shape=(system_size, system_size)).toarray()
-        mtx = self.create_input('mtx', val=mtx_val)
+        #!TODO!: rewrite this comp for mls
+        for i in range(len(eval_pts_names)):
+            mesh = self.declare_variable(surface_names[i],
+                                         shape=ode_surface_shapes[i])
+            bdnwake = self.declare_variable(bdnwake_coords_names[i],
+                                            surface_shapes[i])
+            nx = surface_shapes[i][0]
+            ny = surface_shapes[i][1]
+            # print(mesh.shape)
+            eval_pts_coords = (
+                (1 - eval_pts_location) * 0.5 * mesh[:, 0:-1, 0:-1, :] +
+                (1 - eval_pts_location) * 0.5 * mesh[:, 0:-1, 1:, :] +
+                eval_pts_location * 0.5 * mesh[:, 1:, 0:-1, :] +
+                eval_pts_location * 0.5 * mesh[:, 1:, 1:, :])
+            self.register_output(
+                'eval_pts_coords',
+                csdl.reshape(eval_pts_coords, (nx - 1, ny - 1, 3)))
 
-        gamma_b = self.declare_variable('gamma_b', shape_by_conn=True)
-        horseshoe_circulation = csdl.dot(mtx, gamma_b)
+        self.add(BdnWakeCombine(
+            surface_names=surface_names,
+            surface_shapes=surface_shapes,
+            nt=nt,
+        ),
+                 name='BdnWakeCombine')
 
-        bd_vec = np.zeros((system_size, 3))
-        bd_vec[:, 1] = 1
-        bd_n_wake = np.concatenate(
-            (bd_coords_list[0][0, :, :, :],
-             wake_vortex_coords_all[-2].reshape(num_ts, -1, 3)[1:, :, :]))
-        rho = 0.38
+        #!TODO:fix this for mls
+        for i in range(len(surface_shapes)):
+            nx = surface_shapes[i][0]
+            ny = surface_shapes[i][1]
+            bdnwake_coords = self.declare_variable(bdnwake_coords_names[i],
+                                                   shape=(nt + nx - 1, ny, 3))
 
-        sina = np.sin(alpha / 180 * np.pi)
-        cosa = np.cos(alpha / 180 * np.pi)
-        horseshoe_circulation_repeat = np.einsum('i,j->ij',
-                                                 horseshoe_circulation,
-                                                 np.ones(3))
-        freestream_velocities = frame_vel[-8:, :]
-        force_pts_coords = (0.75 * 0.5 * mesh[0:-1, 0:-1, :] +
-                            0.75 * 0.5 * mesh[0:-1, 1:, :] +
-                            0.25 * 0.5 * mesh[1:, 0:-1, :] +
-                            0.25 * 0.5 * mesh[1:, 1:, :])
-        aic_force, _ = vel_mtx = InducedVelocity(
-            coll_coords_list[0][0, :, :, :],
-            bd_n_wake,
-            normal_vecs=np.zeros(3),
-            compute_aij=False)
-        induced_velocities = np.einsum("ijk,j->ik",
-                                       aic_force.reshape(8, -1, 3),
-                                       circulation_all_current)
+        self.add(BiotSvart(
+            eval_pt_names=['eval_pts_coords'],
+            vortex_coords_names=bdnwake_coords_names,
+            eval_pt_shapes=eval_pts_shapes,
+            vortex_coords_shapes=bdnwake_shapes,
+            output_names=output_names,
+            circulation_names=circulation_names,
+            delta_t=delta_t,
+            vc=True,
+        ),
+                 name='eval_pts_aics')
+        # print('bsafter')
+        # print('eval_pt_names', ['eval_pts_coords'])
+        # print('vortex_coords_names', bdnwake_coords_names)
+        # print('eval_pt_shapes', eval_pts_shapes)
+        # print('vortex_coords_shapes', bdnwake_shapes)
+        # print('circulation_names', circulation_names)
+        # print('delta_t', delta_t)
 
-        velocities = freestream_velocities + induced_velocities
-        panel_forces = rho * circulation_repeat * np.cross(velocities, bd_vec)
-        L = np.sum(-panel_forces[:, 0] * sina + panel_forces[:, 2] * cosa)
-        b = np.linalg.norm(-frame_vel[i])**2
-        C_l = L / (0.5 * rho * span * chord * b)
-        self.register_output('C_l', C_l)
+        self.add(InducedVelocity(aic_names=output_names,
+                                 circulation_names=circulation_names,
+                                 aic_shapes=aic_shapes,
+                                 circulations_shapes=circulations_shapes,
+                                 v_induced_names=v_induced_wake_names),
+                 name='eval_pts_ind_vel')
+
+        # kinematic_vel_names = [
+        #     x + '_kinematic_vel' for x in self.parameters['surface_names']
+        # ]
+        # TODO: check this part for the whole model
+        model_wake_total_vel = Model()
+        for i in range(len(v_induced_wake_names)):
+            v_induced_wake_name = v_induced_wake_names[i]
+            eval_vel_shape = eval_vel_shapes[i]
+
+            wake_vortex_pts_shape = wake_vortex_pts_shapes[i]
+            # kinematic_vel_name = kinematic_vel_names[i]
+
+            v_induced_wake = model_wake_total_vel.declare_variable(
+                v_induced_wake_name, shape=eval_vel_shape)
+            # print('v_induced_wake shape=======================',
+            #       v_induced_wake.shape)
+            # !!TODO!! this needs to be fixed for more general cases to compute the undisturbed vel
+
+            # kinematic_vel = model_wake_total_vel.declare_variable(
+            #     kinematic_vel_name, shape=wake_vel_shape)
+            frame_vel = model_wake_total_vel.declare_variable('frame_vel',
+                                                              shape=(3, ))
+            frame_vel_expand = csdl.expand(frame_vel,
+                                           eval_vel_shape,
+                                           indices='i->ji')
+
+            v_total_wake = csdl.reshape((v_induced_wake + frame_vel_expand),
+                                        new_shape=eval_vel_shape)
+
+            model_wake_total_vel.register_output(v_total_eval_names[i],
+                                                 v_total_wake)
+        print('name_in_eval_vel', v_total_eval_names[i])
+
+        self.add(model_wake_total_vel, name='eval_pts_total_vel')
 
 
-# if __name__ == "__main__":
+if __name__ == "__main__":
 
-#     def generate_simple_mesh(nx, ny, nt=None):
-#         if nt == None:
-#             mesh = np.zeros((nx, ny, 3))
-#             mesh[:, :, 0] = np.outer(np.arange(nx), np.ones(ny))
-#             mesh[:, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T
-#             mesh[:, :, 2] = 0.
-#         else:
-#             mesh = np.zeros((nt, nx, ny, 3))
-#             for i in range(nt):
-#                 mesh[i, :, :, 0] = np.outer(np.arange(nx), np.ones(ny))
-#                 mesh[i, :, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T
-#                 mesh[i, :, :, 2] = 0.
-#         return mesh
+    from UVLM_package.UVLM_system.wake_rollup.combine_bd_wake_comp import BdnWakeCombine
 
-#     model_1 = Model()
+    def generate_simple_mesh(nx, ny, nt=None, delta_y=0):
+        if nt == None:
+            mesh = np.zeros((nx, ny, 3))
+            mesh[:, :, 0] = np.outer(np.arange(nx), np.ones(ny)) + delta_y
+            mesh[:, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T
+            mesh[:, :, 2] = 0.
+        else:
+            mesh = np.zeros((nt, nx, ny, 3))
+            for i in range(nt):
+                mesh[i, :, :,
+                     0] = np.outer(np.arange(nx), np.ones(ny)) + delta_y
+                mesh[i, :, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T
+                mesh[i, :, :, 2] = 0.
+        return mesh
 
-#     frame_vel_val = np.array([1, 0, 1])
-#     bd_vortex_coords_val = generate_simple_mesh(3, 4)
-#     wake_coords_val = np.array([
-#         [2., 0., 0.],
-#         [2., 1., 0.],
-#         [2., 2., 0.],
-#         [2., 3., 0.],
-#         [42., 0., 0.],
-#         [42., 1., 0.],
-#         [42., 2., 0.],
-#         [42., 3., 0.],
-#     ]).reshape(2, 4, 3)
-#     # coll_val = np.random.random((4, 5, 3))
+    surface_names = ['wing']
+    surface_shapes = [(3, 4, 3)]
+    eval_pts_names = ['force_pts']
+    eval_pts_shapes = [(2, 3, 3)]
+    delta_t = 1
 
-#     frame_vel = model_1.create_input('frame_vel', val=frame_vel_val)
-#     bd_vortex_coords = model_1.create_input('bd_vortex_coords',
-#                                             val=bd_vortex_coords_val)
-#     wake_coords = model_1.create_input('wake_coords', val=wake_coords_val)
-#     nx = 3
-#     ny = 4
-#     coll_pts = 0.25 * (bd_vortex_coords[0:nx-1, 0:ny-1, :] +\
-#                                                bd_vortex_coords[0:nx-1, 1:ny, :] +\
-#                                                bd_vortex_coords[1:, 0:ny-1, :]+\
-#                                                bd_vortex_coords[1:, 1:, :])
-#     model_1.register_output('coll_coords', coll_pts)
-#     model_1.add(RHS())
+    nt = 4
+    model_1 = Model()
+    frame_vel_val = np.random.random((3, ))
+    force_pts = model_1.create_input('wing', val=generate_simple_mesh(3, 4))
+    # force_pts = model_1.create_input('force_pts',
+    #                                  val=np.random.random(eval_pts_shapes[0]))
 
-#     sim = Simulator(model_1)
-#     sim.run()
-#     sim.visualize_implementation()
-#     # print('aic is', sim['aic'])
-#     # print('v_ind is', sim['v_ind'].shape, sim['v_ind'])
+    model_1.add(EvalPtsVel(
+        eval_pts_names=eval_pts_names,
+        eval_pts_shapes=eval_pts_shapes,
+        surface_names=surface_names,
+        surface_shapes=surface_shapes,
+        nt=nt,
+        delta_t=delta_t,
+    ),
+                name='EvalWakeVel')
+    print('bs3')
+
+    sim = Simulator(model_1)
+    sim.run()
+    print('bs4')
+    sim.visualize_implementation()
+
+    # v_induced_names = [x + '_wake_induced_vel' for x in surface_names]
+    # # print('gamma_b', gamma_b.shape, gamma_b)
+    # for i in range(len(surface_shapes)):
+    #     v_induced_name = v_induced_names[i]
+    #     # surface_gamma_b_name = surface_names[i] + '_gamma_b'
+
+    #     print(v_induced_name, sim[v_induced_name].shape, sim[v_induced_name])

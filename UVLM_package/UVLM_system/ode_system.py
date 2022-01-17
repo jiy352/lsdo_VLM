@@ -11,7 +11,6 @@ from UVLM_package.UVLM_preprocessing.mesh_preprocessing_comp import MeshPreproce
 
 from UVLM_package.UVLM_system.wake_rollup.seperate_gamma_b import SeperateGammab
 from UVLM_package.UVLM_system.wake_rollup.wake_total_vel_group import WakeTotalVel
-from random import randrange
 
 
 class ODESystemModel(csdl.Model):
@@ -28,6 +27,7 @@ class ODESystemModel(csdl.Model):
         self.parameters.declare('wake_coords', types=list)
         self.parameters.declare('nt', types=int)
         self.parameters.declare('free_wake', default=True)
+        self.parameters.declare('temp_fix_option', default=False)
 
     def define(self):
         # rename parameters
@@ -36,6 +36,8 @@ class ODESystemModel(csdl.Model):
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
         free_wake = self.parameters['free_wake']
+
+        temp_fix_option = self.parameters['temp_fix_option']
 
         wake_coords_names = [x + '_wake_coords' for x in surface_names]
 
@@ -158,13 +160,25 @@ class ODESystemModel(csdl.Model):
 
                     wake_total_vel_reshaped = csdl.reshape(
                         wake_total_vel, (1, nt, ny, 3))
+                    if temp_fix_option == False:
+                        surface_dwake_coords_dt[0, 1:, :, :] = (
+                            surface_wake_coords[j, :(
+                                surface_wake_coords.shape[1] - 1), :, :] -
+                            surface_wake_coords[j, 1:, :, :]
+                        ) / delta_t + wake_total_vel_reshaped[:, :(
+                            surface_wake_coords.shape[1] - 1), :, :]
 
-                    surface_dwake_coords_dt[0, 1:, :, :] = (
-                        surface_wake_coords[j, :(surface_wake_coords.shape[1] -
-                                                 1), :, :] -
-                        surface_wake_coords[j, 1:, :, :]
-                    ) / delta_t + wake_total_vel_reshaped[:, :(
-                        surface_wake_coords.shape[1] - 1), :, :]
+                        # make a temperal modification for fixed wake here
+                    else:
+                        frame_vel_expand = -csdl.expand(
+                            frame_vel,
+                            shape=(1, nt - 1, ny, 3),
+                            indices='i->jkli')
+                        surface_dwake_coords_dt[
+                            0, 1:, :, :] = (surface_wake_coords[j, :(
+                                surface_wake_coords.shape[1] - 1), :, :] -
+                                            surface_wake_coords[j, 1:, :, :]
+                                            ) / delta_t + frame_vel_expand
 
 
 if __name__ == "__main__":
