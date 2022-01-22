@@ -75,9 +75,12 @@ class InducedVelocity(Model):
                                                        circulations_shape),
                                                    circulations_shape, 3))
 
-            v_induced = csdl.einsum(aic_reshaped,
-                                    circulations,
-                                    subscripts='ijk,j->ik')
+            v_induced = csdl.einsum(
+                aic_reshaped,
+                circulations,
+                subscripts='ijk,j->ik',
+                partial_format='sparse',
+            )
             self.register_output(v_induced_name, v_induced)
 
 

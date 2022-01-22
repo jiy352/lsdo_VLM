@@ -219,6 +219,7 @@ class BiotSvart(Model):
                 (r1_norm * r2_norm + mesh_resolution * self.parameters['eps']),
                 r0,
                 subscripts='ij,ij->i',
+                partial_format='sparse',
             )))
             # pertubation = 0.01219
             # v_induced_line = array1 * csdl.expand(
@@ -243,6 +244,7 @@ class BiotSvart(Model):
                 (r1 * r2_norm - r2 * r1_norm) / (r1_norm * r2_norm),
                 r0,
                 subscripts='ij,ij->i',
+                partial_format='sparse',
             )))
             v_induced_line = array1 * csdl.expand(array2, array1.shape,
                                                   'i->ij') / (r1_x_r2_norm_sq)

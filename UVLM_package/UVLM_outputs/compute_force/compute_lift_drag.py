@@ -1,11 +1,7 @@
 from csdl_om import Simulator
 from csdl import Model
 import csdl
-from matplotlib.pyplot import clabel
 import numpy as np
-from numpy.core.fromnumeric import size
-
-from scipy.sparse import csc_matrix
 
 
 class LiftDrag(Model):

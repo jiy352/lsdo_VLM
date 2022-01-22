@@ -22,7 +22,7 @@ class ProfileOutputSystemModel(csdl.Model):
         self.parameters.declare(
             'surface_coords', types=list
         )  #TODO: need to figure out how to get the parameters in outputs
-        self.parameters.declare('free_wake', default=True)
+        self.parameters.declare('free_wake', default=False)
 
     def define(self):
 

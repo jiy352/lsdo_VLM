@@ -26,7 +26,7 @@ class ODESystemModel(csdl.Model):
         self.parameters.declare('frame_vel')
         self.parameters.declare('wake_coords', types=list)
         self.parameters.declare('nt', types=int)
-        self.parameters.declare('free_wake', default=True)
+        self.parameters.declare('free_wake', default=False)
         self.parameters.declare('temp_fix_option', default=False)
 
     def define(self):
@@ -65,9 +65,10 @@ class ODESystemModel(csdl.Model):
             # NOTE changed here from create input
             self.declare_variable(surface_names[i], shape=ode_surface_shape[i])
             if free_wake == False:
-                wake_coords = self.declare_variable(wake_coords_names[i],
-                                                    val=wake_coords_val[i])
-
+                wake_coords = self.create_input(wake_coords_names[i],
+                                                val=wake_coords_val[i])
+                # wake_coords = self.create_input(wake_coords_names[i],
+                #                                 shape=wake_coords_val[i].shape)
         self.add(MeshPreprocessing(surface_names=surface_names,
                                    surface_shapes=ode_surface_shape),
                  name='meshPreprocessing_comp')
@@ -211,11 +212,11 @@ if __name__ == "__main__":
                 mesh[i, :, :, 2] = 0.
         return mesh
 
-    bd_vortex_coords_val = generate_simple_mesh_mesh(3, 4)
-    delta_t = 1
     nt = 5
-    nx = 3
-    ny = 4
+    nx = 20
+    ny = 20
+    bd_vortex_coords_val = generate_simple_mesh_mesh(nx, ny)
+    delta_t = 1
 
     frame_vel_val = np.array([-1, 0, -1])
     wake_coords_val_x = np.einsum(
@@ -232,7 +233,7 @@ if __name__ == "__main__":
 
     wake_coords_val_y = (np.einsum(
         'i,j->ji',
-        generate_simple_mesh(3, 4)[-1, :, 1],
+        generate_simple_mesh(nx, ny)[-1, :, 1],
         np.ones(nt),
     ) + (delta_t * np.arange(nt) *
          (-frame_vel_val[1])).reshape(-1, 1)).flatten()
@@ -245,35 +246,26 @@ if __name__ == "__main__":
     model_1 = csdl.Model()
 
     frame_vel_val = np.array([-1, 0, -1])
-    mesh_val = generate_simple_mesh_mesh(3, 4).reshape(1, 3, 4, 3)
-    val = np.array([[[0., 0., 0.], [0., 0., 0.], [0., 0., 0.], [0., 0., 0.]]])
-    bd_vortex_coords = model_1.create_input('wing_gamma_w', val=val)
+    mesh_val = generate_simple_mesh_mesh(nx, ny).reshape(1, nx, ny, 3)
 
     bd_vortex_coords = model_1.create_input('wing', val=mesh_val)
     bd_vortex_coords = model_1.create_input('wing_rot_vel',
                                             val=np.zeros(
                                                 ((nx - 1) * (ny - 1), 3)))
     TE = [wake_coords_val.reshape(nt, ny, 3)[0, :, :]]
-    # bd_vortex_coords = model_1.create_input('wing_wake_coords',
-    #                                         val=np.einsum(
-    #                                             'i,jk->ijk',
-    #                                             np.ones(nt),
-    #                                             TE[0],
-    #                                         ).reshape(1, nt, ny, 3))
 
     model_1.add(
-        ODESystemModel(
-            surface_names=['wing'],
-            surface_shapes=[(3, 4, 3)],
-            frame_vel=frame_vel_val,
-            wake_coords=[wake_coords_val],
-            nt=5,
-        ), 'ODE_system')
+        ODESystemModel(surface_names=['wing'],
+                       surface_shapes=[(nx, ny, 3)],
+                       frame_vel=frame_vel_val,
+                       wake_coords=[wake_coords_val],
+                       nt=5,
+                       delta_t=delta_t), 'ODE_system')
     sim = Simulator(model_1)
     sim.run()
     print(sim['gamma_b'], 'gamma_b')
-    print(sim['b'], 'b')
-    print(sim['M'], sim['M'].shape, 'M')
+    # print(sim['b'], 'b')
+    # print(sim['M'], sim['M'].shape, 'M')
     # print(sim['gamma_w'], 'gamma_w')
-
+    # csdl.einsum_new_api
     sim.visualize_implementation()

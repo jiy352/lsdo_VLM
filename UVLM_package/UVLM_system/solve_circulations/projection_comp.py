@@ -79,9 +79,12 @@ class Projection(Model):
                     new_shape=(normals.shape[0] * normals.shape[1], 3))
 
                 if len(input_vel_shape) == 2:
-                    velocity_projections = csdl.einsum(input_vel,
-                                                       normals_reshaped,
-                                                       subscripts='ij,ij->i')
+                    velocity_projections = csdl.einsum(
+                        input_vel,
+                        normals_reshaped,
+                        subscripts='ij,ij->i',
+                        partial_format='sparse',
+                    )
                 elif len(input_vel_shape) == 3:
                     print(
                         'Implementation error the dim of kinematic vel should be 2'
@@ -135,14 +138,20 @@ class Projection(Model):
             if len(input_vel_shape) == 2:
                 # print('warning: the dim of aic should be 3')
                 # print(input_vel_name, normal_name, output_vel_name)
-                velocity_projections = csdl.einsum(input_vel,
-                                                   normals_reshaped,
-                                                   subscripts='ij,ij->i')
+                velocity_projections = csdl.einsum(
+                    input_vel,
+                    normals_reshaped,
+                    subscripts='ij,ij->i',
+                    partial_format='sparse',
+                )
                 self.register_output(output_vel_name, velocity_projections)
             elif len(input_vel_shape) == 3:
-                velocity_projections = csdl.einsum(input_vel,
-                                                   normal_concatenated,
-                                                   subscripts='ijk,ik->ij')
+                velocity_projections = csdl.einsum(
+                    input_vel,
+                    normal_concatenated,
+                    subscripts='ijk,ik->ij',
+                    partial_format='sparse',
+                )
                 self.register_output(output_vel_name, velocity_projections)
 
 

@@ -242,6 +242,5 @@ sim = csdl_om.Simulator(RunModel(
 ),
                         mode='rev')
 sim.prob.run_model()
-# Checktotals
+
 # print('wake circulation strength is')
-# print(sim.prob['wing_gamma_w_out'])

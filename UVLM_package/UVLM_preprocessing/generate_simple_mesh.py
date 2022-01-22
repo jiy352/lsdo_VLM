@@ -20,7 +20,7 @@ def generate_simple_mesh(nx, ny, nt=None, offset=0):
     return mesh
 
 
-def compute_wake_coords(nx, ny, nt, h_stepsize, frame_vel_val):
+def compute_wake_coords(nx, ny, nt, h_stepsize, frame_vel_val, offset=0):
     delta_t = h_stepsize
 
     wake_coords_val_x = np.einsum(
@@ -44,7 +44,7 @@ def compute_wake_coords(nx, ny, nt, h_stepsize, frame_vel_val):
     mesh = generate_simple_mesh(nx, ny)
     wake_coords_val = np.zeros((nt, ny, 3))
     wake_coords_val[:, :, 0] = wake_coords_val_x.reshape(nt, ny)
-    wake_coords_val[:, :, 1] = wake_coords_val_y.reshape(nt, ny)
+    wake_coords_val[:, :, 1] = wake_coords_val_y.reshape(nt, ny) + offset
     wake_coords_val[:, :, 2] = wake_coords_val_z.reshape(nt, ny)
     return wake_coords_val
 

@@ -180,7 +180,7 @@ class EvalPtsVel(Model):
 
             model_wake_total_vel.register_output(v_total_eval_names[i],
                                                  v_total_wake)
-        print('name_in_eval_vel', v_total_eval_names[i])
+        # print('name_in_eval_vel', v_total_eval_names[i])
 
         self.add(model_wake_total_vel, name='eval_pts_total_vel')
 
