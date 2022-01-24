@@ -1,0 +1,363 @@
+File: /home/jyan_linux/Downloads/Software/ozone_latest/ozone2/ozone2/classes/Integrators/TimeMarching.py
+Function: integrate_ODE_phase at line 252
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   252                                               def integrate_ODE_phase(self, settings):
+   253                                                   """
+   254                                                   Integrates the ODE over a time_interval.
+   255                                           
+   256                                                   Parameters
+   257                                                   ----------
+   258                                                       settings: Dict
+   259                                                           Dictionary containing settings:
+   260                                           
+   261                                                       t_index_start: int
+   262                                                           The time index to start the integration process.
+   263                                           
+   264                                                       t_index_end: int
+   265                                                           The time index to end the integration process.
+   266                                           
+   267                                                       state_IC:
+   268                                                           The initial condition of the integration phase ie. state at the time index t_index_start
+   269                                           
+   270                                                   """
+   271                                           
+   272                                                   # Integration settings. This is needed as integration with checkpointing is slightly different than without it.
+   273         1          2.0      2.0      0.0          integration_type = settings['integration_type']
+   274         1          1.0      1.0      0.0          state_IC = settings['state_IC']
+   275         1          1.0      1.0      0.0          t_index_end = settings['t_index_end']
+   276         1          1.0      1.0      0.0          t_index_start = settings['t_index_start']
+   277         1          2.0      2.0      0.0          start_total = time.time()
+   278                                           
+   279                                                   # Different values are stored or discarded depending on the type of integration
+   280                                                   # Timemarching without checkpointing
+   281         1          1.0      1.0      0.0          if integration_type == 'FWD and REV':
+   282                                                       # Depending on integration type, set boolean to tell integrator what to store
+   283                                           
+   284                                                       # If true, compute and store field/profile outputs
+   285         1          1.0      1.0      0.0              store_outputs = True
+   286                                           
+   287                                                       # If true, store the state vectors
+   288         1         14.0     14.0      0.0              store_states = True
+   289                                           
+   290                                                       # if true, store the jacobians for all values
+   291         1          1.0      1.0      0.0              store_jac = True
+   292                                           
+   293                                                       # If true, store checkpoints
+   294         1          1.0      1.0      0.0              store_checkpoints = False
+   295                                           
+   296                                                       # Create time vector
+   297         1         23.0     23.0      0.0              self.setup_integration()
+   298                                           
+   299                                                   # Timemarching with checkpoint (Forward)
+   300                                                   elif integration_type == 'FWD':
+   301                                                       store_outputs = True
+   302                                                       store_states = False
+   303                                                       store_jac = False
+   304                                                       store_checkpoints = True
+   305                                           
+   306                                                       # Store first checkpoint: The initial condition
+   307                                                       for key in self.checkpoints[self.num_checkpoints -
+   308                                                                                   1]['checkpoint_snapshot-']:
+   309                                                           sd = self.state_dict[key]
+   310                                                           snapshot = (self.IC_dict[sd['IC_name']]['val']).reshape(
+   311                                                               (sd['num'], ))
+   312                                                           self.checkpoints[self.num_checkpoints -
+   313                                                                            1]['checkpoint_snapshot-'][key] = snapshot
+   314                                           
+   315                                                       # The checkpoint list index that decreases everytime a checkpoint is stored
+   316                                                       checkpoint_index = self.num_checkpoints - 2
+   317                                           
+   318                                                       self.setup_integration()
+   319                                           
+   320                                                   # Timemarching with checkpoint (Reverse)
+   321                                                   elif integration_type == 'REV':
+   322                                                       store_outputs = False
+   323                                                       store_states = True
+   324                                                       store_jac = False
+   325                                                       store_checkpoints = False
+   326                                           
+   327         1          1.0      1.0      0.0          self.trm = 0.
+   328                                                   # if time range isnt specified, just solve the entire ODE, calculate outputs = True
+   329         1          1.0      1.0      0.0          if (t_index_start == None) or (t_index_end == None):
+   330         1          0.0      0.0      0.0              t_index_start = 0
+   331         1          1.0      1.0      0.0              t_index_end = self.num_times + 1
+   332                                           
+   333         1          1.0      1.0      0.0          if self.display != None:
+   334         1         11.0     11.0      0.0              print('Integrating ODE ... ')
+   335                                           
+   336                                                   # "IC's" for checkpointing
+   337         1          1.0      1.0      0.0          phase_initial_condition_dict = state_IC
+   338                                           
+   339         1          1.0      1.0      0.0          time_vector = self.time_vector_full[t_index_start:t_index_end]
+   340         1          1.0      1.0      0.0          h_vector = self.h_vector_full[t_index_start:t_index_end]
+   341         1          1.0      1.0      0.0          numtimes = len(time_vector) - 1
+   342                                           
+   343                                                   # TIME ZERO OPERATIONS
+   344                                                   # Setting up storage vectors for each state:
+   345         3          4.0      1.3      0.0          for key in self.state_dict:
+   346         2          2.0      1.0      0.0              sd = self.state_dict[key]
+   347                                           
+   348         2          2.0      1.0      0.0              if store_states == True:
+   349         4          8.0      2.0      0.0                  self.state_dict[key]['y_storage'] = np.zeros(
+   350         2          2.0      1.0      0.0                      (sd['num'], numtimes + 1))
+   351         4          5.0      1.2      0.0                  self.state_dict[key]['Yeval_full'] = np.zeros(
+   352         2          2.0      1.0      0.0                      (sd['num_stage_state'], numtimes + 1))
+   353         2          2.0      1.0      0.0                  self.state_dict[key]['Y_prime_full'] = {}
+   354                                           
+   355                                                           # Store initial conditions
+   356         2          2.0      1.0      0.0                  if integration_type == 'FWD and REV':
+   357         6         18.0      3.0      0.0                      self.state_dict[key][
+   358        12         13.0      1.1      0.0                          'y_storage'][:, [0]] = phase_initial_condition_dict[
+   359         6          5.0      0.8      0.0                              sd['IC_name']]['val'].reshape(sd['num'], 1)
+   360                                           
+   361         2          2.0      1.0      0.0                  if integration_type == 'REV':
+   362                                                               self.state_dict[key][
+   363                                                                   'y_storage'][:, [0]] = phase_initial_condition_dict[
+   364                                                                       key].reshape(sd['num'], 1)
+   365                                           
+   366         2          2.0      1.0      0.0              if store_jac == True:
+   367                                                           # Y_prime for initial condition is not used in JVP
+   368         6          6.0      1.0      0.0                  for s_key in self.state_dict:
+   369         4          5.0      1.2      0.0                      self.state_dict[key]['Y_prime_full'][s_key] = []
+   370                                                               # if t_index_start == 0:
+   371         4          4.0      1.0      0.0                      self.state_dict[key]['Y_prime_full'][s_key].append([])
+   372                                           
+   373                                                           # Initializing df/dp storage:
+   374         2          3.0      1.5      0.0                  if self.param_bool == True:
+   375         2          2.0      1.0      0.0                      self.state_dict[key]['df_dp'] = {}
+   376         2          2.0      1.0      0.0                      self.state_dict[key]['df_dp+'] = {}
+   377                                           
+   378         4          4.0      1.0      0.0                      for p_key in self.parameter_dict:
+   379         2          2.0      1.0      0.0                          self.state_dict[key]['df_dp'][p_key] = []
+   380                                                                   # if t_index_start == 0:
+   381         2          2.0      1.0      0.0                          self.state_dict[key]['df_dp'][p_key].append([])
+   382                                           
+   383         2          2.0      1.0      0.0                          self.state_dict[key]['df_dp+'][p_key] = []
+   384                                                                   # if t_index_start == 0:
+   385         2          2.0      1.0      0.0                          self.state_dict[key]['df_dp+'][p_key].append([])
+   386                                                       # Initial Condition:
+   387                                           
+   388         2          2.0      1.0      0.0              if integration_type == 'FWD and REV':
+   389         4          4.0      1.0      0.0                  self.state_dict[key][
+   390        10         26.0      2.6      0.0                      'y_previous'] = phase_initial_condition_dict[
+   391         6          6.0      1.0      0.0                          sd['IC_name']]['val'].reshape((sd['num'], ))
+   392         2          2.0      1.0      0.0              if integration_type == 'FWD':
+   393                                                           self.state_dict[key][
+   394                                                               'y_previous'] = phase_initial_condition_dict[
+   395                                                                   sd['IC_name']]['val'].reshape((sd['num'], ))
+   396         2          2.0      1.0      0.0              if integration_type == 'REV':
+   397                                                           self.state_dict[key][
+   398                                                               'y_previous'] = phase_initial_condition_dict[key].reshape(
+   399                                                                   (sd['num'], ))
+   400                                           
+   401                                                       # Setting initial guess for stages Y_current:
+   402         2         38.0     19.0      0.0              self.state_dict[key]['Y_current'] = np.ones(sd['shape_stage'])
+   403                                                   # setting time indices
+   404         1          1.0      1.0      0.0          time_now_index = t_index_start
+   405                                           
+   406                                                   # Profile/Field Outputs for initial conditions
+   407         1          1.0      1.0      0.0          if store_outputs == True:
+   408                                                       # Need to make sure IC's are right for checkpointing in the future.
+   409         1          1.0      1.0      0.0              if self.profile_outputs_bool == True:
+   410         1          1.0      1.0      0.0                  run_dict = {}
+   411         1          1.0      1.0      0.0                  output_vals = []
+   412         7          7.0      1.0      0.0                  for key in self.profile_output_dict:
+   413         6          6.0      1.0      0.0                      output_vals.append(key)
+   414                                           
+   415         3          4.0      1.3      0.0                  for state_name in self.state_dict:
+   416         4         10.0      2.5      0.0                      temp = np.empty(
+   417         2          4.0      2.0      0.0                          self.state_dict[state_name]['nn_shape_profile'])
+   418         6         11.0      1.8      0.0                      temp[0] = phase_initial_condition_dict[
+   419         4          5.0      1.2      0.0                          self.state_dict[state_name]['IC_name']]['val']
+   420         2          3.0      1.5      0.0                      run_dict[state_name] = temp
+   421                                           
+   422         2     386053.0 193026.5      1.6                  P = self.profile_outputs_system.run_model(
+   423         1          1.0      1.0      0.0                      run_dict, output_vals)
+   424                                           
+   425         7          9.0      1.3      0.0              for key in self.profile_output_dict:
+   426        12         19.0      1.6      0.0                  self.profile_output_dict[key]['val'] = np.zeros(
+   427         6          6.0      1.0      0.0                      self.profile_output_dict[key]['shape'])
+   428         6         13.0      2.2      0.0                  self.profile_output_dict[key]['val'][0] = P[key][0]
+   429         1          1.0      1.0      0.0              for key in self.field_output_dict:
+   430                                                           self.field_output_dict[key]['val'] = np.zeros(
+   431                                                               self.field_output_dict[key]['shape'])
+   432                                                           self.field_output_dict[key]['val'] += self.field_output_dict[key]['coefficients'][0] * \
+   433                                                               phase_initial_condition_dict[self.state_dict[self.field_output_dict[key]
+   434                                                                                                            ['state_name']]['IC_name']]['val']
+   435                                           
+   436                                                   # Setting Static Parameters:
+   437         1          1.0      1.0      0.0          param_set = {}
+   438         2          2.0      1.0      0.0          for key in self.parameter_dict:
+   439         1          1.0      1.0      0.0              if self.parameter_dict[key]['dynamic'] == False:
+   440         1          1.0      1.0      0.0                  param_set[key] = self.parameter_dict[key]['val']
+   441                                           
+   442         1         29.0     29.0      0.0          self.ode_system.set_vars(param_set)
+   443                                           
+   444                                                   # TIME MARCHING LOOP------:
+   445         5          7.0      1.4      0.0          for t in range(numtimes):
+   446         4          6.0      1.5      0.0              start = time.time()
+   447                                           
+   448                                                       # Current time
+   449         4          6.0      1.5      0.0              time_now = time_vector[t + 1]
+   450         4          5.0      1.2      0.0              h = h_vector[t]
+   451         4          4.0      1.0      0.0              time_now_index += 1
+   452                                           
+   453                                                       # Updating Dynamic Parameters:
+   454         4          4.0      1.0      0.0              param_set = {}
+   455         8          8.0      1.0      0.0              for key in self.parameter_dict:
+   456         4          5.0      1.2      0.0                  if self.parameter_dict[key]['dynamic'] == True:
+   457                                                               temp = self.parameter_dict[key]['val_nodal'][
+   458                                                                   time_now_index - 1].reshape(
+   459                                                                       self.parameter_dict[key]['nn_shape'])
+   460                                                               param_set[key] = temp
+   461                                           
+   462                                                       # Set interpolated vectorized parameters
+   463         4          4.0      1.0      0.0              if not self.explicit:
+   464                                                           self.ode_system.set_vars(param_set)
+   465                                           
+   466                                                       # Main Integration Calculation:
+   467         4          4.0      1.0      0.0              start_s = time.time()
+   468                                           
+   469                                                       # -------------------------- MAIN INTEGRATION CALCULATIONS --------------------------:
+   470                                           
+   471         4          4.0      1.0      0.0              if self.explicit:
+   472                                                           # === UNCOMMENT FOR PROFILING ===
+   473                                                           # from line_profiler import LineProfiler
+   474                                                           # lp = LineProfiler()
+   475                                                           # lp_wrapper = lp(self.compute_stage_explicit)
+   476                                                           # lp_wrapper(t, h, store_jac)
+   477                                                           # lp.print_stats()
+   478                                                           # === UNCOMMENT FOR PROFILING ===
+   479         8   22975485.0 2871935.6     97.0                  self.compute_stage_explicit(
+   480         4          4.0      1.0      0.0                      time_now_index, h, store_jac)  # Part a and b (explicit)
+   481                                                       else:
+   482                                                           # === UNCOMMENT FOR PROFILING ===
+   483                                                           # from line_profiler import LineProfiler
+   484                                                           # lp = LineProfiler()
+   485                                                           # lp_wrapper = lp(self.compute_stage)
+   486                                                           # lp_wrapper(t, h, store_jac)
+   487                                                           # lp.print_stats()
+   488                                                           # === UNCOMMENT FOR PROFILING ===
+   489                                                           self.compute_stage(t, h, store_jac)  # Part a
+   490                                                           self.evaluate_stage(time_now_index)  # Part b
+   491         4          9.0      2.2      0.0              end_s = time.time()
+   492         4        315.0     78.8      0.0              self.compute_state(h)  # Part C
+   493                                                       # -------------------------- MAIN INTEGRATION CALCULATIONS --------------------------:
+   494                                           
+   495                                                       # Storage for JVP:
+   496         4          5.0      1.2      0.0              if self.recorder is not None:
+   497                                                           writer_dict = {}
+   498                                           
+   499        12         12.0      1.0      0.0              for key in self.state_dict:
+   500         8          8.0      1.0      0.0                  sd = self.state_dict[key]
+   501                                           
+   502         8          9.0      1.1      0.0                  if store_states == True:
+   503        16         28.0      1.8      0.0                      self.state_dict[key]['Yeval_full'][:, t +
+   504        16         16.0      1.0      0.0                                                         1] = sd['Yeval_current']
+   505        16         22.0      1.4      0.0                      self.state_dict[key]['y_storage'][:,
+   506        16         16.0      1.0      0.0                                                        t + 1] = sd['y_current']
+   507         8          9.0      1.1      0.0                  self.state_dict[key]['y_previous'] = sd['y_current']
+   508                                           
+   509         8          8.0      1.0      0.0                  if self.recorder is not None:
+   510                                                               writer_dict[key] = sd['y_current']
+   511                                           
+   512                                                       # print(self.recorder)
+   513         4          4.0      1.0      0.0              if self.recorder is not None:
+   514                                                           # print(writer_dict)
+   515                                                           self.recorder(writer_dict, 'ozone')
+   516                                           
+   517                                                       # Profile/Field Outputs for current time step
+   518         4          4.0      1.0      0.0              if store_outputs == True:
+   519         4          5.0      1.2      0.0                  if self.profile_outputs_bool == True:
+   520         4          7.0      1.8      0.0                      run_dict = {}
+   521         4          6.0      1.5      0.0                      output_vals = []
+   522        28         28.0      1.0      0.0                      for key in self.profile_output_dict:
+   523        24         25.0      1.0      0.0                          output_vals.append(key)
+   524                                           
+   525        12         12.0      1.0      0.0                      for state_name in self.state_dict:
+   526        16         26.0      1.6      0.0                          temp = np.empty(
+   527         8          8.0      1.0      0.0                              self.state_dict[state_name]['nn_shape_profile'])
+   528        24         36.0      1.5      0.0                          temp[0] = self.state_dict[state_name][
+   529         8          8.0      1.0      0.0                              'y_current'].reshape(
+   530         8          8.0      1.0      0.0                                  self.state_dict[state_name]['shape'])
+   531         8         12.0      1.5      0.0                          run_dict[state_name] = temp
+   532                                           
+   533         4          4.0      1.0      0.0                      trm = time.time()
+   534         8     330968.0  41371.0      1.4                      P = self.profile_outputs_system.run_model(
+   535         4          4.0      1.0      0.0                          run_dict, output_vals)
+   536         4         16.0      4.0      0.0                      self.trm += (time.time() - trm)
+   537                                           
+   538        28         31.0      1.1      0.0                  for key in self.profile_output_dict:
+   539        72        101.0      1.4      0.0                      self.profile_output_dict[key]['val'][time_now_index] = P[
+   540        48         47.0      1.0      0.0                          key][0]
+   541         4          5.0      1.2      0.0                  for key in self.field_output_dict:
+   542                                                               state_name = self.field_output_dict[key]['state_name']
+   543                                                               self.field_output_dict[key]['val'] += self.field_output_dict[key]['coefficients'][time_now_index] * \
+   544                                                                   self.state_dict[state_name]['y_current'].reshape(
+   545                                                                       self.state_dict[state_name]['shape'])
+   546                                                               # print(self.state_dict[state_name]['y_current'].reshape(self.state_dict[state_name]['shape']))
+   547                                           
+   548                                                       # Dynamic plotting if requested:
+   549         4          6.0      1.5      0.0              if self.visualization == 'during':
+   550                                                           self.ongoingplot
+   551                                                           plt.clf()
+   552                                                           for key in self.state_dict:
+   553                                                               for i in range(self.state_dict[key]['num']):
+   554                                                                   plt.plot(
+   555                                                                       time_vector[0:time_now_index + 1],
+   556                                                                       self.state_dict[key]['y_storage'][
+   557                                                                           i, 0:time_now_index + 1])
+   558                                                           plt.xlabel('Time')
+   559                                                           plt.ylabel('states')
+   560                                                           plt.grid(True)
+   561                                                           plt.draw()
+   562                                                           plt.pause(0.00001)
+   563                                           
+   564                                                       # Store checkpoints if this integration process is FWD intergration of checkpointing scheme
+   565         4          5.0      1.2      0.0              if store_checkpoints == True:
+   566                                           
+   567                                                           # Check if we store this current state as a checkpoint
+   568                                                           if time_now_index == self.checkpoint_indices[checkpoint_index]:
+   569                                           
+   570                                                               # Store states
+   571                                                               for key in self.checkpoints[checkpoint_index][
+   572                                                                       'checkpoint_snapshot-']:
+   573                                                                   sd = self.state_dict[key]
+   574                                                                   self.checkpoints[checkpoint_index][
+   575                                                                       'checkpoint_snapshot-'][key] = sd['y_current']
+   576                                           
+   577                                                               checkpoint_index = checkpoint_index - 1
+   578                                           
+   579         4          4.0      1.0      0.0              end = time.time()
+   580                                                       # print('Total Time: ',end - start)
+   581                                                       # print('section time ratio:',(end_s-start_s)/(end - start))
+   582                                                       # print('section time:', (end_s-start_s))
+   583                                           
+   584                                                   # Plotting @ end if requested
+   585         1          1.0      1.0      0.0          if self.visualization == 'end':
+   586                                                       self.ongoingplot
+   587                                                       plt.clf()
+   588                                                       for key in self.state_dict:
+   589                                                           for i in range(self.state_dict[key]['num']):
+   590                                                               plt.plot(
+   591                                                                   time_vector[0:time_now_index + 1],
+   592                                                                   self.state_dict[key]['y_storage'][i, 0:time_now_index +
+   593                                                                                                     1])
+   594                                                       plt.xlabel('Time')
+   595                                                       plt.ylabel('states')
+   596                                                       plt.grid(True)
+   597                                                       plt.draw()
+   598                                                       plt.pause(0.00001)
+   599                                           
+   600         1          1.0      1.0      0.0          end_total = time.time()
+   601         1          2.0      2.0      0.0          if self.display != None:
+   602         1         20.0     20.0      0.0              print('Unavoidable Time: ', self.trm)
+   603                                                       # print('Section Time: ', end_s - start_s)
+   604         1          6.0      6.0      0.0              print('Total Integration Time: ', end_total - start_total, '\n')
+   605         1          1.0      1.0      0.0          return
+
+Integrating ODE ... 
+Unavoidable Time:  10.781575202941895
+Total Integration Time:  10.818585634231567 
