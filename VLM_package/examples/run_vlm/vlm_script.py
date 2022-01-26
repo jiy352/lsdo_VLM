@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import openmdao.api as om
 from ozone2.api import ODEProblem, Wrap
 
-from VLM_package.VLM_system.vlm_system import ODESystemModel
+from VLM_package.VLM_system.vlm_system import VLMSystemModel
 from VLM_package.VLM_outputs.compute_force.compute_outputs_group import Outputs
 import csdl_om
 import numpy as np
@@ -23,12 +23,12 @@ wake_coords_val_1 = compute_wake_coords(nx, ny - 1, nt, h_stepsize,
                                         frame_vel_val,
                                         offset).reshape(1, nt, ny - 1, 3)
 
+# multiple lifting surface
 # surface_names = ['wing', 'wing_1']
 # surface_shapes = [(nx, ny, 3), (nx, ny - 1, 3)]
 # wake_coords = [wake_coords_val, wake_coords_val_1]
 
 # single lifting surface
-
 surface_names = ['wing']
 surface_shapes = [(nx, ny, 3)]
 wake_coords = [wake_coords_val]
@@ -51,7 +51,7 @@ wing_rot_vel_1 = model_1.create_input('wing_1_rot_vel',
 
 # add the mesh info
 model_1.add(
-    ODESystemModel(surface_names=surface_names,
+    VLMSystemModel(surface_names=surface_names,
                    surface_shapes=surface_shapes,
                    frame_vel=frame_vel_val,
                    nt=nt,

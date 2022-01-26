@@ -9,7 +9,7 @@ from VLM_package.VLM_preprocessing.compute_wake_coords import WakeCoords
 from VLM_package.VLM_system.solve_circulations.seperate_gamma_b import SeperateGammab
 
 
-class ODESystemModel(csdl.Model):
+class VLMSystemModel(csdl.Model):
     def initialize(self):
         # Required every time for ODE systems or Profile Output systems
         self.parameters.declare('num_nodes', default=1)
