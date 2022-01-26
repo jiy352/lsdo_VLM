@@ -145,21 +145,6 @@ class RHS(Model):
             normal_shapes=bd_coll_pts_shapes)  # NOTE: need to fix this later
         self.add(m, name='Projection_aic')
 
-        # if method == 'fw_euler':
-        #     circulation_wake = self.declare_variable(
-        #         'circulation_wake', shape=circulation_wake_shape)
-        #     M_proj = self.declare_variable(output_vel_names[0],
-        #                                    shape=(input_vel_shapes[0][0],
-        #                                           input_vel_shapes[0][1]))
-        #     M_gamma_w = csdl.einsum(M_proj,
-        #                             circulation_wake,
-        #                             subscripts='ij,j->i')
-        #     rhs = M_proj - M_gamma_w
-        #     self.register_output(rhs_name, rhs)
-
-        #  elif method == 'bk_euler':
-        # b and M should be already registered in 1. and 3.
-
 
 if __name__ == "__main__":
 

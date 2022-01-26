@@ -91,7 +91,6 @@ class EvalPtsVel(Model):
         v_total_eval_names = [x + '_eval_total_vel' for x in surface_names]
 
         eval_vel_shapes = [(x[0] * x[1], 3) for x in eval_pts_shapes]
-        # TODO: might change here for higher order numerical method
 
         n = 1
         ode_surface_shapes = [(n, ) + item for item in surface_shapes]
@@ -133,9 +132,6 @@ class EvalPtsVel(Model):
         # total induced vel
         for i in range(len(eval_pts_names)):
             eval_vel_shape = eval_vel_shapes[i]
-            # surface_total_induced_col = self.create_output(
-            #     eval_induced_velocities_col_names[i],
-            #     shape=(len(bdnwake_coords_names), eval_vel_shape[0], 3))
 
             aic_shapes = [
                 (x[0] * x[1] * (y[0] - 1) * (y[1] - 1), 3)
@@ -203,8 +199,7 @@ class EvalPtsVel(Model):
 
             v_induced_wake = model_wake_total_vel.declare_variable(
                 v_induced_wake_name, shape=eval_vel_shape)
-            # print('v_induced_wake shape=======================',
-            #       v_induced_wake.shape)
+
             # !!TODO!! this needs to be fixed for more general cases to compute the undisturbed vel
 
             # kinematic_vel = model_wake_total_vel.declare_variable(

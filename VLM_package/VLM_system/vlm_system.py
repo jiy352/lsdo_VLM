@@ -1,16 +1,12 @@
-from os import times_result
-from random import random
 import csdl
 from csdl_om import Simulator
-from numpy.core.fromnumeric import shape
-from ozone2.api import NativeSystem
+
 import numpy as np
-# from solve_group_simple_wing import SolveMatrix
 from VLM_package.VLM_system.solve_circulations.solve_group import SolveMatrix
 from VLM_package.VLM_preprocessing.mesh_preprocessing_comp import MeshPreprocessing
+from VLM_package.VLM_preprocessing.compute_wake_coords import WakeCoords
 
 from VLM_package.VLM_system.solve_circulations.seperate_gamma_b import SeperateGammab
-# from VLM_package.VLM_system.wake_rollup.wake_total_vel_group import WakeTotalVel
 
 
 class ODESystemModel(csdl.Model):
@@ -24,7 +20,6 @@ class ODESystemModel(csdl.Model):
         # We also passed in parameters to this ODE model in ODEproblem.create_model() in 'run.py' which we can access here.
         # for now, we just make frame_vel an option, bd_vortex_coords, as static parameters
         self.parameters.declare('frame_vel')
-        self.parameters.declare('wake_coords', types=list)
         self.parameters.declare('nt', types=int)
         self.parameters.declare('free_wake', default=False)
         self.parameters.declare('temp_fix_option', default=False)
@@ -46,7 +41,6 @@ class ODESystemModel(csdl.Model):
         gamma_b_shape = sum((i[0] - 1) * (i[1] - 1) for i in bd_vortex_shapes)
 
         frame_vel_val = self.parameters['frame_vel']
-        wake_coords_val = self.parameters['wake_coords']
 
         frame_vel = self.create_input('frame_vel', val=frame_vel_val)
         ode_surface_shape = [(n, ) + item for item in surface_shapes]
@@ -58,20 +52,16 @@ class ODESystemModel(csdl.Model):
 
         ode_bd_vortex_shapes = ode_surface_shape
 
-        for i in range(len(surface_names)):
-            nx = bd_vortex_shapes[i][0]
-            ny = bd_vortex_shapes[i][1]
-            # print('nx, ny', bd_vortex_shapes[i], nx, ny)
-            # NOTE changed here from create input
-            self.declare_variable(surface_names[i], shape=ode_surface_shape[i])
-            if free_wake == False:
-                wake_coords = self.create_input(wake_coords_names[i],
-                                                val=wake_coords_val[i])
-                # wake_coords = self.create_input(wake_coords_names[i],
-                #                                 shape=wake_coords_val[i].shape)
         self.add(MeshPreprocessing(surface_names=surface_names,
                                    surface_shapes=ode_surface_shape),
                  name='meshPreprocessing_comp')
+        self.add(WakeCoords(
+            surface_names=surface_names,
+            surface_shapes=ode_surface_shape,
+            nt=nt,
+            delta_t=delta_t,
+        ),
+                 name='WakeCoords_comp')
 
         self.add(SolveMatrix(nt=nt,
                              surface_names=surface_names,
