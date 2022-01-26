@@ -9,19 +9,16 @@ import numpy as np
 
 from VLM_package.VLM_preprocessing.generate_simple_mesh import *
 
-nt = 5
+# here nt is just a dummy variable that always equal to 2. since we are using a long wake panel,
+# we can just make nt=2, delta_t=a large number.
+delta_t = 10
+nt = 2
+
 nx = 2
 ny = 4
-delta_t = h_stepsize = 1
 offset = 10
 
 frame_vel_val = np.array([-1, 0, -1])
-wake_coords_val = compute_wake_coords(nx, ny, nt, h_stepsize,
-                                      frame_vel_val).reshape(1, nt, ny, 3)
-
-wake_coords_val_1 = compute_wake_coords(nx, ny - 1, nt, h_stepsize,
-                                        frame_vel_val,
-                                        offset).reshape(1, nt, ny - 1, 3)
 
 # multiple lifting surface
 # surface_names = ['wing', 'wing_1']
