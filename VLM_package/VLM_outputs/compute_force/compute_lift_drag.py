@@ -1,3 +1,4 @@
+from turtle import shape
 from csdl_om import Simulator
 from csdl import Model
 import csdl
@@ -34,6 +35,7 @@ class LiftDrag(Model):
         rho = self.parameters['rho']
         v_total_wake_names = [x + '_eval_total_vel' for x in surface_names]
         system_size = 0
+
         for i in range(len(surface_names)):
             nx = surface_shapes[i][0]
             ny = surface_shapes[i][1]
@@ -43,7 +45,7 @@ class LiftDrag(Model):
         # !TODO!: fix this for variable mesh resolutiopn, and for inclined meshes
         bd_vec_val = np.zeros((system_size, 3))
         bd_vec_val[:, 1] = -1
-        bd_vec = self.declare_variable('bd_vec', bd_vec_val)
+        bd_vec = self.create_input('bd_vec', bd_vec_val)
         chord = nx - 1
         span = ny - 1
         # self.add(bd_vec_model, name='compute_bd_vec')
@@ -56,8 +58,18 @@ class LiftDrag(Model):
                                          'i->ij')
         # !TODO: fix this for mls
         # print('name_in_LD', v_induced_wake_names[0])
-        velocities = self.declare_variable(v_total_wake_names[0],
-                                           shape=(system_size, 3))
+        velocities = self.create_output('eval_total_vel',
+                                        shape=(system_size, 3))
+        start = 0
+        for i in range(len(v_total_wake_names)):
+            nx = surface_shapes[i][0]
+            ny = surface_shapes[i][1]
+            delta = (nx - 1) * (ny - 1)
+            vel_surface = self.declare_variable(v_total_wake_names[i],
+                                                shape=(delta, 3))
+            velocities[start:start + delta, :] = vel_surface
+            start = start + delta
+
         # add frame_vel
         frame_vel = self.declare_variable('frame_vel', shape=(3, ))
 
@@ -69,14 +81,13 @@ class LiftDrag(Model):
             velocities, bd_vec, axis=1)
 
         panel_forces_x = panel_forces[:, 0]
+        panel_forces_y = panel_forces[:, 1]
         panel_forces_z = panel_forces[:, 2]
 
         L = csdl.sum(-panel_forces_x * sina + panel_forces_z * cosa,
                      axes=(0, ))
-        D = csdl.sum(-panel_forces_x * cosa + panel_forces_z * sina,
-                     axes=(0, ))
+        D = csdl.sum(panel_forces_x * cosa + panel_forces_z * sina, axes=(0, ))
         b = frame_vel[0]**2 + frame_vel[1]**2 + frame_vel[2]**2
-
         # print(panel_forces[:, 0].shape)
         # print(frame_vel.shape)
         # print(

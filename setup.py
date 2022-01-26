@@ -1,10 +1,10 @@
 from distutils.core import setup
 
 setup(
-    name='UVLM_package',
+    name='VLM_package',
     version='-1',
     packages=[
-        'UVLM_package',
+        'VLM_package',
     ],
     install_requires=[
         # 'numpy',

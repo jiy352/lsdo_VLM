@@ -6,11 +6,11 @@ from numpy.core.fromnumeric import shape
 from ozone2.api import NativeSystem
 import numpy as np
 # from solve_group_simple_wing import SolveMatrix
-from UVLM_package.UVLM_system.solve_circulations.solve_group import SolveMatrix
-from UVLM_package.UVLM_preprocessing.mesh_preprocessing_comp import MeshPreprocessing
+from VLM_package.VLM_system.solve_circulations.solve_group import SolveMatrix
+from VLM_package.VLM_preprocessing.mesh_preprocessing_comp import MeshPreprocessing
 
-from UVLM_package.UVLM_system.wake_rollup.seperate_gamma_b import SeperateGammab
-from UVLM_package.UVLM_system.wake_rollup.wake_total_vel_group import WakeTotalVel
+from VLM_package.VLM_system.solve_circulations.seperate_gamma_b import SeperateGammab
+# from VLM_package.VLM_system.wake_rollup.wake_total_vel_group import WakeTotalVel
 
 
 class ODESystemModel(csdl.Model):
@@ -91,95 +91,11 @@ class ODESystemModel(csdl.Model):
             val = np.zeros((n, nt - 1, ny - 1))
             surface_name = surface_names[i]
 
-            surface_gamma_w_name = surface_name + '_gamma_w'
-            surface_dgammaw_dt_name = surface_name + '_dgammaw_dt'
             surface_gamma_b_name = surface_name + '_gamma_b'
 
-            surface_gamma_w = self.declare_variable(surface_gamma_w_name,
-                                                    shape=val.shape)
             surface_gamma_b = self.declare_variable(surface_gamma_b_name,
                                                     shape=((nx - 1) *
                                                            (ny - 1), ))
-            surface_dgammaw_dt = self.create_output(surface_dgammaw_dt_name,
-                                                    shape=(n, nt - 1, ny - 1))
-            if free_wake == True:
-
-                self.add(
-                    WakeTotalVel(
-                        surface_names=surface_names,
-                        surface_shapes=surface_shapes,
-                        nt=nt,
-                        delta_t=delta_t,
-                    ),
-                    'Wake_total_vel_group',
-                )
-                surface_wake_coords_name = surface_name + '_wake_coords'
-                surface_dwake_coords_dt_name = surface_name + '_dwake_coords_dt'
-
-                surface_wake_coords = self.create_input(
-                    surface_wake_coords_name, shape=(n, nt, ny, 3))
-
-                # print('surface_wake_coords----------------',
-                #       surface_wake_coords.shape)
-                surface_dwake_coords_dt = self.create_output(
-                    surface_dwake_coords_dt_name, shape=(n, nt, ny, 3))
-
-            for j in range(n):
-                gamma_b_last = csdl.reshape(surface_gamma_b[(nx - 2) *
-                                                            (ny - 1):],
-                                            new_shape=(1, 1, ny - 1))
-
-                surface_dgammaw_dt[j,
-                                   0, :] = (gamma_b_last -
-                                            surface_gamma_w[j, 0, :]) / delta_t
-                surface_dgammaw_dt[j, 1:, :] = (
-                    surface_gamma_w[j, :(surface_gamma_w.shape[1] - 1), :] -
-                    surface_gamma_w[j, 1:, :]) / delta_t
-                if free_wake == True:
-                    # here, we compute the wake coords
-                    # The zero th column will always be the T.E. won't change forever
-                    # when suppose nt=4 0,1,2,3
-
-                    # t=0       [TE,              TE,                 TE,                TE]
-                    # t = 1,    [TE,              TE+v_ind(TE,w+bd),  TE,                TE] -> bracket 0-1
-                    # c11 = TE+v_ind(TE,w+bd)
-
-                    # t = 2,    [TE,              TE+v_ind(t=1, bracket 0),  c11+v_ind(t=1, bracket 1),   TE] ->  bracket 0-1-2
-                    # c21 =  TE+v_ind(t=1, bracket 0)
-                    # c22 =  c11+v_ind(t=1, bracket 1)
-
-                    # t = 3,    [TE,              TE+v_ind(t=2, bracket 0),  c21+vind(t=2, bracket 1), c22+vind(t=2, bracket 2)] -> bracket 0-1-2-3
-                    # Then, the shedding is
-
-                    zeros = self.create_input('zeros',
-                                              val=np.zeros((1, 1, ny, 3)))
-
-                    surface_dwake_coords_dt[0, 0, :, :] = zeros
-
-                    wake_total_vel = self.declare_variable(
-                        v_total_wake_names[i], val=np.zeros((nt, ny, 3)))
-
-                    wake_total_vel_reshaped = csdl.reshape(
-                        wake_total_vel, (1, nt, ny, 3))
-                    if temp_fix_option == False:
-                        surface_dwake_coords_dt[0, 1:, :, :] = (
-                            surface_wake_coords[j, :(
-                                surface_wake_coords.shape[1] - 1), :, :] -
-                            surface_wake_coords[j, 1:, :, :]
-                        ) / delta_t + wake_total_vel_reshaped[:, :(
-                            surface_wake_coords.shape[1] - 1), :, :]
-
-                        # make a temperal modification for fixed wake here
-                    else:
-                        frame_vel_expand = -csdl.expand(
-                            frame_vel,
-                            shape=(1, nt - 1, ny, 3),
-                            indices='i->jkli')
-                        surface_dwake_coords_dt[
-                            0, 1:, :, :] = (surface_wake_coords[j, :(
-                                surface_wake_coords.shape[1] - 1), :, :] -
-                                            surface_wake_coords[j, 1:, :, :]
-                                            ) / delta_t + frame_vel_expand
 
 
 if __name__ == "__main__":

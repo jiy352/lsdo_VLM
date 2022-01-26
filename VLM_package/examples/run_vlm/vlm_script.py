@@ -2,12 +2,12 @@ import matplotlib.pyplot as plt
 import openmdao.api as om
 from ozone2.api import ODEProblem, Wrap
 
-from UVLM_package.UVLM_system.ode_system import ODESystemModel
-from UVLM_package.UVLM_outputs.compute_force.compute_outputs_group import Outputs
+from VLM_package.VLM_system.ode_system import ODESystemModel
+from VLM_package.VLM_outputs.compute_force.compute_outputs_group import Outputs
 import csdl_om
 import numpy as np
 
-from UVLM_package.UVLM_preprocessing.generate_simple_mesh import *
+from VLM_package.VLM_preprocessing.generate_simple_mesh import *
 
 nt = 5
 nx = 2
@@ -23,13 +23,13 @@ wake_coords_val_1 = compute_wake_coords(nx, ny - 1, nt, h_stepsize,
                                         frame_vel_val,
                                         offset).reshape(1, nt, ny - 1, 3)
 
-# surface_names = ['wing', 'wing_1']
-# surface_shapes = [(nx, ny, 3), (nx, ny - 1, 3)]
-# wake_coords = [wake_coords_val, wake_coords_val_1]
+surface_names = ['wing', 'wing_1']
+surface_shapes = [(nx, ny, 3), (nx, ny - 1, 3)]
+wake_coords = [wake_coords_val, wake_coords_val_1]
 
-surface_names = ['wing']
-surface_shapes = [(nx, ny, 3)]
-wake_coords = [wake_coords_val]
+# surface_names = ['wing']
+# surface_shapes = [(nx, ny, 3)]
+# wake_coords = [wake_coords_val]
 
 model_1 = csdl.Model()
 
@@ -56,7 +56,7 @@ model_1.add(
                    nt=nt,
                    delta_t=delta_t), 'ODE_system')
 
-eval_pts_names = ['eval_pts_coords']
+eval_pts_names = [x + '_eval_pts_coords' for x in surface_names]
 eval_pts_shapes = [(x[0] - 1, x[1] - 1, 3) for x in surface_shapes]
 # compute lift and drag
 sub = Outputs(surface_names=surface_names,

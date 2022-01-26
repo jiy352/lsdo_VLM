@@ -3,8 +3,8 @@ from csdl import Model
 import csdl
 import numpy as np
 from numpy.core.fromnumeric import size
-# from UVLM_package.UVLM_system.solve_circulations.biot_savart_comp_org import BiotSvart
-from UVLM_package.UVLM_system.solve_circulations.biot_savart_comp_vc_temp import BiotSvart
+# from UVLM_package.VLM_system.solve_circulations.biot_savart_comp_org import BiotSvart
+from VLM_package.VLM_system.solve_circulations.biot_savart_comp_vc_temp import BiotSvart
 
 
 class AssembleAic(Model):

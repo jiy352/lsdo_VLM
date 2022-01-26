@@ -2,12 +2,12 @@ import matplotlib.pyplot as plt
 import openmdao.api as om
 from ozone2.api import ODEProblem, Wrap
 
-from UVLM_package.UVLM_system.ode_system import ODESystemModel
-from UVLM_package.UVLM_outputs.compute_force.compute_outputs_group import Outputs
+from VLM_package.VLM_system.ode_system import ODESystemModel
+from VLM_package.VLM_outputs.compute_force.compute_outputs_group import Outputs
 import csdl_om
 import numpy as np
 
-from UVLM_package.UVLM_preprocessing.generate_simple_mesh import *
+from VLM_package.VLM_preprocessing.generate_simple_mesh import *
 
 import cProfile, pstats, io
 

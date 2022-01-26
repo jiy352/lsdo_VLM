@@ -7,9 +7,9 @@ from numpy.core.fromnumeric import size
 
 from scipy.sparse import csc_matrix
 
-from UVLM_package.UVLM_outputs.compute_force.horseshoe_circulations import HorseshoeCirculations
-from UVLM_package.UVLM_outputs.compute_force.eval_pts_velocities import EvalPtsVel
-from UVLM_package.UVLM_outputs.compute_force.compute_lift_drag import LiftDrag
+from VLM_package.VLM_outputs.compute_force.horseshoe_circulations import HorseshoeCirculations
+from VLM_package.VLM_outputs.compute_force.eval_pts_velocities_mls import EvalPtsVel
+from VLM_package.VLM_outputs.compute_force.compute_lift_drag import LiftDrag
 
 
 class Outputs(Model):
@@ -103,10 +103,15 @@ if __name__ == "__main__":
     ny = 4
     nt = 5
     delta_t = 1
-    surface_names = ['wing']
-    surface_shapes = [(nx, ny, 3)]
-    eval_pts_names = ['eval_pts_coords']
-    eval_pts_shapes = [(nx - 1, ny - 1, 3)]
+    # surface_names = ['wing']
+    # surface_shapes = [(nx, ny, 3)]
+    # eval_pts_names = ['eval_pts_coords']
+    # eval_pts_shapes = [(nx - 1, ny - 1, 3)]
+
+    surface_names = ['wing1', 'wing2']
+    surface_shapes = [(3, 4, 3), (4, 5, 3)]
+    eval_pts_names = ['wing1_force_pts', 'wing2_force_pts']
+    eval_pts_shapes = [(2, 3, 3), (3, 4, 3)]
 
     model_1 = Model()
 

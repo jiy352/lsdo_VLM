@@ -3,9 +3,10 @@ import numpy as np
 from csdl_om import Simulator
 import csdl
 
-from UVLM_package.UVLM_system.solve_circulations.rhs_group import RHS
-from UVLM_package.UVLM_system.solve_circulations.assemble_aic import AssembleAic
-from UVLM_package.UVLM_system.solve_circulations.projection_comp import Projection
+from VLM_package.VLM_system.solve_circulations.rhs_group import RHS
+from VLM_package.VLM_system.solve_circulations.assemble_aic import AssembleAic
+from VLM_package.VLM_system.solve_circulations.projection_comp import Projection
+from VLM_package.VLM_system.solve_circulations.seperate_gamma_b import SeperateGammab
 
 
 class SolveMatrix(Model):
@@ -49,6 +50,7 @@ class SolveMatrix(Model):
     def define(self):
         surface_names = self.parameters['surface_names']
         bd_vortex_shapes = self.parameters['bd_vortex_shapes']
+        surface_shapes = bd_vortex_shapes
         method = self.parameters['method']
         nt = self.parameters['nt']
         n = self.parameters['n']
@@ -141,37 +143,62 @@ class SolveMatrix(Model):
                                                           shape=(n, nt - 1,
                                                                  sum_ny))
         start = 0
+
+        gamma_b = self.declare_variable('gamma_b', shape=gamma_b_shape)
+
+        self.add(SeperateGammab(surface_names=surface_names,
+                                surface_shapes=surface_shapes),
+                 name='seperate_gamma_b_1')
+
         for i in range(len(bd_vortex_shapes)):
             nx = bd_vortex_shapes[i][0]
             ny = bd_vortex_shapes[i][1]
             delta = ny - 1
             surface_gamma_w_name = surface_names[i] + '_gamma_w'
-            surface_gamma_w = model_concatenate_gamma_w.declare_variable(
-                surface_gamma_w_name, shape=(n, nt - 1, ny - 1))
-            gamma_w[:, :, start:start + delta] = surface_gamma_w
+            surface_gamma_b_name = surface_names[i] + '_gamma_b'
+            print(surface_gamma_b_name, 'surface_gamma_b_name')
+
+            surface_gamma_b = model_concatenate_gamma_w.declare_variable(
+                surface_gamma_b_name, shape=((nx - 1) * (ny - 1), ))
+            print('surface_gamma_b', surface_gamma_b.shape)
+            print('surface_gamma_b',
+                  surface_gamma_b[(nx - 2) * (ny - 1):].shape)
+            print('surface_gamma_b',
+                  (nt - 1, surface_gamma_b[(nx - 2) * (ny - 1):].shape[0]))
+
+            surface_gamma_w = csdl.expand(
+                surface_gamma_b[(nx - 2) * (ny - 1):],
+                (nt - 1, surface_gamma_b[(nx - 2) * (ny - 1):].shape[0]),
+                indices='i->ji')
+            gamma_w[:, :, start:start + delta] = csdl.reshape(
+                surface_gamma_w,
+                (n, surface_gamma_w.shape[0], surface_gamma_w.shape[1]))
             start += delta
         self.add(model_concatenate_gamma_w, name='concatenate_gamma_w')
+        gamma_w_flatten = csdl.reshape(gamma_w,
+                                       new_shape=(gamma_w.shape[1] *
+                                                  gamma_w.shape[2], ))
 
-        if method == 'bk_euler':
-            gamma_w = csdl.expand(gamma_b[(nx - 2) * (ny - 1):],
-                                  (nt - 1, gamma_b[(nx - 2) *
-                                                   (ny - 1):].shape[0]),
-                                  indices='i->ji')
-            gamma_w_flatten = csdl.reshape(gamma_w,
-                                           new_shape=(gamma_w.shape[0] *
-                                                      gamma_w.shape[1], ))
+        # if method == 'bk_euler':
+        #     gamma_w = csdl.expand(gamma_b[(nx - 2) * (ny - 1):],
+        #                           (nt - 1, gamma_b[(nx - 2) *
+        #                                            (ny - 1):].shape[0]),
+        #                           indices='i->ji')
+        #     gamma_w_flatten = csdl.reshape(gamma_w,
+        #                                    new_shape=(gamma_w.shape[0] *
+        #                                               gamma_w.shape[1], ))
 
-        elif method == 'fw_euler':
-            gamma_w = model.declare_variable('gamma_w',
-                                             shape=(n, nt - 1, sum_ny))
+        # elif method == 'fw_euler':
+        #     gamma_w = model.declare_variable('gamma_w',
+        #                                      shape=(n, nt - 1, sum_ny))
 
-            gamma_w_reshaped = csdl.reshape(gamma_w,
-                                            new_shape=(nt - 1, sum_ny))
+        #     gamma_w_reshaped = csdl.reshape(gamma_w,
+        #                                     new_shape=(nt - 1, sum_ny))
 
-            gamma_w_flatten = csdl.reshape(
-                gamma_w_reshaped,
-                new_shape=(gamma_w_reshaped.shape[0] *
-                           gamma_w_reshaped.shape[1], ))
+        #     gamma_w_flatten = csdl.reshape(
+        #         gamma_w_reshaped,
+        #         new_shape=(gamma_w_reshaped.shape[0] *
+        #                    gamma_w_reshaped.shape[1], ))
         # print('shape---------------------',
         #       csdl.einsum(aic_bd_proj, gamma_b, subscripts='ij,j->i').shape)
         # print('M shape', M.shape, gamma_w_flatten.shape)
@@ -202,7 +229,7 @@ class SolveMatrix(Model):
             shape=(1, nt - 1, gamma_b[(nx - 2) * (ny - 1):].shape[0]))
         # print('gamma_w----------', gamma_w.shape)
 
-        gamma_b = solve(M, aic_bd_proj, gamma_w)
+        gamma_b = solve(M, aic_bd_proj)
 
 
 if __name__ == "__main__":

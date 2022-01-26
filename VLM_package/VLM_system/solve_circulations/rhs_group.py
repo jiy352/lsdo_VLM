@@ -4,10 +4,10 @@ import csdl
 import numpy as np
 from numpy.core.fromnumeric import size
 
-from UVLM_package.UVLM_system.solve_circulations.kinematic_velocity_temp import KinematicVelocity
-from UVLM_package.UVLM_system.solve_circulations.assemble_aic import AssembleAic
-from UVLM_package.UVLM_system.solve_circulations.compute_normal_comp import ComputeNormal
-from UVLM_package.UVLM_system.solve_circulations.projection_comp import Projection
+from VLM_package.VLM_system.solve_circulations.kinematic_velocity_temp import KinematicVelocity
+from VLM_package.VLM_system.solve_circulations.assemble_aic import AssembleAic
+from VLM_package.VLM_system.solve_circulations.compute_normal_comp import ComputeNormal
+from VLM_package.VLM_system.solve_circulations.projection_comp import Projection
 
 
 class RHS(Model):
