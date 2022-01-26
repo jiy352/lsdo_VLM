@@ -23,12 +23,10 @@ frame_vel_val = np.array([-1, 0, -1])
 # multiple lifting surface
 # surface_names = ['wing', 'wing_1']
 # surface_shapes = [(nx, ny, 3), (nx, ny - 1, 3)]
-# wake_coords = [wake_coords_val, wake_coords_val_1]
 
 # single lifting surface
 surface_names = ['wing']
 surface_shapes = [(nx, ny, 3)]
-wake_coords = [wake_coords_val]
 
 model_1 = csdl.Model()
 
