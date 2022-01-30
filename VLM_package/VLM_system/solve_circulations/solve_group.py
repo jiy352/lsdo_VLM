@@ -114,35 +114,6 @@ class SolveMatrix(Model):
         model.add(m, name='Projection_aic_bd')
         sum_ny = sum((i[1] - 1) for i in bd_vortex_shapes)
 
-        if method == 'bk_euler':
-            gamma_w = model.create_output('gamma_w', shape=(n, nt - 1, sum_ny))
-            start = 0
-            for i in range(len(surface_names)):
-                nx = bd_vortex_shapes[i][0]
-                ny = bd_vortex_shapes[i][1]
-                delta = ny - 1
-
-                val = np.zeros((n, nt - 1, ny - 1))
-                surface_name = surface_names[i]
-
-                surface_gamma_b_name = surface_name + '_gamma_b'
-
-                surface_gamma_b = model.declare_variable(surface_gamma_b_name,
-                                                         shape=((nx - 1) *
-                                                                (ny - 1), ))
-                surface_gamma_w_name = surface_names[i] + '_gamma_w'
-                surface_gamma_w = csdl.expand(
-                    surface_gamma_b[(nx - 2) * (ny - 1):], (nt - 1, ny - 1),
-                    'i->ji')
-                model.register_output(surface_gamma_w_name, surface_gamma_w)
-                gamma_w[:, :, start:start + delta] = csdl.reshape(
-                    surface_gamma_w, (1, nt - 1, ny - 1))
-                start += delta
-
-            gamma_w_flatten = csdl.reshape(gamma_w,
-                                           new_shape=(gamma_w.shape[1] *
-                                                      gamma_w.shape[2], ))
-
         self.add(model, 'prepossing_before_Solve')
         '''3. solve'''
         model = Model()
@@ -161,16 +132,46 @@ class SolveMatrix(Model):
 
         aic_bd_proj_shape = (gamma_b_shape, ) + (gamma_b_shape, )
 
+        print('aic_bd_proj', aic_bd_proj_name)
+
         aic_bd_proj = model.declare_variable(aic_bd_proj_name,
                                              shape=(aic_bd_proj_shape))
         gamma_b = model.declare_variable('gamma_b', shape=(gamma_b_shape))
         b = model.declare_variable('b', shape=(gamma_b_shape, ))
 
+        if method == 'bk_euler':
+            gamma_w = model.create_output('gamma_w', shape=(n, nt - 1, sum_ny))
+            start = start_b = 0
+            for i in range(len(surface_names)):
+                nx = bd_vortex_shapes[i][0]
+                ny = bd_vortex_shapes[i][1]
+                delta = ny - 1
+                delta_b = (nx - 1) * (ny - 1)
+                val = np.zeros((n, nt - 1, ny - 1))
+                surface_name = surface_names[i]
+
+                surface_gamma_b = gamma_b[start:start + delta_b]
+                surface_gamma_w_name = surface_names[i] + '_gamma_w'
+                surface_gamma_w = csdl.expand(
+                    surface_gamma_b[(nx - 2) * (ny - 1):], (nt - 1, ny - 1),
+                    'i->ji')
+                model.register_output(surface_gamma_w_name, surface_gamma_w)
+                gamma_w[:, :, start:start + delta] = csdl.reshape(
+                    surface_gamma_w, (1, nt - 1, ny - 1))
+                start += delta
+                start_b += delta_b
+
+            gamma_w_flatten = csdl.reshape(gamma_w,
+                                           new_shape=(gamma_w.shape[1] *
+                                                      gamma_w.shape[2], ))
+
         sum_ny = sum((i[1] - 1) for i in bd_vortex_shapes)
 
+        gamma_b[(nx - 2) * (ny - 1):]
 
-        y = csdl.einsum(aic_bd_proj, gamma_b,subscripts='ij,j->i') +\
-                csdl.einsum(M, gamma_w_flatten, subscripts='ij,j->i')+b
+        y = csdl.einsum(aic_bd_proj, gamma_b,
+                        subscripts='ij,j->i') + csdl.einsum(
+                            M, gamma_w_flatten, subscripts='ij,j->i') + b
 
         model.register_output('y', y)
 
@@ -178,8 +179,8 @@ class SolveMatrix(Model):
         solve.declare_state('gamma_b', residual='y')
         solve.nonlinear_solver = NewtonSolver(
             solve_subsystems=False,
-            maxiter=2,
-            iprint=False,
+            maxiter=5,
+            iprint=True,
         )
         solve.linear_solver = ScipyKrylov()
 
@@ -187,11 +188,8 @@ class SolveMatrix(Model):
         aic_bd_proj = self.declare_variable(aic_bd_proj_name,
                                             shape=(aic_shape_row,
                                                    aic_shape_col))
-        gamma_w = self.declare_variable(
-            'gamma_w',
-            shape=(1, nt - 1, gamma_b[(nx - 2) * (ny - 1):].shape[0]))
 
-        gamma_b = solve(M, aic_bd_proj)
+        gamma_b = solve(aic_bd_proj)
 
 
 if __name__ == "__main__":

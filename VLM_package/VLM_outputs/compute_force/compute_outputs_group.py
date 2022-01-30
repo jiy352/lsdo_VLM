@@ -46,8 +46,8 @@ class Outputs(Model):
         self.parameters.declare('eval_pts_location', default=0.25)
 
         # stands for quarter-chord
-        self.parameters.declare('nt')
-        self.parameters.declare('delta_t')
+        self.parameters.declare('nt', default=2)
+        self.parameters.declare('delta_t', default=100)
 
     def define(self):
         nt = self.parameters['nt']

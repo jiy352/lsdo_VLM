@@ -1,36 +1,27 @@
-import matplotlib.pyplot as plt
-import openmdao.api as om
-from ozone2.api import ODEProblem, Wrap
-
 from VLM_package.VLM_system.vlm_system import VLMSystemModel
 from VLM_package.VLM_outputs.compute_force.compute_outputs_group import Outputs
-import csdl_om
 import numpy as np
 
 from VLM_package.VLM_preprocessing.generate_simple_mesh import *
 
 # here nt is just a dummy variable that always equal to 2. since we are using a long wake panel,
 # we can just make nt=2, delta_t=a large number.
-delta_t = 10
-nt = 2
 
 nx = 2
 ny = 4
 offset = 10
 
-frame_vel_val = np.array([-1, 0, -1])
+frame_vel_val = np.array([1e-9, 0, -1])
 
 # multiple lifting surface
-# surface_names = ['wing', 'wing_1']
-# surface_shapes = [(nx, ny, 3), (nx, ny - 1, 3)]
+surface_names = ['wing', 'wing_1']
+surface_shapes = [(nx, ny, 3), (nx, ny - 1, 3)]
 
 # single lifting surface
-surface_names = ['wing']
-surface_shapes = [(nx, ny, 3)]
+# surface_names = ['wing']
+# surface_shapes = [(nx, ny, 3)]
 
 model_1 = csdl.Model()
-
-frame_vel_val = np.array([-1, 0, -1])
 
 mesh_val = generate_simple_mesh(nx, ny).reshape(1, nx, ny, 3)
 mesh_val_1 = generate_simple_mesh(nx, ny - 1,
@@ -38,29 +29,24 @@ mesh_val_1 = generate_simple_mesh(nx, ny - 1,
 
 wing = model_1.create_input('wing', val=mesh_val)
 wing_1 = model_1.create_input('wing_1', val=mesh_val_1)
-wing_rot_vel = model_1.create_input('wing_rot_vel',
-                                    val=np.zeros(((nx - 1) * (ny - 1), 3)))
-wing_rot_vel_1 = model_1.create_input('wing_1_rot_vel',
-                                      val=np.zeros(
-                                          ((nx - 1) * (ny - 1 - 1), 3)))
 
 # add the mesh info
 model_1.add(
-    VLMSystemModel(surface_names=surface_names,
-                   surface_shapes=surface_shapes,
-                   frame_vel=frame_vel_val,
-                   nt=nt,
-                   delta_t=delta_t), 'ODE_system')
+    VLMSystemModel(
+        surface_names=surface_names,
+        surface_shapes=surface_shapes,
+        frame_vel=frame_vel_val,
+    ), 'ODE_system')
 
 eval_pts_names = [x + '_eval_pts_coords' for x in surface_names]
 eval_pts_shapes = [(x[0] - 1, x[1] - 1, 3) for x in surface_shapes]
 # compute lift and drag
-sub = Outputs(surface_names=surface_names,
-              surface_shapes=surface_shapes,
-              nt=nt,
-              eval_pts_names=eval_pts_names,
-              eval_pts_shapes=eval_pts_shapes,
-              delta_t=delta_t)
+sub = Outputs(
+    surface_names=surface_names,
+    surface_shapes=surface_shapes,
+    eval_pts_names=eval_pts_names,
+    eval_pts_shapes=eval_pts_shapes,
+)
 model_1.add(sub, name='compute_lift_drag')
 
 sim = Simulator(model_1)

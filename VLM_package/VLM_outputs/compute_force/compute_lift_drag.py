@@ -43,12 +43,16 @@ class LiftDrag(Model):
 
         # bd_vec_model = Model()
         # !TODO!: fix this for variable mesh resolutiopn, and for inclined meshes
-        bd_vec_val = np.zeros((system_size, 3))
-        bd_vec_val[:, 1] = -1
-        bd_vec = self.create_input('bd_vec', bd_vec_val)
-        chord = nx - 1
-        span = ny - 1
-        # self.add(bd_vec_model, name='compute_bd_vec')
+        mesh = self.declare_variable(surface_names[0],
+                                     shape=(1, ) + surface_shapes[0])
+        bd_vec = self.create_output('bd_vec', val=np.zeros((system_size, 3)))
+        chord = csdl.reshape(mesh[:, nx - 1, 0, 0] - mesh[:, 0, 0, 0], (1, ))
+        span = csdl.reshape(mesh[:, 0, ny - 1, 1] - mesh[:, 0, 0, 1], (1, ))
+
+        # print(span.shape, 'span')
+        # print('bd_vec_val[:, 1].shape', bd_vec[:, 1].shape)
+
+        bd_vec[:, 1] = -csdl.expand(span, (system_size, 1)) / (ny - 1)
 
         # add circulations and force point velocities
 
@@ -86,15 +90,10 @@ class LiftDrag(Model):
 
         L = csdl.sum(-panel_forces_x * sina + panel_forces_z * cosa,
                      axes=(0, ))
-        D = csdl.sum(panel_forces_x * cosa + panel_forces_z * sina, axes=(0, ))
+        # !TODO:! need to check the sign here
+        D = -csdl.sum(panel_forces_x * cosa + panel_forces_z * sina,
+                      axes=(0, ))
         b = frame_vel[0]**2 + frame_vel[1]**2 + frame_vel[2]**2
-        # print(panel_forces[:, 0].shape)
-        # print(frame_vel.shape)
-        # print(
-        #     'b',
-        #     b.shape,
-        # )
-        # print(L.shape)
 
         c_l = L / (0.5 * rho * span * chord * b)
         c_d = D / (0.5 * rho * span * chord * b)

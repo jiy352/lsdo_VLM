@@ -15,12 +15,12 @@ class VLMSystemModel(csdl.Model):
         self.parameters.declare('num_nodes', default=1)
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('surface_shapes', types=list)
-        self.parameters.declare('delta_t')
+        self.parameters.declare('delta_t', default=100)
 
         # We also passed in parameters to this ODE model in ODEproblem.create_model() in 'run.py' which we can access here.
         # for now, we just make frame_vel an option, bd_vortex_coords, as static parameters
         self.parameters.declare('frame_vel')
-        self.parameters.declare('nt', types=int)
+        self.parameters.declare('nt', default=2)
         self.parameters.declare('free_wake', default=False)
         self.parameters.declare('temp_fix_option', default=False)
 
@@ -74,6 +74,38 @@ class VLMSystemModel(csdl.Model):
         self.add(SeperateGammab(surface_names=surface_names,
                                 surface_shapes=surface_shapes),
                  name='seperate_gamma_b')
+
+        m = csdl.Model()
+        sum_ny = sum((i[1] - 1) for i in bd_vortex_shapes)
+        gamma_w = m.create_output('gamma_w', shape=(n, nt - 1, sum_ny))
+        start = 0
+        for i in range(len(surface_names)):
+            nx = bd_vortex_shapes[i][0]
+            ny = bd_vortex_shapes[i][1]
+            delta = ny - 1
+
+            val = np.zeros((n, nt - 1, ny - 1))
+            surface_name = surface_names[i]
+
+            surface_gamma_b_name = surface_name + '_gamma_b'
+
+            surface_gamma_b = m.declare_variable(surface_gamma_b_name,
+                                                 shape=((nx - 1) * (ny - 1), ))
+            surface_gamma_w_name = surface_names[i] + '_gamma_w'
+            surface_gamma_w = csdl.expand(
+                surface_gamma_b[(nx - 2) * (ny - 1):], (nt - 1, ny - 1),
+                'i->ji')
+            m.register_output(surface_gamma_w_name, surface_gamma_w)
+            gamma_w[:, :, start:start + delta] = csdl.reshape(
+                surface_gamma_w, (1, nt - 1, ny - 1))
+            start += delta
+        self.add(m, name='extract_gamma_w')
+
+        # gamma_b = self.declare_variable('gamma_b', shape=gamma_b_shape)
+
+        # self.add(SeperateGammab(surface_names=surface_names,
+        #                         surface_shapes=surface_shapes),
+        #          name='seperate_gamma_b')
         # ODE system with surface gamma's
         for i in range(len(surface_names)):
             nx = bd_vortex_shapes[i][0]

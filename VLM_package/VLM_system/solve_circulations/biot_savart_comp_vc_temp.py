@@ -82,6 +82,13 @@ class BiotSvart(Model):
             C = vortex_coords[:vortex_coords_shape[0] - 1, 1:, :]
             D = vortex_coords[1:, 1:, :]
 
+            # openaerostruct
+            # C = vortex_coords[1:, :vortex_coords_shape[1] - 1, :]
+            # B = vortex_coords[:vortex_coords_shape[0] -
+            #                   1, :vortex_coords_shape[1] - 1, :]
+            # A = vortex_coords[:vortex_coords_shape[0] - 1, 1:, :]
+            # D = vortex_coords[1:, 1:, :]
+
             v_ab = self._induced_vel_line(eval_pts, A, B, vortex_coords_shape,
                                           circulation_name)
             v_bc = self._induced_vel_line(eval_pts, B, C, vortex_coords_shape,
