@@ -4,32 +4,28 @@ import numpy as np
 
 from VLM_package.VLM_preprocessing.generate_simple_mesh import *
 
+from vedo import *
 # here nt is just a dummy variable that always equal to 2. since we are using a long wake panel,
 # we can just make nt=2, delta_t=a large number.
 
-nx = 2
-ny = 50
-# ny = 100
-offset = 10
+nx = 5
+ny = 5
 
-frame_vel_val = np.array([1e-9, 0, -1])
-
-# multiple lifting surface
-# surface_names = ['wing', 'wing_1']
-# surface_shapes = [(nx, ny, 3), (nx, ny - 1, 3)]
+frame_vel_val = np.array([-1, 0, 0])
 
 # single lifting surface
 surface_names = ['wing']
 surface_shapes = [(nx, ny, 3)]
 
 model_1 = csdl.Model()
+mesh_org = np.loadtxt('mesh_5_5.txt').reshape(nx, ny, 3)
+mesh_val = rearranged_arr = np.moveaxis(mesh_org, [0, 1], [1, 0])
 
-mesh_val = generate_simple_mesh(nx, ny).reshape(1, nx, ny, 3)
-mesh_val_1 = generate_simple_mesh(nx, ny - 1,
-                                  offset=offset).reshape(1, nx, ny - 1, 3)
+vp_init = Plotter()
+vps1 = Points(mesh_val.reshape(nx * ny, 3), r=8, c='blue')
+vp_init.show(vps1, 'Camber', axes=1, viewup="z", interactive=True)
 
-wing = model_1.create_input('wing', val=mesh_val)
-wing_1 = model_1.create_input('wing_1', val=mesh_val_1)
+wing = model_1.create_input('wing', val=mesh_val.reshape(1, nx, ny, 3))
 
 # add the mesh info
 model_1.add(
@@ -55,4 +51,4 @@ sim = Simulator(model_1)
 sim.run()
 print('lift', sim.prob['L'])
 print('drag', sim.prob['D'])
-# sim.visualize_implementation()
+sim.visualize_implementation()

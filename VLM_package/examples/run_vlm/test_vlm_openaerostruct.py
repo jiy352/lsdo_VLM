@@ -33,7 +33,7 @@ mesh = generate_mesh(mesh_dict)
 plt.plot(mesh[:, :, 0], mesh[:, :, 1], '.')
 plt.show()
 
-alpha_deg = 0
+alpha_deg = 10
 alpha = alpha_deg / 180 * np.pi
 v_inf = 1
 vx = -v_inf * np.cos(alpha)
@@ -74,12 +74,4 @@ print('lift', sim.prob['L'])
 print('drag', sim.prob['D'])
 # sim.visualize_implementation()
 
-# sim['aic_bd_proj']@sim['gamma_b']+sim['M']@(sim['gamma_w'].reshape(4))
-# np.einsum('ij,j->i', sim['aic_bd_proj'], sim['gamma_b']) + np.einsum(
-#     'ij,j->i', sim['M'], (sim['gamma_w'].reshape(4))) + sim['b']
-
-a = np.einsum('ij,j->i', sim['aic_bd_proj'], sim['gamma_b']) + np.einsum(
-    'ij,j->i', sim['M'], (sim['gamma_w'].reshape(4))) + sim['b']
-
-np.einsum('ij,j->i', sim['aic_bd_proj'], sim['gamma_b']) + np.einsum(
-    'ij,j->i', sim['M'], np.ones(4)) + sim['b']
+# sim.prob.check_partials(compact_print=True)
