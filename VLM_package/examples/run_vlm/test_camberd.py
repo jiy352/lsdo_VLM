@@ -8,8 +8,8 @@ from vedo import *
 # here nt is just a dummy variable that always equal to 2. since we are using a long wake panel,
 # we can just make nt=2, delta_t=a large number.
 
-nx = 5
-ny = 5
+nx = 3
+ny = 20
 
 frame_vel_val = np.array([-1, 0, 0])
 
@@ -18,7 +18,7 @@ surface_names = ['wing']
 surface_shapes = [(nx, ny, 3)]
 
 model_1 = csdl.Model()
-mesh_org = np.loadtxt('mesh_5_5.txt').reshape(nx, ny, 3)
+mesh_org = np.loadtxt('test.txt').reshape(nx, ny, 3)
 mesh_val = rearranged_arr = np.moveaxis(mesh_org, [0, 1], [1, 0])
 
 vp_init = Plotter()
