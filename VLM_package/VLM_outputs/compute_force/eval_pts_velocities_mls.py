@@ -210,7 +210,7 @@ class EvalPtsVel(Model):
                                            eval_vel_shape,
                                            indices='i->ji')
 
-            v_total_wake = csdl.reshape((v_induced_wake + frame_vel_expand),
+            v_total_wake = csdl.reshape((v_induced_wake - frame_vel_expand),
                                         new_shape=eval_vel_shape)
 
             model_wake_total_vel.register_output(v_total_eval_names[i],

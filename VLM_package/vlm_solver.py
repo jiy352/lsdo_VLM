@@ -48,6 +48,16 @@ if __name__ == "__main__":
     ny = 19
     surface_shapes = [(nx, ny, 3)]
 
+    v_inf = -50
+    alpha_deg = 0
+    alpha = alpha_deg / 180 * np.pi
+    vx = -v_inf * np.cos(alpha)
+    vz = -v_inf * np.sin(alpha)
+
+    # vx = 50
+    # vz = 5
+    # frame_vel_val = np.array([vx, 0, vz])
+
     model = Model()
     # mesh_val = generate_simple_mesh(nx, ny).reshape(1, nx, ny, 3)
     mesh_val = np.loadtxt('points.txt').reshape(nx, ny + 1, 3)[:, :-1, :]
@@ -55,8 +65,7 @@ if __name__ == "__main__":
     # vps1 = Points(mesh_val.reshape(nx * ny, 3), r=8, c='blue')
     # vp_init.show(vps1, 'Camber', axes=1, viewup="z", interactive=True)
     surface_names = ['wing']
-    frame_vel_val = np.array([50, 0, 1])
-    free_stream_velocities = -frame_vel_val
+    free_stream_velocities = np.array([-vx, 0, -vz])
 
     # mesh = rearranged_arr = np.moveaxis(mesh_val, [0, 1], [1, 0])
 

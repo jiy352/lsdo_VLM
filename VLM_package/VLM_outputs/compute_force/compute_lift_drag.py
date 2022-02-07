@@ -105,8 +105,7 @@ class LiftDrag(Model):
         L = csdl.sum(-panel_forces_x * sina + panel_forces_z * cosa,
                      axes=(0, ))
         # !TODO:! need to check the sign here
-        D = -csdl.sum(panel_forces_x * cosa + panel_forces_z * sina,
-                      axes=(0, ))
+        D = csdl.sum(panel_forces_x * cosa + panel_forces_z * sina, axes=(0, ))
         b = frame_vel[0]**2 + frame_vel[1]**2 + frame_vel[2]**2
 
         c_l = L / (0.5 * rho * span * chord * b)

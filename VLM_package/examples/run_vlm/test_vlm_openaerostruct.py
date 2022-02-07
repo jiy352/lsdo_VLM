@@ -11,7 +11,7 @@ from VLM_package.VLM_preprocessing.generate_simple_mesh import *
 nt = 2
 
 num_x = 3
-num_y = 19
+num_y = 5
 span = 20.
 chord = 1.
 
@@ -30,12 +30,14 @@ mesh_dict = {
 
 # Generate half-wing mesh of rectangular wing
 mesh = generate_mesh(mesh_dict)
+# mesh = generate_mesh(mesh_dict)
 plt.plot(mesh[:, :, 0], mesh[:, :, 1], '.')
 plt.show()
 
-alpha_deg = 14
-alpha = alpha_deg / 180 * np.pi
 v_inf = 50
+
+alpha_deg = 10
+alpha = alpha_deg / 180 * np.pi
 vx = -v_inf * np.cos(alpha)
 vz = -v_inf * np.sin(alpha)
 
