@@ -42,18 +42,25 @@ class VLMSolverModel(csdl.Model):
 
 
 if __name__ == "__main__":
+    from vedo import *
 
-    nx = 2
-    ny = 3
+    nx = 3
+    ny = 19
     surface_shapes = [(nx, ny, 3)]
 
     model = Model()
-    mesh_val = generate_simple_mesh(nx, ny).reshape(1, nx, ny, 3)
+    # mesh_val = generate_simple_mesh(nx, ny).reshape(1, nx, ny, 3)
+    mesh_val = np.loadtxt('points.txt').reshape(nx, ny + 1, 3)[:, :-1, :]
+    # vp_init = Plotter()
+    # vps1 = Points(mesh_val.reshape(nx * ny, 3), r=8, c='blue')
+    # vp_init.show(vps1, 'Camber', axes=1, viewup="z", interactive=True)
     surface_names = ['wing']
-    frame_vel_val = np.array([-50, 0, -1])
+    frame_vel_val = np.array([50, 0, 1])
     free_stream_velocities = -frame_vel_val
 
-    wing = model.create_input('wing', val=mesh_val)
+    # mesh = rearranged_arr = np.moveaxis(mesh_val, [0, 1], [1, 0])
+
+    wing = model.create_input('wing', val=mesh_val.reshape(1, nx, ny, 3))
 
     submodel = VLMSolverModel(
         surface_names=surface_names,

@@ -12,26 +12,29 @@ nt = 2
 
 num_x = 3
 num_y = 19
-span = 20.
-chord = 1.
+# span = 20.
+# chord = 1.
 
-offset = 10
+# offset = 10
 
-mesh_dict = {
-    "num_y": num_y,
-    "num_x": num_x,
-    "wing_type": "rect",
-    "symmetry": False,
-    "span": span,
-    "chord": chord,
-    "span_cos_spacing": False,
-    "chord_cos_spacing": False,
-}
+# mesh_dict = {
+#     "num_y": num_y,
+#     "num_x": num_x,
+#     "wing_type": "rect",
+#     "symmetry": False,
+#     "span": span,
+#     "chord": chord,
+#     "span_cos_spacing": False,
+#     "chord_cos_spacing": False,
+# }
 
 # Generate half-wing mesh of rectangular wing
-mesh = generate_mesh(mesh_dict)
-plt.plot(mesh[:, :, 0], mesh[:, :, 1], '.')
-plt.show()
+# mesh = generate_mesh(mesh_dict)
+
+# plt.plot(mesh[:, :, 0], mesh[:, :, 1], '.')
+# plt.show()
+
+mesh_val = np.loadtxt('points.txt').reshape(num_x, num_y, 3)
 
 alpha_deg = 14
 alpha = alpha_deg / 180 * np.pi
@@ -47,7 +50,7 @@ surface_shapes = [(num_x, num_y, 3)]
 
 model_1 = csdl.Model()
 
-wing = model_1.create_input('wing', val=mesh.reshape(1, num_x, num_y, 3))
+wing = model_1.create_input('wing', val=mesh_val.reshape(1, num_x, num_y, 3))
 frame_vel = model_1.create_input('frame_vel', val=frame_vel_val)
 
 # add the mesh info
@@ -79,19 +82,19 @@ sim['aic_bd_proj'] @ sim['gamma_b'] + sim['M'] @ sim['gamma_w'].reshape(
 sim['aic_bd_proj'] @ sim['gamma_b'] + sim['M'] @ np.ones(num_y - 1) + sim['b']
 
 # sim.prob.check_partials(compact_print=True)
-aic_bd_proj = sim['aic_bd_proj']
-gamma_b = sim['gamma_b']
-# M = sim['M']
-aic_bd_proj = np.ones((8, 8))
-M = np.ones(((num_y - 1) * (num_x - 1), num_y - 1))
-b = sim['b']
-gamma_w_flatten = sim['gamma_w'].reshape(num_y - 1)
-y = np.einsum(
-    'ij,j->i',
-    aic_bd_proj,
-    gamma_b,
-) + np.einsum(
-    'ij,j->i',
-    M,
-    gamma_w_flatten,
-) + b
+# aic_bd_proj = sim['aic_bd_proj']
+# gamma_b = sim['gamma_b']
+# # M = sim['M']
+# aic_bd_proj = np.ones((8, 8))
+# M = np.ones(((num_y - 1) * (num_x - 1), num_y - 1))
+# b = sim['b']
+# gamma_w_flatten = sim['gamma_w'].reshape(num_y - 1)
+# y = np.einsum(
+#     'ij,j->i',
+#     aic_bd_proj,
+#     gamma_b,
+# ) + np.einsum(
+#     'ij,j->i',
+#     M,
+#     gamma_w_flatten,
+# ) + b

@@ -125,15 +125,10 @@ class SolveMatrix(Model):
             M_shape_col += ((wake_vortex_pts_shapes[i][0] - 1) *
                             (wake_vortex_pts_shapes[i][1] - 1))
         M_shape = (M_shape_row, M_shape_col)
-
         M = model.declare_variable('M', shape=M_shape)
-
         gamma_b_shape = sum((i[0] - 1) * (i[1] - 1) for i in bd_vortex_shapes)
 
         aic_bd_proj_shape = (gamma_b_shape, ) + (gamma_b_shape, )
-
-        print('aic_bd_proj', aic_bd_proj_name)
-
         aic_bd_proj = model.declare_variable(aic_bd_proj_name,
                                              shape=(aic_bd_proj_shape))
         gamma_b = model.declare_variable('gamma_b', shape=(gamma_b_shape))
@@ -166,9 +161,7 @@ class SolveMatrix(Model):
                                                       gamma_w.shape[2], ))
 
         sum_ny = sum((i[1] - 1) for i in bd_vortex_shapes)
-
         gamma_b[(nx - 2) * (ny - 1):]
-
         y = csdl.einsum(aic_bd_proj, gamma_b,
                         subscripts='ij,j->i') + csdl.einsum(
                             M, gamma_w_flatten, subscripts='ij,j->i') + b
@@ -184,12 +177,13 @@ class SolveMatrix(Model):
         )
         solve.linear_solver = ScipyKrylov()
 
-        M = self.declare_variable('M', shape=M_shape)
         aic_bd_proj = self.declare_variable(aic_bd_proj_name,
                                             shape=(aic_shape_row,
                                                    aic_shape_col))
+        M = self.declare_variable('M', shape=M_shape)
+        b = self.declare_variable('b', shape=gamma_b_shape)
 
-        gamma_b = solve(aic_bd_proj)
+        gamma_b = solve(aic_bd_proj, M, b)
 
 
 if __name__ == "__main__":
