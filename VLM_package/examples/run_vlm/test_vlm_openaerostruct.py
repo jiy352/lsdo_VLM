@@ -74,26 +74,8 @@ sim = Simulator(model_1)
 sim.run()
 print('lift', sim.prob['L'])
 print('drag', sim.prob['D'])
-# sim.visualize_implementation()
-sim['aic_bd_proj'] @ sim['gamma_b'] + sim['M'] @ sim['gamma_w'].reshape(
-    num_y - 1) + sim['b']
+sim.visualize_implementation()
+# sim['aic_bd_proj'] @ sim['gamma_b'] + sim['M'] @ sim['gamma_w'].reshape(
+#     num_y - 1) + sim['b']
 
-sim['aic_bd_proj'] @ sim['gamma_b'] + sim['M'] @ np.ones(num_y - 1) + sim['b']
-
-# sim.prob.check_partials(compact_print=True)
-aic_bd_proj = sim['aic_bd_proj']
-gamma_b = sim['gamma_b']
-# M = sim['M']
-aic_bd_proj = np.ones((8, 8))
-M = np.ones(((num_y - 1) * (num_x - 1), num_y - 1))
-b = sim['b']
-gamma_w_flatten = sim['gamma_w'].reshape(num_y - 1)
-y = np.einsum(
-    'ij,j->i',
-    aic_bd_proj,
-    gamma_b,
-) + np.einsum(
-    'ij,j->i',
-    M,
-    gamma_w_flatten,
-) + b
+# sim['aic_bd_proj'] @ sim['gamma_b'] + sim['M'] @ np.ones(num_y - 1) + sim['b']

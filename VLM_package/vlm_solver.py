@@ -3,6 +3,7 @@ from VLM_package.VLM_outputs.compute_force.compute_outputs_group import Outputs
 import numpy as np
 
 from VLM_package.VLM_preprocessing.generate_simple_mesh import *
+from VLM_package.VLM_outputs.compute_effective_aoa_cd_v import AOA_CD
 
 
 class VLMSolverModel(csdl.Model):
@@ -40,6 +41,17 @@ class VLMSolverModel(csdl.Model):
         )
         self.add(sub, name='compute_lift_drag')
 
+        coeffs_aoa = [np.loadtxt('cl_aoa_coeff.txt')]
+        coeffs_cd = [np.loadtxt('cd_aoa_coeff.txt')]
+
+        sub = AOA_CD(
+            surface_names=surface_names,
+            surface_shapes=surface_shapes,
+            coeffs_aoa=coeffs_aoa,
+            coeffs_cd=coeffs_cd,
+        )
+        self.add(sub, name='AOA_CD')
+
 
 if __name__ == "__main__":
     from vedo import *
@@ -48,8 +60,8 @@ if __name__ == "__main__":
     ny = 19
     surface_shapes = [(nx, ny, 3)]
 
-    v_inf = -50
-    alpha_deg = 0
+    v_inf = 50
+    alpha_deg = 10
     alpha = alpha_deg / 180 * np.pi
     vx = -v_inf * np.cos(alpha)
     vz = -v_inf * np.sin(alpha)
@@ -59,8 +71,9 @@ if __name__ == "__main__":
     # frame_vel_val = np.array([vx, 0, vz])
 
     model = Model()
-    # mesh_val = generate_simple_mesh(nx, ny).reshape(1, nx, ny, 3)
-    mesh_val = np.loadtxt('points.txt').reshape(nx, ny + 1, 3)[:, :-1, :]
+    # model.optimize_ir(False)
+    mesh_val = generate_simple_mesh(nx, ny).reshape(1, nx, ny, 3)
+    # mesh_val = np.loadtxt('points.txt').reshape(nx, ny + 1, 3)[:, :-1, :]
     # vp_init = Plotter()
     # vps1 = Points(mesh_val.reshape(nx * ny, 3), r=8, c='blue')
     # vp_init.show(vps1, 'Camber', axes=1, viewup="z", interactive=True)
@@ -77,6 +90,8 @@ if __name__ == "__main__":
         free_stream_velocities=free_stream_velocities,
     )
     model.add(submodel, 'VLMSolverModel')
+    # model.optimize_ir(False)
+
     sim = Simulator(model)
 
     sim.run()

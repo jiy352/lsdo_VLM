@@ -53,13 +53,14 @@ class VLMSystemModel(csdl.Model):
         self.add(MeshPreprocessing(surface_names=surface_names,
                                    surface_shapes=ode_surface_shape),
                  name='meshPreprocessing_comp')
-        self.add(WakeCoords(
+        m = WakeCoords(
             surface_names=surface_names,
             surface_shapes=ode_surface_shape,
             nt=nt,
             delta_t=delta_t,
-        ),
-                 name='WakeCoords_comp')
+        )
+        # m.optimize_ir(False)
+        self.add(m, name='WakeCoords_comp')
 
         self.add(SolveMatrix(nt=nt,
                              surface_names=surface_names,

@@ -1,3 +1,4 @@
+from random import randint
 from csdl_om import Simulator
 from csdl import Model
 import csdl
@@ -122,6 +123,8 @@ class BiotSvart(Model):
             ),
             new_shape=(eval_pts.shape[0] * eval_pts.shape[1] * num_repeat_eval,
                        3))
+        self.register_output('eval_pts_expand' + str(randint(0, 1000)),
+                             eval_pts_expand)
 
         p_1_expand = csdl.reshape(csdl.expand(
             csdl.reshape(p_1, new_shape=((p_1.shape[0] * p_1.shape[1]), 3)),
