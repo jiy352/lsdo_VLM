@@ -41,16 +41,16 @@ class VLMSolverModel(csdl.Model):
         )
         self.add(sub, name='compute_lift_drag')
 
-        coeffs_aoa = [np.loadtxt('cl_aoa_coeff.txt')]
-        coeffs_cd = [np.loadtxt('cd_aoa_coeff.txt')]
+        # coeffs_aoa = [np.loadtxt('cl_aoa_coeff.txt')]
+        # coeffs_cd = [np.loadtxt('cd_aoa_coeff.txt')]
 
-        sub = AOA_CD(
-            surface_names=surface_names,
-            surface_shapes=surface_shapes,
-            coeffs_aoa=coeffs_aoa,
-            coeffs_cd=coeffs_cd,
-        )
-        self.add(sub, name='AOA_CD')
+        # sub = AOA_CD(
+        #     surface_names=surface_names,
+        #     surface_shapes=surface_shapes,
+        #     coeffs_aoa=coeffs_aoa,
+        #     coeffs_cd=coeffs_cd,
+        # )
+        # self.add(sub, name='AOA_CD')
 
 
 if __name__ == "__main__":
