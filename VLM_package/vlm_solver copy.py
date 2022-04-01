@@ -41,16 +41,13 @@ class VLMSolverModel(csdl.Model):
         )
         self.add(sub, name='compute_lift_drag')
 
-        coeffs_aoa = [np.loadtxt('cl_aoa_coeff.txt')]
-        coeffs_cd = [np.loadtxt('cd_aoa_coeff.txt')]
-
         sub = AOA_CD(
             surface_names=surface_names,
             surface_shapes=surface_shapes,
             coeffs_aoa=coeffs_aoa,
             coeffs_cd=coeffs_cd,
         )
-        self.add(sub, name='AOA_CD')
+        self.add(sub, name='compute_lift_drag')
 
 
 if __name__ == "__main__":
@@ -71,9 +68,8 @@ if __name__ == "__main__":
     # frame_vel_val = np.array([vx, 0, vz])
 
     model = Model()
-    # model.optimize_ir(False)
-    mesh_val = generate_simple_mesh(nx, ny).reshape(1, nx, ny, 3)
-    # mesh_val = np.loadtxt('points.txt').reshape(nx, ny + 1, 3)[:, :-1, :]
+    # mesh_val = generate_simple_mesh(nx, ny).reshape(1, nx, ny, 3)
+    mesh_val = np.loadtxt('points.txt').reshape(nx, ny + 1, 3)[:, :-1, :]
     # vp_init = Plotter()
     # vps1 = Points(mesh_val.reshape(nx * ny, 3), r=8, c='blue')
     # vp_init.show(vps1, 'Camber', axes=1, viewup="z", interactive=True)
@@ -90,11 +86,9 @@ if __name__ == "__main__":
         free_stream_velocities=free_stream_velocities,
     )
     model.add(submodel, 'VLMSolverModel')
-    # model.optimize_ir(False)
-
     sim = Simulator(model)
 
     sim.run()
     print('lift', sim.prob['L'])
     print('drag', sim.prob['D'])
-    sim.visualize_implementation()
+    # sim.visualize_implementation()

@@ -9,7 +9,7 @@ from scipy.sparse import csc_matrix
 
 from VLM_package.VLM_outputs.compute_force.horseshoe_circulations import HorseshoeCirculations
 from VLM_package.VLM_outputs.compute_force.eval_pts_velocities_mls import EvalPtsVel
-from VLM_package.VLM_outputs.compute_force.compute_lift_drag import LiftDrag
+from VLM_package.VLM_outputs.compute_force.compute_lift_drag_new import LiftDrag
 
 
 class Outputs(Model):
@@ -43,9 +43,10 @@ class Outputs(Model):
 
         self.parameters.declare('eval_pts_names', types=list)
         self.parameters.declare('eval_pts_shapes', types=list)
-        self.parameters.declare('eval_pts_location', default=0.25)
+        # self.parameters.declare('eval_pts_location', default=0.25) # stands for quarter-chord
+        self.parameters.declare('eval_pts_ind', types=list)
+        self.parameters.declare('sprs', types=list)
 
-        # stands for quarter-chord
         self.parameters.declare('nt', default=2)
         self.parameters.declare('delta_t', default=100)
 
@@ -56,7 +57,7 @@ class Outputs(Model):
 
         eval_pts_names = self.parameters['eval_pts_names']
         eval_pts_shapes = self.parameters['eval_pts_shapes']
-        eval_pts_location = self.parameters['eval_pts_location']
+        # eval_pts_location = self.parameters['eval_pts_location']
         delta_t = self.parameters['delta_t']
 
         submodel = HorseshoeCirculations(
@@ -68,7 +69,8 @@ class Outputs(Model):
         submodel = EvalPtsVel(
             eval_pts_names=eval_pts_names,
             eval_pts_shapes=eval_pts_shapes,
-            eval_pts_location=eval_pts_location,
+            # eval_pts_location=eval_pts_location,
+            # eval_pts_ind=self.parameters['eval_pts_ind'],
             surface_names=surface_names,
             surface_shapes=surface_shapes,
             nt=nt,
@@ -79,6 +81,9 @@ class Outputs(Model):
         submodel = LiftDrag(
             surface_names=surface_names,
             surface_shapes=surface_shapes,
+            eval_pts_shapes=eval_pts_shapes,
+            eval_pts_ind=self.parameters['eval_pts_ind'],
+            sprs=self.parameters['sprs'],
         )
         self.add(submodel, name='LiftDrag')
 

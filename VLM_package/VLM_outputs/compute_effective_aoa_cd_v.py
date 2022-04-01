@@ -45,7 +45,7 @@ class AOA_CD(Model):
             coeff_aoa = self.parameters['coeffs_aoa'][i]
             coeff_cd = self.parameters['coeffs_cd'][i]
 
-            num_chord = surface_shape[0] - 1  # nx
+            num_chord = surface_shape[1] - 1  # ny
 
             cl_chord = self.declare_variable(cl_chord_name,
                                              shape=(num_chord, ))
