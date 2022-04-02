@@ -49,7 +49,6 @@ class ComputeNormal(Model):
 
             # output_name
             normals_name = normals_names[i]
-
             # input_shapes
             vortex_coords_shape = vortex_coords_shapes[i]
 

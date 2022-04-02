@@ -58,10 +58,6 @@ class LiftDrag(Model):
         self.add(submodel, name='BoundVec')
 
         bd_vec = self.declare_variable('bd_vec', shape=((system_size, 3)))
-        mesh = self.declare_variable(surface_names[0],
-                                     shape=(1, ) + surface_shapes[0])
-        chord = csdl.reshape(mesh[:, nx - 1, 0, 0] - mesh[:, 0, 0, 0], (1, ))
-        span = csdl.reshape(mesh[:, 0, ny - 1, 1] - mesh[:, 0, 0, 1], (1, ))
 
         # print(span.shape, 'span')
         # print('bd_vec_val[:, 1].shape', bd_vec[:, 1].shape)
@@ -103,52 +99,92 @@ class LiftDrag(Model):
         panel_forces_z = panel_forces[:, 2]
         # self.register_output('bd_vec', bd_vec)
         self.register_output('panel_forces_z', panel_forces_z)
-
-        L = csdl.sum(-panel_forces_x * sina + panel_forces_z * cosa,
-                     axes=(0, ))
-        # !TODO:! need to check the sign here
-        print('shapes')
-        print('panel_forces', panel_forces.shape, panel_forces_x.shape)
-
-        D = csdl.sum(panel_forces_x * cosa + panel_forces_z * sina, axes=(0, ))
         b = frame_vel[0]**2 + frame_vel[1]**2 + frame_vel[2]**2
 
-        c_l = L / (0.5 * rho * span * chord * b)
-        c_d = D / (0.5 * rho * span * chord * b)
-        self.register_output('L', csdl.reshape(L, (1, 1)))
-        self.register_output('D', csdl.reshape(D, (1, 1)))
-        self.register_output('C_L', csdl.reshape(c_l, (1, 1)))
-        self.register_output('C_D_i', csdl.reshape(c_d, (1, 1)))
-
-        cl_chord_names = [x + '_cl_chord' for x in surface_names]
-        #########!!!!!!!!need to fix this for mls!#########3
-
-        for i in range(len(v_total_wake_names)):
+        L_panel = -panel_forces_x * sina + panel_forces_z * cosa
+        D_panel = panel_forces_x * cosa + panel_forces_z * sina
+        start = 0
+        for i in range(len(surface_names)):
+            mesh = self.declare_variable(surface_names[i],
+                                         shape=(1, ) + surface_shapes[i])
             nx = surface_shapes[i][0]
             ny = surface_shapes[i][1]
-            sina_exp = csdl.expand(csdl.sin(alpha), ((nx - 1) * (ny - 1), 1),
-                                   'i->ji')
-            cosa_exp = csdl.expand(csdl.cos(alpha), ((nx - 1) * (ny - 1), 1),
-                                   'i->ji')
-            sina_reshape = csdl.reshape(sina_exp, (nx - 1, ny - 1))
-            cosa_reshape = csdl.reshape(cosa_exp, (nx - 1, ny - 1))
 
-            panel_forces_x_chord = csdl.reshape(panel_forces_x,
-                                                (nx - 1, ny - 1))
-            panel_forces_z_chord = csdl.reshape(panel_forces_z,
-                                                (nx - 1, ny - 1))
-            D_chord = csdl.sum(panel_forces_x_chord * cosa_reshape +
-                               panel_forces_z_chord * sina_reshape,
-                               axes=(1, ))
-            print('D_chord', D_chord.shape)
-            # print('rho', rho.shape)
-            print('span', span.shape)
-            print('chord', chord.shape)
-            print('b', b.shape)
-            din = (0.5 * rho * span * chord * b)
-            cl_chord = D_chord / csdl.reshape(
-                csdl.expand(din, (nx - 1, 1), 'j->ij'), (nx - 1, ))
-            self.register_output(cl_chord_names[i], cl_chord)
+            # print('mesh_shape', surface_names[i])
+            # print('mesh_shape', mesh[:, nx - 1, 0, 0].shape)
+            # print('mesh_shape', mesh[:, 0, 0, 0].shape)
+            # print('mesh_shape_chord', (mesh[:, 0, ny - 1, 1]).shape)
+            chord = csdl.reshape(mesh[:, nx - 1, 0, 0] - mesh[:, 0, 0, 0],
+                                 (1, ))
+            span = csdl.reshape(mesh[:, 0, ny - 1, 1] - mesh[:, 0, 0, 1],
+                                (1, ))
+            L_panel_name = surface_names[i] + '_L_panel'
+            D_panel_name = surface_names[i] + '_D_panel'
+            L_name = surface_names[i] + '_L'
+            D_name = surface_names[i] + '_D'
+            CL_name = surface_names[i] + '_C_L'
+            CD_name = surface_names[i] + '_C_D_i'
+
+            delta = (nx - 1) * (ny - 1)
+            L_panel_surface = L_panel[start:start + delta, :]
+            D_panel_surface = D_panel[start:start + delta, :]
+
+            self.register_output(L_panel_name, L_panel_surface)
+            self.register_output(D_panel_name, D_panel_surface)
+            L = csdl.sum(L_panel_surface, axes=(0, ))
+            D = csdl.sum(D_panel_surface, axes=(0, ))
+            self.register_output(L_name, csdl.reshape(L, (1, 1)))
+            self.register_output(D_name, csdl.reshape(D, (1, 1)))
+            c_l = L / (0.5 * rho * span * chord * b)
+            c_d = D / (0.5 * rho * span * chord * b)
+            self.register_output(CL_name, csdl.reshape(c_l, (1, 1)))
+            self.register_output(CD_name, csdl.reshape(c_d, (1, 1)))
+            start += delta
+
+        # L = csdl.sum(-panel_forces_x * sina + panel_forces_z * cosa,
+        #              axes=(0, ))
+        # # !TODO:! need to check the sign here
+        # print('shapes')
+        # print('panel_forces', panel_forces.shape, panel_forces_x.shape)
+
+        # D = csdl.sum(panel_forces_x * cosa + panel_forces_z * sina, axes=(0, ))
+
+        # c_l = L / (0.5 * rho * span * chord * b)
+        # c_d = D / (0.5 * rho * span * chord * b)
+        # self.register_output('L', csdl.reshape(L, (1, 1)))
+        # self.register_output('D', csdl.reshape(D, (1, 1)))
+        # self.register_output('C_L', csdl.reshape(c_l, (1, 1)))
+        # self.register_output('C_D_i', csdl.reshape(c_d, (1, 1)))
+
+        # cl_chord_names = [x + '_cl_chord' for x in surface_names]
+        #########!!!!!!!!need to fix this for mls!#########3
+
+        # for i in range(len(v_total_wake_names)):
+        #     nx = surface_shapes[i][0]
+        #     ny = surface_shapes[i][1]
+        #     sina_exp = csdl.expand(csdl.sin(alpha), ((nx - 1) * (ny - 1), 1),
+        #                            'i->ji')
+        #     cosa_exp = csdl.expand(csdl.cos(alpha), ((nx - 1) * (ny - 1), 1),
+        #                            'i->ji')
+        #     sina_reshape = csdl.reshape(sina_exp, (nx - 1, ny - 1))
+        #     cosa_reshape = csdl.reshape(cosa_exp, (nx - 1, ny - 1))
+
+        #     panel_forces_x_chord = csdl.reshape(panel_forces_x,
+        #                                         (nx - 1, ny - 1))
+        #     panel_forces_z_chord = csdl.reshape(panel_forces_z,
+        #                                         (nx - 1, ny - 1))
+        #     D_chord = csdl.sum(panel_forces_x_chord * cosa_reshape +
+        #                        panel_forces_z_chord * sina_reshape,
+        #                        axes=(1, ))
+        #     print('D_chord', D_chord.shape)
+        #     # print('rho', rho.shape)
+        #     print('span', span.shape)
+        #     print('chord', chord.shape)
+        #     print('b', b.shape)
+        #     din = (0.5 * rho * span * chord * b)
+        #     cl_chord = D_chord / csdl.reshape(
+        #         csdl.expand(din, (nx - 1, 1), 'j->ij'), (nx - 1, ))
+        #     self.register_output(cl_chord_names[i], cl_chord)
 
 
 if __name__ == "__main__":
