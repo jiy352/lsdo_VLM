@@ -38,6 +38,8 @@ class EvalPtsVel(Model):
     def initialize(self):
         self.parameters.declare('eval_pts_names', types=list)
         self.parameters.declare('eval_pts_shapes', types=list)
+
+        self.parameters.declare('eval_pts_option')
         self.parameters.declare('eval_pts_location')
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('surface_shapes', types=list)
@@ -103,16 +105,19 @@ class EvalPtsVel(Model):
 
             nx = surface_shapes[i][0]
             ny = surface_shapes[i][1]
+            if self.parameters['eval_pts_option'] == 'auto':
+                eval_pts_coords = (
+                    (1 - eval_pts_location) * 0.5 * mesh[:, 0:-1, 0:-1, :] +
+                    (1 - eval_pts_location) * 0.5 * mesh[:, 0:-1, 1:, :] +
+                    eval_pts_location * 0.5 * mesh[:, 1:, 0:-1, :] +
+                    eval_pts_location * 0.5 * mesh[:, 1:, 1:, :])
 
-            eval_pts_coords = (
-                (1 - eval_pts_location) * 0.5 * mesh[:, 0:-1, 0:-1, :] +
-                (1 - eval_pts_location) * 0.5 * mesh[:, 0:-1, 1:, :] +
-                eval_pts_location * 0.5 * mesh[:, 1:, 0:-1, :] +
-                eval_pts_location * 0.5 * mesh[:, 1:, 1:, :])
-
-            self.register_output(
-                eval_pts_names[i],
-                csdl.reshape(eval_pts_coords, (nx - 1, ny - 1, 3)))
+                self.register_output(
+                    eval_pts_names[i],
+                    csdl.reshape(eval_pts_coords, (nx - 1, ny - 1, 3)))
+            elif self.parameters['eval_pts_option'] == 'user_defined':
+                eval_pts_coords = self.declare_variable(
+                    eval_pts_names[i], shape=(eval_pts_shapes[i]))
 
         self.add(BdnWakeCombine(
             surface_names=surface_names,
@@ -219,70 +224,3 @@ class EvalPtsVel(Model):
                                                  v_total_wake)
 
         self.add(model_wake_total_vel, name='eval_pts_total_vel')
-
-
-if __name__ == "__main__":
-
-    from VLM_package.VLM_system.wake_rollup.combine_bd_wake_comp import BdnWakeCombine
-
-    def generate_simple_mesh(nx, ny, nt=None, delta_y=0):
-        if nt == None:
-            mesh = np.zeros((nx, ny, 3))
-            mesh[:, :, 0] = np.outer(np.arange(nx), np.ones(ny)) + delta_y
-            mesh[:, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T
-            mesh[:, :, 2] = 0.
-        else:
-            mesh = np.zeros((nt, nx, ny, 3))
-            for i in range(nt):
-                mesh[i, :, :,
-                     0] = np.outer(np.arange(nx), np.ones(ny)) + delta_y
-                mesh[i, :, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T
-                mesh[i, :, :, 2] = 0.
-        return mesh
-
-    # surface_names = ['wing1']
-    # surface_shapes = [(3, 4, 3)]
-    # eval_pts_names = ['force_pts']
-    # eval_pts_shapes = [(2, 3, 3)]
-
-    surface_names = ['wing1', 'wing2']
-    surface_shapes = [(3, 4, 3), (4, 5, 3)]
-    eval_pts_names = ['wing1_force_pts', 'wing2_force_pts']
-    eval_pts_shapes = [(2, 3, 3), (3, 4, 3)]
-
-    delta_t = 1
-
-    nt = 4
-    model_1 = Model()
-    frame_vel_val = np.random.random((3, ))
-    force_pts = model_1.create_input('wing1',
-                                     val=generate_simple_mesh(3, 4, 1))
-    force_pts = model_1.create_input('wing2',
-                                     val=generate_simple_mesh(4, 5, 1))
-    # force_pts = model_1.create_input('wing', val=generate_simple_mesh(3, 4, 1))
-    # force_pts = model_1.create_input('force_pts',
-    #                                  val=np.random.random(eval_pts_shapes[0]))
-
-    model_1.add(EvalPtsVel(
-        eval_pts_names=eval_pts_names,
-        eval_pts_shapes=eval_pts_shapes,
-        surface_names=surface_names,
-        surface_shapes=surface_shapes,
-        nt=nt,
-        delta_t=delta_t,
-    ),
-                name='EvalWakeVel')
-    print('bs3')
-
-    sim = Simulator(model_1)
-    sim.run()
-    print('bs4')
-    sim.visualize_implementation()
-
-    # v_induced_names = [x + '_wake_induced_vel' for x in surface_names]
-    # # print('gamma_b', gamma_b.shape, gamma_b)
-    # for i in range(len(surface_shapes)):
-    #     v_induced_name = v_induced_names[i]
-    #     # surface_gamma_b_name = surface_names[i] + '_gamma_b'
-
-    #     print(v_induced_name, sim[v_induced_name].shape, sim[v_induced_name])

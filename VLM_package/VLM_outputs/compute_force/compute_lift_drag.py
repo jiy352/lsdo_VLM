@@ -29,12 +29,20 @@ class LiftDrag(Model):
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('surface_shapes', types=list)
 
+        self.parameters.declare('eval_pts_option')
+        self.parameters.declare('eval_pts_shapes')
+        self.parameters.declare('sprs')
+
         self.parameters.declare('rho', default=0.38)
 
     def define(self):
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
         rho = self.parameters['rho']
+        sprs = self.parameters['sprs']
+        eval_pts_option = self.parameters['eval_pts_option']
+        eval_pts_shapes = self.parameters['eval_pts_shapes']
+
         v_total_wake_names = [x + '_eval_total_vel' for x in surface_names]
         system_size = 0
 
@@ -42,14 +50,6 @@ class LiftDrag(Model):
             nx = surface_shapes[i][0]
             ny = surface_shapes[i][1]
             system_size += (nx - 1) * (ny - 1)
-
-        # bd_vec_model = Model()
-        # !TODO!: fix this for variable mesh resolutiopn, and for inclined meshes
-        # fixed bd_vecs for cambered surfaces
-
-        # mesh = self.declare_variable(surface_names[0],
-        #                              shape=(1, ) + surface_shapes[0])
-        # bd_vec = self.create_output('bd_vec', val=np.zeros((system_size, 3)))
 
         submodel = BoundVec(
             surface_names=surface_names,
@@ -59,132 +59,163 @@ class LiftDrag(Model):
 
         bd_vec = self.declare_variable('bd_vec', shape=((system_size, 3)))
 
-        # print(span.shape, 'span')
-        # print('bd_vec_val[:, 1].shape', bd_vec[:, 1].shape)
-
-        # bd_vec[:, 1] = -csdl.expand(span, (system_size, 1)) / (ny - 1)
-
-        # add circulations and force point velocities
-
         circulations = self.declare_variable('horseshoe_circulation',
                                              shape=(system_size, ))
         circulation_repeat = csdl.expand(circulations, (system_size, 3),
                                          'i->ij')
-        # !TODO: fix this for mls
-        # print('name_in_LD', v_induced_wake_names[0])
-        velocities = self.create_output('eval_total_vel',
-                                        shape=(system_size, 3))
-        start = 0
-        for i in range(len(v_total_wake_names)):
-            nx = surface_shapes[i][0]
-            ny = surface_shapes[i][1]
-            delta = (nx - 1) * (ny - 1)
-            vel_surface = self.declare_variable(v_total_wake_names[i],
-                                                shape=(delta, 3))
-            velocities[start:start + delta, :] = vel_surface
-            start = start + delta
 
         # add frame_vel
         frame_vel = self.declare_variable('frame_vel', shape=(3, ))
-
         alpha = csdl.arctan(frame_vel[2] / frame_vel[0])
-        sina = csdl.expand(csdl.sin(alpha), (system_size, 1), 'i->ji')
-        cosa = csdl.expand(csdl.cos(alpha), (system_size, 1), 'i->ji')
 
-        panel_forces = rho * circulation_repeat * csdl.cross(
-            velocities, bd_vec, axis=1)
+        if eval_pts_option == 'auto':
+            velocities = self.create_output('eval_total_vel',
+                                            shape=(system_size, 3))
 
-        panel_forces_x = panel_forces[:, 0]
-        panel_forces_y = panel_forces[:, 1]
-        panel_forces_z = panel_forces[:, 2]
-        # self.register_output('bd_vec', bd_vec)
-        self.register_output('panel_forces_z', panel_forces_z)
-        b = frame_vel[0]**2 + frame_vel[1]**2 + frame_vel[2]**2
+            start = 0
+            for i in range(len(v_total_wake_names)):
 
-        L_panel = -panel_forces_x * sina + panel_forces_z * cosa
-        D_panel = panel_forces_x * cosa + panel_forces_z * sina
-        start = 0
-        for i in range(len(surface_names)):
-            mesh = self.declare_variable(surface_names[i],
-                                         shape=(1, ) + surface_shapes[i])
-            nx = surface_shapes[i][0]
-            ny = surface_shapes[i][1]
+                nx = surface_shapes[i][0]
+                ny = surface_shapes[i][1]
+                delta = (nx - 1) * (ny - 1)
+                vel_surface = self.declare_variable(v_total_wake_names[i],
+                                                    shape=(delta, 3))
+                velocities[start:start + delta, :] = vel_surface
+                start = start + delta
 
-            # print('mesh_shape', surface_names[i])
-            # print('mesh_shape', mesh[:, nx - 1, 0, 0].shape)
-            # print('mesh_shape', mesh[:, 0, 0, 0].shape)
-            # print('mesh_shape_chord', (mesh[:, 0, ny - 1, 1]).shape)
-            chord = csdl.reshape(mesh[:, nx - 1, 0, 0] - mesh[:, 0, 0, 0],
-                                 (1, ))
-            span = csdl.reshape(mesh[:, 0, ny - 1, 1] - mesh[:, 0, 0, 1],
-                                (1, ))
-            L_panel_name = surface_names[i] + '_L_panel'
-            D_panel_name = surface_names[i] + '_D_panel'
-            L_name = surface_names[i] + '_L'
-            D_name = surface_names[i] + '_D'
-            CL_name = surface_names[i] + '_C_L'
-            CD_name = surface_names[i] + '_C_D_i'
+            sina = csdl.expand(csdl.sin(alpha), (system_size, 1), 'i->ji')
+            cosa = csdl.expand(csdl.cos(alpha), (system_size, 1), 'i->ji')
 
-            delta = (nx - 1) * (ny - 1)
-            L_panel_surface = L_panel[start:start + delta, :]
-            D_panel_surface = D_panel[start:start + delta, :]
+            panel_forces = rho * circulation_repeat * csdl.cross(
+                velocities, bd_vec, axis=1)
 
-            self.register_output(L_panel_name, L_panel_surface)
-            self.register_output(D_panel_name, D_panel_surface)
-            L = csdl.sum(L_panel_surface, axes=(0, ))
-            D = csdl.sum(D_panel_surface, axes=(0, ))
-            self.register_output(L_name, csdl.reshape(L, (1, 1)))
-            self.register_output(D_name, csdl.reshape(D, (1, 1)))
-            c_l = L / (0.5 * rho * span * chord * b)
-            c_d = D / (0.5 * rho * span * chord * b)
-            self.register_output(CL_name, csdl.reshape(c_l, (1, 1)))
-            self.register_output(CD_name, csdl.reshape(c_d, (1, 1)))
-            start += delta
+            panel_forces_x = panel_forces[:, 0]
+            panel_forces_y = panel_forces[:, 1]
+            panel_forces_z = panel_forces[:, 2]
+            # self.register_output('panel_forces_z', panel_forces_z)
+            b = frame_vel[0]**2 + frame_vel[1]**2 + frame_vel[2]**2
 
-        # L = csdl.sum(-panel_forces_x * sina + panel_forces_z * cosa,
-        #              axes=(0, ))
-        # # !TODO:! need to check the sign here
-        # print('shapes')
-        # print('panel_forces', panel_forces.shape, panel_forces_x.shape)
+            L_panel = -panel_forces_x * sina + panel_forces_z * cosa
+            D_panel = panel_forces_x * cosa + panel_forces_z * sina
+            start = 0
+            for i in range(len(surface_names)):
 
-        # D = csdl.sum(panel_forces_x * cosa + panel_forces_z * sina, axes=(0, ))
+                mesh = self.declare_variable(surface_names[i],
+                                             shape=(1, ) + surface_shapes[i])
+                nx = surface_shapes[i][0]
+                ny = surface_shapes[i][1]
+                #!TODO: need to fix for uniformed mesh - should we take an average?
+                chord = csdl.reshape(mesh[:, nx - 1, 0, 0] - mesh[:, 0, 0, 0],
+                                     (1, ))
+                span = csdl.reshape(mesh[:, 0, ny - 1, 1] - mesh[:, 0, 0, 1],
+                                    (1, ))
+                L_panel_name = surface_names[i] + '_L_panel'
+                D_panel_name = surface_names[i] + '_D_panel'
+                L_name = surface_names[i] + '_L'
+                D_name = surface_names[i] + '_D'
+                CL_name = surface_names[i] + '_C_L'
+                CD_name = surface_names[i] + '_C_D_i'
 
-        # c_l = L / (0.5 * rho * span * chord * b)
-        # c_d = D / (0.5 * rho * span * chord * b)
-        # self.register_output('L', csdl.reshape(L, (1, 1)))
-        # self.register_output('D', csdl.reshape(D, (1, 1)))
-        # self.register_output('C_L', csdl.reshape(c_l, (1, 1)))
-        # self.register_output('C_D_i', csdl.reshape(c_d, (1, 1)))
+                delta = (nx - 1) * (ny - 1)
+                L_panel_surface = L_panel[start:start + delta, :]
+                D_panel_surface = D_panel[start:start + delta, :]
 
-        # cl_chord_names = [x + '_cl_chord' for x in surface_names]
-        #########!!!!!!!!need to fix this for mls!#########3
+                self.register_output(L_panel_name, L_panel_surface)
+                self.register_output(D_panel_name, D_panel_surface)
+                L = csdl.sum(L_panel_surface, axes=(0, ))
+                D = csdl.sum(D_panel_surface, axes=(0, ))
+                self.register_output(L_name, csdl.reshape(L, (1, 1)))
+                self.register_output(D_name, csdl.reshape(D, (1, 1)))
+                c_l = L / (0.5 * rho * span * chord * b)
+                c_d = D / (0.5 * rho * span * chord * b)
+                self.register_output(CL_name, csdl.reshape(c_l, (1, 1)))
+                self.register_output(CD_name, csdl.reshape(c_d, (1, 1)))
+                start += delta
 
-        # for i in range(len(v_total_wake_names)):
-        #     nx = surface_shapes[i][0]
-        #     ny = surface_shapes[i][1]
-        #     sina_exp = csdl.expand(csdl.sin(alpha), ((nx - 1) * (ny - 1), 1),
-        #                            'i->ji')
-        #     cosa_exp = csdl.expand(csdl.cos(alpha), ((nx - 1) * (ny - 1), 1),
-        #                            'i->ji')
-        #     sina_reshape = csdl.reshape(sina_exp, (nx - 1, ny - 1))
-        #     cosa_reshape = csdl.reshape(cosa_exp, (nx - 1, ny - 1))
+        if eval_pts_option == 'user_defined':
+            # sina = csdl.expand(csdl.sin(alpha), (system_size, 1), 'i->ji')
+            # cosa = csdl.expand(csdl.cos(alpha), (system_size, 1), 'i->ji')
 
-        #     panel_forces_x_chord = csdl.reshape(panel_forces_x,
-        #                                         (nx - 1, ny - 1))
-        #     panel_forces_z_chord = csdl.reshape(panel_forces_z,
-        #                                         (nx - 1, ny - 1))
-        #     D_chord = csdl.sum(panel_forces_x_chord * cosa_reshape +
-        #                        panel_forces_z_chord * sina_reshape,
-        #                        axes=(1, ))
-        #     print('D_chord', D_chord.shape)
-        #     # print('rho', rho.shape)
-        #     print('span', span.shape)
-        #     print('chord', chord.shape)
-        #     print('b', b.shape)
-        #     din = (0.5 * rho * span * chord * b)
-        #     cl_chord = D_chord / csdl.reshape(
-        #         csdl.expand(din, (nx - 1, 1), 'j->ij'), (nx - 1, ))
-        #     self.register_output(cl_chord_names[i], cl_chord)
+            # panel_forces = rho * circulation_repeat * csdl.cross(
+            #     velocities, bd_vec, axis=1)
+
+            # panel_forces_x = panel_forces[:, 0]
+            # panel_forces_y = panel_forces[:, 1]
+            # panel_forces_z = panel_forces[:, 2]
+            # self.register_output('panel_forces_z', panel_forces_z)
+            b = frame_vel[0]**2 + frame_vel[1]**2 + frame_vel[2]**2
+
+            # L_panel = -panel_forces_x * sina + panel_forces_z * cosa
+            # D_panel = panel_forces_x * cosa + panel_forces_z * sina
+            start = 0
+            for i in range(len(surface_names)):
+
+                mesh = self.declare_variable(surface_names[i],
+                                             shape=(1, ) + surface_shapes[i])
+                nx = surface_shapes[i][0]
+                ny = surface_shapes[i][1]
+
+                delta = (nx - 1) * (ny - 1)
+
+                nx_eval = eval_pts_shapes[i][0]
+                ny_eval = eval_pts_shapes[i][1]
+                delta_eval = nx_eval * ny_eval
+                vel_surface = self.declare_variable(v_total_wake_names[i],
+                                                    shape=(delta_eval, 3))
+                # velocities[start:start + delta, :] = vel_surface
+                # start = start + delta
+
+                sina = csdl.expand(csdl.sin(alpha), (delta, 1), 'i->ji')
+                cosa = csdl.expand(csdl.cos(alpha), (delta, 1), 'i->ji')
+                bd_vec_surface = bd_vec[start:start + delta, :]
+                circulation_repeat_surface = circulation_repeat[start:start +
+                                                                delta, :]
+                bd_vec_eval = csdl.sparsematmat(bd_vec_surface, sprs[i])
+                sina_eval = csdl.sparsematmat(sina, sprs[i])
+                cosa_eval = csdl.sparsematmat(cosa, sprs[i])
+                # vel_surface_eval = csdl.sparsematmat(vel_surface, sprs[i])
+                circulation_repeat_surface_eval = csdl.sparsematmat(
+                    circulation_repeat_surface, sprs[i])
+
+                print('\nbd_vec_eval shape', bd_vec_eval.shape)
+                print('vel_surface shape', vel_surface.shape)
+                print('circulation_repeat_surface_eval shape',
+                      circulation_repeat_surface_eval.shape)
+
+                panel_forces_surface = rho * circulation_repeat_surface_eval * csdl.cross(
+                    vel_surface, bd_vec_eval, axis=1)
+                panel_forces_x = panel_forces_surface[:, 0]
+                panel_forces_y = panel_forces_surface[:, 1]
+                panel_forces_z = panel_forces_surface[:, 2]
+
+                chord = csdl.reshape(mesh[:, nx - 1, 0, 0] - mesh[:, 0, 0, 0],
+                                     (1, ))
+                span = csdl.reshape(mesh[:, 0, ny - 1, 1] - mesh[:, 0, 0, 1],
+                                    (1, ))
+                L_panel_name = surface_names[i] + '_L_panel'
+                D_panel_name = surface_names[i] + '_D_panel'
+                L_name = surface_names[i] + '_L'
+                D_name = surface_names[i] + '_D'
+                CL_name = surface_names[i] + '_C_L'
+                CD_name = surface_names[i] + '_C_D_i'
+
+                L_panel_surface = -panel_forces_x * sina_eval + panel_forces_z * cosa_eval
+                D_panel_surface = panel_forces_x * cosa_eval + panel_forces_z * sina_eval
+
+                # L_panel_surface = L_panel[start:start + delta, :]
+                # D_panel_surface = D_panel[start:start + delta, :]
+
+                self.register_output(L_panel_name, L_panel_surface)
+                self.register_output(D_panel_name, D_panel_surface)
+                L = csdl.sum(L_panel_surface, axes=(0, ))
+                D = csdl.sum(D_panel_surface, axes=(0, ))
+                self.register_output(L_name, csdl.reshape(L, (1, 1)))
+                self.register_output(D_name, csdl.reshape(D, (1, 1)))
+                c_l = L / (0.5 * rho * span * chord * b)
+                c_d = D / (0.5 * rho * span * chord * b)
+                self.register_output(CL_name, csdl.reshape(c_l, (1, 1)))
+                self.register_output(CD_name, csdl.reshape(c_d, (1, 1)))
+                start += delta
 
 
 if __name__ == "__main__":

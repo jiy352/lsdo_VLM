@@ -39,13 +39,14 @@ class Outputs(Model):
     def initialize(self):
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('surface_shapes', types=list)
-        self.parameters.declare('nt')
 
         self.parameters.declare('eval_pts_names', types=list)
-        self.parameters.declare('eval_pts_shapes', types=list)
-        self.parameters.declare('eval_pts_location', default=0.25)
 
-        # stands for quarter-chord
+        self.parameters.declare('eval_pts_location')
+        self.parameters.declare('eval_pts_option')
+        self.parameters.declare('eval_pts_shapes', types=list)
+        self.parameters.declare('sprs')
+
         self.parameters.declare('nt', default=2)
         self.parameters.declare('delta_t', default=100)
 
@@ -56,7 +57,10 @@ class Outputs(Model):
 
         eval_pts_names = self.parameters['eval_pts_names']
         eval_pts_shapes = self.parameters['eval_pts_shapes']
+        eval_pts_option = self.parameters['eval_pts_option']
         eval_pts_location = self.parameters['eval_pts_location']
+        sprs = self.parameters['sprs']
+
         delta_t = self.parameters['delta_t']
 
         submodel = HorseshoeCirculations(
@@ -68,6 +72,7 @@ class Outputs(Model):
         submodel = EvalPtsVel(
             eval_pts_names=eval_pts_names,
             eval_pts_shapes=eval_pts_shapes,
+            eval_pts_option=eval_pts_option,
             eval_pts_location=eval_pts_location,
             surface_names=surface_names,
             surface_shapes=surface_shapes,
@@ -79,6 +84,9 @@ class Outputs(Model):
         submodel = LiftDrag(
             surface_names=surface_names,
             surface_shapes=surface_shapes,
+            eval_pts_option=eval_pts_option,
+            eval_pts_shapes=eval_pts_shapes,
+            sprs=sprs,
         )
         self.add(submodel, name='LiftDrag')
 
