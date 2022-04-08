@@ -105,7 +105,7 @@ class MeshPreprocessing(Model):
                     (def_mesh[:, nx - 1, :, :] - def_mesh[:, nx - 2, :, :]),
                     (1, ny, 3))
                 coll_pts_coords = 0.25 * (bd_vtx_coords[0:nx-1, 0:ny-1, :] +\
-                                                bd_vtx_coords[0:nx-1, 1:ny, :] +\
+                                        bd_vtx_coords[0:nx-1, 1:ny, :] +\
                                                 bd_vtx_coords[1:, 0:ny-1, :]+\
                                                 bd_vtx_coords[1:, 1:, :])
                 self.register_output(coll_pts_coords_name, coll_pts_coords)

@@ -1,9 +1,8 @@
-from VLM_package.VLM_system.vlm_system import VLMSystemModel
-from VLM_package.VLM_outputs.compute_force.compute_outputs_group import Outputs
 import numpy as np
 
 from VLM_package.VLM_preprocessing.generate_simple_mesh import *
 
+from VLM_package.vlm_solver import VLMSolverModel
 # here nt is just a dummy variable that always equal to 2. since we are using a long wake panel,
 # we can just make nt=2, delta_t=a large number.
 
@@ -17,7 +16,7 @@ alpha_deg = 10
 alpha = alpha_deg / 180 * np.pi
 vx = -v_inf * np.cos(alpha)
 vz = -v_inf * np.sin(alpha)
-
+free_stream_velocities = np.array([-vx, 0, -vz])
 # vx = 50
 # vz = 5
 frame_vel_val = np.array([vx, 0, vz])
@@ -36,30 +35,24 @@ mesh_val = generate_simple_mesh(nx, ny).reshape(1, nx, ny, 3)
 mesh_val_1 = generate_simple_mesh(nx, ny - 1,
                                   offset=offset).reshape(1, nx, ny - 1, 3)
 
-frame_vel = model_1.create_input('frame_vel', val=frame_vel_val)
+rot_vel = model_1.create_input(surface_names[0] + '_rot_vel',
+                               val=np.zeros((nx, ny, 3)))
+rot_vel_1 = model_1.create_input(surface_names[1] + '_rot_vel',
+                                 val=np.zeros((nx, ny - 1, 3)))
 
 wing = model_1.create_input('wing', val=mesh_val)
 wing_1 = model_1.create_input('wing_1', val=mesh_val_1)
 
-# add the mesh info
-model_1.add(
-    VLMSystemModel(
-        surface_names=surface_names,
-        surface_shapes=surface_shapes,
-        # frame_vel=frame_vel_val,
-    ),
-    'ODE_system')
-
-eval_pts_names = [x + '_eval_pts_coords' for x in surface_names]
-eval_pts_shapes = [(x[0] - 1, x[1] - 1, 3) for x in surface_shapes]
-# compute lift and drag
-sub = Outputs(
+submodel = VLMSolverModel(
     surface_names=surface_names,
     surface_shapes=surface_shapes,
-    eval_pts_names=eval_pts_names,
-    eval_pts_shapes=eval_pts_shapes,
+    free_stream_velocities=free_stream_velocities,
+    eval_pts_location=0.25,
+    # The location of the evaluation point is on the quarter-chord,
+    # if this is not provided, it is defaulted to be 0.25.
+    # Or it can be set to a set of points the user defines. like below:
 )
-model_1.add(sub, name='compute_lift_drag')
+model_1.add(submodel, 'VLMSolverModel')
 
 sim = Simulator(model_1)
 
@@ -88,4 +81,4 @@ for i in range(len(surface_names)):
     )
     print('cl', CL_name, sim.prob[CL_name])
     print('cd', CD_name, sim.prob[CD_name])
-# sim.visualize_implementation()
+sim.visualize_implementation()

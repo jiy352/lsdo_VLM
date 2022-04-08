@@ -11,12 +11,15 @@ class VLMSolverModel(csdl.Model):
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('surface_shapes', types=list)
         self.parameters.declare('free_stream_velocities', types=np.ndarray)
+        self.parameters.declare('eval_pts_location', default=0.25)
 
     def define(self):
         # add the mesh info
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
+        eval_pts_location = self.parameters['eval_pts_location']
         free_stream_velocities = self.parameters['free_stream_velocities']
+
         frame_vel_val = -free_stream_velocities
 
         frame_vel = self.create_input('frame_vel', val=frame_vel_val)
@@ -27,7 +30,7 @@ class VLMSolverModel(csdl.Model):
                 surface_shapes=surface_shapes,
                 # frame_vel=frame_vel_val,
             ),
-            'ODE_system')
+            'VLM_system')
 
         eval_pts_names = [x + '_eval_pts_coords' for x in surface_names]
         eval_pts_shapes = [(x[0] - 1, x[1] - 1, 3) for x in surface_shapes]
@@ -38,8 +41,9 @@ class VLMSolverModel(csdl.Model):
             surface_shapes=surface_shapes,
             eval_pts_names=eval_pts_names,
             eval_pts_shapes=eval_pts_shapes,
+            eval_pts_location=eval_pts_location,
         )
-        self.add(sub, name='compute_lift_drag')
+        self.add(sub, name='VLM_outputs')
 
         # coeffs_aoa = [np.loadtxt('cl_aoa_coeff.txt')]
         # coeffs_cd = [np.loadtxt('cd_aoa_coeff.txt')]

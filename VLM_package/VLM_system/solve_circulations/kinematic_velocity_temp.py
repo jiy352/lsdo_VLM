@@ -44,9 +44,7 @@ class KinematicVelocity(Model):
             tuple(map(lambda i, j: i - j, item, (1, 1, 0)))
             for item in surface_shapes
         ]
-        rotatonal_vel_shapes = [
-            tuple((item[0] * item[1], item[2])) for item in bd_coll_pts_shapes
-        ]
+        rotatonal_vel_shapes = surface_shapes
         # add_output name and shapes
         kinematic_vel_names = [
             x + '_kinematic_vel' for x in self.parameters['surface_names']
@@ -60,10 +58,18 @@ class KinematicVelocity(Model):
             kinematic_vel_name = kinematic_vel_names[i]
 
             # TODO: fix this to use actual rotational vel
-            rotatonal_vel = self.declare_variable(
+            rotatonal_vel_vertices = self.declare_variable(
                 rotatonal_vel_name, val=np.zeros(rotatonal_vel_shape))
-            frame_vel_expand = csdl.expand(frame_vel,
-                                           rotatonal_vel_shape,
+
+            nx = rotatonal_vel_shape[0]
+            ny = rotatonal_vel_shape[1]
+            rotatonal_vel = csdl.reshape(
+                0.25 * (rotatonal_vel_vertices[0:nx - 1, 0:ny - 1, :] +
+                        rotatonal_vel_vertices[0:nx - 1, 1:ny, :] +
+                        rotatonal_vel_vertices[1:, 0:ny - 1, :] +
+                        rotatonal_vel_vertices[1:, 1:, :]),
+                new_shape=((nx - 1) * (ny - 1), 3))
+            frame_vel_expand = csdl.expand(frame_vel, ((nx - 1) * (ny - 1), 3),
                                            indices='i->ji')
             kinematic_vel = -(rotatonal_vel + frame_vel_expand)
             self.register_output(kinematic_vel_name, kinematic_vel)

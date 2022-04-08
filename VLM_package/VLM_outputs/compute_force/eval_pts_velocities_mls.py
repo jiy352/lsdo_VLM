@@ -38,7 +38,7 @@ class EvalPtsVel(Model):
     def initialize(self):
         self.parameters.declare('eval_pts_names', types=list)
         self.parameters.declare('eval_pts_shapes', types=list)
-        self.parameters.declare('eval_pts_location', default=0.25)
+        self.parameters.declare('eval_pts_location')
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('surface_shapes', types=list)
         # stands for quarter-chord
@@ -201,6 +201,8 @@ class EvalPtsVel(Model):
                 v_induced_wake_name, shape=eval_vel_shape)
 
             # !!TODO!! this needs to be fixed for more general cases to compute the undisturbed vel
+            # Note - April 7 2022: the wake velocity seems to just
+            # need to be the sum of free stream and the induced velocity - this part seems to be fine for now
 
             # kinematic_vel = model_wake_total_vel.declare_variable(
             #     kinematic_vel_name, shape=wake_vel_shape)
