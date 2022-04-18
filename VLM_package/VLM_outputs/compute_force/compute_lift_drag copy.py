@@ -28,12 +28,15 @@ class LiftDrag(Model):
     def initialize(self):
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('surface_shapes', types=list)
+        self.parameters.declare('num_nodes', types=int)
 
         self.parameters.declare('rho', default=0.38)
 
     def define(self):
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
+        num_nodes = self.parameters['num_nodes']
+
         rho = self.parameters['rho']
         v_total_wake_names = [x + '_eval_total_vel' for x in surface_names]
         system_size = 0
@@ -89,7 +92,7 @@ class LiftDrag(Model):
             start = start + delta
 
         # add frame_vel
-        frame_vel = self.declare_variable('frame_vel', shape=(3, ))
+        frame_vel = self.declare_variable('frame_vel', shape=(num_nodes, 3))
 
         alpha = csdl.arctan(frame_vel[2] / frame_vel[0])
         sina = csdl.expand(csdl.sin(alpha), (system_size, 1), 'i->ji')

@@ -12,6 +12,7 @@ class WakeCoords(Model):
     def initialize(self):
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('surface_shapes', types=list)
+        self.parameters.declare('num_nodes', types=int)
         self.parameters.declare('nt')
         self.parameters.declare('delta_t')
 
@@ -19,36 +20,41 @@ class WakeCoords(Model):
         # add_input
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
+        num_nodes = self.parameters['num_nodes']
         nt = self.parameters['nt']
         delta_t = self.parameters['delta_t']
 
         wake_coords_names = [x + '_wake_coords' for x in surface_names]
 
-        frame_vel = self.declare_variable('frame_vel', shape=(3, ))
+        frame_vel = self.declare_variable('frame_vel', shape=(num_nodes, 3))
 
         for i in range(len(surface_names)):
             surface_name = surface_names[i]
             surface_shape = surface_shapes[i]
-            bd_vtx_coords_shape = (surface_shape[1], surface_shape[2], 3)
+            bd_vtx_coords_shape = surface_shape
             bd_vtx_coords_name = surface_name + '_bd_vtx_coords'
 
-            nx = surface_shapes[i][1]
-            ny = surface_shapes[i][2]
+            nx = surface_shape[1]
+            ny = surface_shape[2]
 
             bd_vtx_coords = self.declare_variable(bd_vtx_coords_name,
                                                   shape=bd_vtx_coords_shape)
-            TE = bd_vtx_coords[surface_shape[1] - 1, :, :]
-
-            TE_reshaped = csdl.reshape(TE, (TE.shape[1], TE.shape[2]))
+            TE = bd_vtx_coords[:, nx - 1, :, :]
+            print('TE shape', TE.shape)
+            TE_reshaped = csdl.reshape(TE, (num_nodes, ny, 3))
             TE_reshaped_expand = csdl.expand(TE_reshaped,
-                                             (nt, TE.shape[1], TE.shape[2]),
-                                             'ij->kij')
-            factor = np.einsum('i,jk->ijk',
-                               np.arange(nt) * delta_t, np.ones((ny, 3)))
+                                             (num_nodes, nt, ny, 3),
+                                             'ijk->iljk')
+            print('TE_reshaped_expand shape', TE_reshaped_expand.shape)
+
+            factor = np.einsum('i,jkl->jikl',
+                               np.arange(nt) * delta_t,
+                               np.ones((num_nodes, ny, 3)))
             #! TODO:! fix this for rotating surfaces
-            delta_x = csdl.expand(-frame_vel, (nt, TE.shape[1], TE.shape[2]),
-                                  'i->kji') * factor
+            delta_x = csdl.expand(-frame_vel,
+                                  (num_nodes, nt, ny, 3), 'il->ijkl') * factor
             wake_coords = TE_reshaped_expand + delta_x
+            print('wake_coords shape', wake_coords.shape)
 
             self.register_output(wake_coords_names[i], wake_coords)
 

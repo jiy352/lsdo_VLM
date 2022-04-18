@@ -36,13 +36,11 @@ class MeshPreprocessing(Model):
     def initialize(self):
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('surface_shapes', types=list)
-        self.parameters.declare('dynamic_parameter', default=False)
 
     def define(self):
         # add_input
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
-        dynamic_parameter = self.parameters['dynamic_parameter']
         for i in range(len(surface_names)):
             surface_name = surface_names[i]
             bd_vtx_coords_name = surface_name + '_bd_vtx_coords'
@@ -54,61 +52,61 @@ class MeshPreprocessing(Model):
             nx = surface_shapes[i][1]
             ny = surface_shapes[i][2]
 
-            if dynamic_parameter == True:
+            def_mesh = self.declare_variable(surface_name,
+                                             shape=surface_shapes[i])
+            bd_vtx_coords = self.create_output(bd_vtx_coords_name,
+                                               shape=(def_mesh.shape))
 
-                def_mesh = self.declare_variable(surface_name,
-                                                 shape=surface_shapes[i])
-                bd_vtx_coords = self.create_output(bd_vtx_coords_name,
-                                                   shape=(def_mesh.shape))
-                bd_vtx_coords[:, 0:nx -
-                              1, :, :] = def_mesh[:, 0:nx -
-                                                  1, :, :] * .75 + def_mesh[:,
-                                                                            1:
-                                                                            nx, :, :] * 0.25
-                bd_vtx_coords[:, nx -
-                              1, :, :] = def_mesh[:, nx - 1, :, :] + 0.25 * (
-                                  def_mesh[:, nx - 1, :, :] -
-                                  def_mesh[:, nx - 2, :, :])
-                coll_pts_coords = 0.25 * (bd_vtx_coords[:,0:nx-1, 0:ny-1, :] +\
-                                                bd_vtx_coords[:,0:nx-1, 1:ny, :] +\
-                                                bd_vtx_coords[:,1:, 0:ny-1, :]+\
-                                                bd_vtx_coords[:,1:, 1:, :])
-                self.register_output(coll_pts_coords_name, coll_pts_coords)
+            bd_vtx_coords[:, 0:nx -
+                          1, :, :] = def_mesh[:, 0:nx -
+                                              1, :, :] * .75 + def_mesh[:, 1:
+                                                                        nx, :, :] * 0.25
+            bd_vtx_coords[:,
+                          nx - 1, :, :] = def_mesh[:, nx - 1, :, :] + 0.25 * (
+                              def_mesh[:, nx - 1, :, :] -
+                              def_mesh[:, nx - 2, :, :])
+            coll_pts_coords = 0.25 * (bd_vtx_coords[:,0:nx-1, 0:ny-1, :] +\
+                                            bd_vtx_coords[:,0:nx-1, 1:ny, :] +\
+                                            bd_vtx_coords[:,1:, 0:ny-1, :]+\
+                                            bd_vtx_coords[:,1:, 1:, :])
 
-                chords_vec = def_mesh[:, 0:nx - 1, :, :] - def_mesh[:,
-                                                                    1:, :, :]
-                chords = csdl.pnorm(chords_vec, axis=(3))
-                # self.register_output(chord_name, chords)
+            # print('bd_vtx_coords shape', bd_vtx_coords.shape)
+            # print('coll_pts_coords shape', coll_pts_coords.shape)
+            self.register_output(coll_pts_coords_name, coll_pts_coords)
+            '''chords_vec = def_mesh[:, 0:nx - 1, :, :] - def_mesh[:,
+                                                                1:, :, :]
+            chords = csdl.pnorm(chords_vec, axis=(3))
+            # self.register_output(chord_name, chords)
 
-                span_vec = def_mesh[:, :, 0:ny - 1, :] - def_mesh[:, :, 1:, :]
-                spans = csdl.pnorm(span_vec, axis=(2))
-                # self.register_output(span_name, spans)
-                # TODO: need to fix this before computing the forces
+            span_vec = def_mesh[:, :, 0:ny - 1, :] - def_mesh[:, :, 1:, :]
+            spans = csdl.pnorm(span_vec, axis=(2))
+            # self.register_output(span_name, spans)
+            # TODO: need to fix this before computing the forces
 
-                i = def_mesh[:, :-1, 1:, :] - def_mesh[:, 1:, :-1, :]
-                j = def_mesh[:, :-1, :-1, :] - def_mesh[:, 1:, 1:, :]
-                normals = csdl.cross(i, j, axis=3)
-                s_panel = (csdl.sum(normals**2, axes=(3, )))**0.5 * 0.5
-                # area = |ixj|/2
-                # self.register_output(s_panel_name, s_panel)
+            i = def_mesh[:, :-1, 1:, :] - def_mesh[:, 1:, :-1, :]
+            j = def_mesh[:, :-1, :-1, :] - def_mesh[:, 1:, 1:, :]
+            normals = csdl.cross(i, j, axis=3)
+            s_panel = (csdl.sum(normals**2, axes=(3, )))**0.5 * 0.5
+            # area = |ixj|/2
+            # self.register_output(s_panel_name, s_panel)'''
 
-            else:
-                def_mesh = self.declare_variable(surface_name,
-                                                 shape=surface_shapes[i])
-                bd_vtx_coords = self.create_output(bd_vtx_coords_name,
-                                                   shape=(nx, ny, 3))
-                bd_vtx_coords[0:nx - 1, :, :] = csdl.reshape(
-                    def_mesh[:, 0:nx - 1, :, :] * .75 +
-                    def_mesh[:, 1:nx, :, :] * 0.25, (nx - 1, ny, 3))
-                bd_vtx_coords[nx - 1, :, :] = csdl.reshape(
-                    def_mesh[:, nx - 1, :, :] + 0.25 *
-                    (def_mesh[:, nx - 1, :, :] - def_mesh[:, nx - 2, :, :]),
-                    (1, ny, 3))
-                coll_pts_coords = 0.25 * (bd_vtx_coords[0:nx-1, 0:ny-1, :] +\
-                                                bd_vtx_coords[0:nx-1, 1:ny, :] +\
-                                                bd_vtx_coords[1:, 0:ny-1, :]+\
-                                                bd_vtx_coords[1:, 1:, :])
-                self.register_output(coll_pts_coords_name, coll_pts_coords)
+            # else:
+            #     def_mesh = self.declare_variable(surface_name,
+            #                                      shape=surface_shapes[i])
+            #     bd_vtx_coords = self.create_output(bd_vtx_coords_name,
+            #                                        shape=(nx, ny, 3))
+            #     bd_vtx_coords[0:nx - 1, :, :] = csdl.reshape(
+            #         def_mesh[:, 0:nx - 1, :, :] * .75 +
+            #         def_mesh[:, 1:nx, :, :] * 0.25, (nx - 1, ny, 3))
+            #     bd_vtx_coords[nx - 1, :, :] = csdl.reshape(
+            #         def_mesh[:, nx - 1, :, :] + 0.25 *
+            #         (def_mesh[:, nx - 1, :, :] - def_mesh[:, nx - 2, :, :]),
+            #         (1, ny, 3))
+            #     coll_pts_coords = 0.25 * (bd_vtx_coords[0:nx-1, 0:ny-1, :] +\
+            #                                     bd_vtx_coords[0:nx-1, 1:ny, :] +\
+            #                                     bd_vtx_coords[1:, 0:ny-1, :]+\
+            #                                     bd_vtx_coords[1:, 1:, :])
+            #     self.register_output(coll_pts_coords_name, coll_pts_coords)
 
 
 if __name__ == "__main__":

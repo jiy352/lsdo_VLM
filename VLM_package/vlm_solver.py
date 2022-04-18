@@ -13,6 +13,8 @@ class VLMSolverModel(csdl.Model):
     def initialize(self):
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('surface_shapes', types=list)
+        self.parameters.declare('num_nodes', types=int)
+
         self.parameters.declare('free_stream_velocities', types=np.ndarray)
 
         self.parameters.declare('eval_pts_location', default=0.25)
@@ -25,6 +27,8 @@ class VLMSolverModel(csdl.Model):
         # add the mesh info
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
+        num_nodes = self.parameters['num_nodes']
+
         free_stream_velocities = self.parameters['free_stream_velocities']
 
         eval_pts_option = self.parameters['eval_pts_option']
@@ -41,6 +45,7 @@ class VLMSolverModel(csdl.Model):
             VLMSystemModel(
                 surface_names=surface_names,
                 surface_shapes=surface_shapes,
+                num_nodes=num_nodes,
                 # frame_vel=frame_vel_val,
             ),
             'VLM_system')
@@ -74,6 +79,3 @@ class VLMSolverModel(csdl.Model):
 if __name__ == "__main__":
 
     pass
-	
-
-

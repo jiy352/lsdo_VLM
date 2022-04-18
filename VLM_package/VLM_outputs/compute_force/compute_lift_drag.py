@@ -28,6 +28,7 @@ class LiftDrag(Model):
     def initialize(self):
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('surface_shapes', types=list)
+        self.parameters.declare('num_nodes', types=int)
 
         self.parameters.declare('eval_pts_option')
         self.parameters.declare('eval_pts_shapes')
@@ -38,6 +39,8 @@ class LiftDrag(Model):
     def define(self):
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
+        num_nodes = self.parameters['num_nodes']
+
         rho = self.parameters['rho']
         sprs = self.parameters['sprs']
         eval_pts_option = self.parameters['eval_pts_option']
@@ -65,7 +68,7 @@ class LiftDrag(Model):
                                          'i->ij')
 
         # add frame_vel
-        frame_vel = self.declare_variable('frame_vel', shape=(3, ))
+        frame_vel = self.declare_variable('frame_vel', shape=(num_nodes, 3))
         alpha = csdl.arctan(frame_vel[2] / frame_vel[0])
 
         if eval_pts_option == 'auto':

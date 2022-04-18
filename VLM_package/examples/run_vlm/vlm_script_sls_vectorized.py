@@ -13,25 +13,26 @@ Please see vlm_scipt_mls.py for how to use user defined evaluation pts
 ####################################################################
 # 1. Define VLM meshes and constants
 ####################################################################
-nx = 3
-ny = 10
+num_nodes = 3
+nx = 2
+ny = 5
 offset = 10
 
-v_inf = 50
-alpha_deg = 10
+v_inf = np.array([50, 50, 50])
+alpha_deg = np.array([10, 0, 5])
 alpha = alpha_deg / 180 * np.pi
 vx = -v_inf * np.cos(alpha)
 vz = -v_inf * np.sin(alpha)
-free_stream_velocities = np.array([-vx, 0, -vz])
-frame_vel_val = np.array([vx, 0, vz])
+free_stream_velocities = np.array([-vx, np.zeros(num_nodes), -vz]).T
+frame_vel_val = np.array([vx, np.zeros(num_nodes), vz]).T
 
 # single lifting surface
 surface_names = ['wing']
-surface_shapes = [(nx, ny, 3)]
+surface_shapes = [(num_nodes, nx, ny, 3)]
 
 model_1 = csdl.Model()
 
-mesh_val = generate_simple_mesh(nx, ny).reshape(1, nx, ny, 3)
+mesh_val = generate_simple_mesh(nx, ny, num_nodes)
 # mesh_val_1 = generate_simple_mesh(nx, ny - 1,
 #                                   offset=offset).reshape(1, nx, ny - 1, 3)
 
@@ -44,7 +45,7 @@ mesh_all = [mesh_val]
 ####################################################################
 
 rot_vel = model_1.create_input(surface_names[0] + '_rot_vel',
-                               val=np.zeros((nx, ny, 3)))
+                               val=np.zeros((num_nodes, nx, ny, 3)))
 
 wing = model_1.create_input('wing', val=mesh_val)
 
@@ -64,11 +65,12 @@ wing = model_1.create_input('wing', val=mesh_val)
 # The user can also define the eval_pts_coords inputs (line 97-146)
 # ###################################################################
 
-eval_pts_shapes = [(x[0] - 1, x[1] - 1, 3) for x in surface_shapes]
+eval_pts_shapes = [(num_nodes, x[0] - 1, x[1] - 1, 3) for x in surface_shapes]
 
 submodel = VLMSolverModel(
     surface_names=surface_names,
     surface_shapes=surface_shapes,
+    num_nodes=num_nodes,
     free_stream_velocities=free_stream_velocities,
     eval_pts_location=0.25,
     # The location of the evaluation point is on the quarter-chord,
