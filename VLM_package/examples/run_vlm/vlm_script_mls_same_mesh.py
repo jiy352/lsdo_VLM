@@ -10,7 +10,7 @@ from VLM_package.vlm_solver import VLMSolverModel
 ####################################################################
 nx = 3
 ny = 10
-offset = 10
+offset = 12
 
 v_inf = 50
 alpha_deg = 10
@@ -22,7 +22,7 @@ frame_vel_val = np.array([vx, 0, vz])
 
 # multiple lifting surface
 surface_names = ['wing', 'wing_1']
-surface_shapes = [(nx, ny, 3), (nx, ny - 1, 3)]
+surface_shapes = [(nx, ny, 3), (nx, ny, 3)]
 
 # single lifting surface
 # surface_names = ['wing']
@@ -31,9 +31,40 @@ surface_shapes = [(nx, ny, 3), (nx, ny - 1, 3)]
 model_1 = csdl.Model()
 
 mesh_val = generate_simple_mesh(nx, ny).reshape(1, nx, ny, 3)
-mesh_val_1 = generate_simple_mesh(nx, ny - 1,
-                                  offset=offset).reshape(1, nx, ny - 1, 3)
+# mesh_val_1_temp = generate_simple_mesh(nx, ny,
+#                                        offset=offset).reshape(nx, ny, 3)
+# mesh_val_1 = np.flip(mesh_val_1_temp, 1).reshape(1, nx, ny, 3)
 
+mesh_val_1 = generate_simple_mesh(nx, ny, offset=offset).reshape(1, nx, ny, 3)
+from mpl_toolkits.mplot3d import axes3d
+import matplotlib.pyplot as plt
+
+fig = plt.figure()
+ax = fig.add_subplot(projection='3d')
+
+X, Y_1, Z = mesh_val[:, :, :, 0].reshape(nx, ny), mesh_val[:, :, :, 1].reshape(
+    nx, ny), mesh_val[:, :, :, 2].reshape(nx, ny)
+# Plot a basic wireframe.
+ax.plot_wireframe(X, Y_1, Z)
+
+X, Y_2, Z = mesh_val_1[:, :, :,
+                       0].reshape(nx, ny), mesh_val_1[:, :, :, 1].reshape(
+                           nx, ny), mesh_val_1[:, :, :, 2].reshape(nx, ny)
+max_range = np.array(
+    [X.max() - X.min(),
+     Y_2.max() - Y_1.min(),
+     Z.max() - Z.min()]).max() / 2.0
+
+mid_x = (X.max() + X.min()) * 0.5
+mid_y = (Y_2.max() + Y_1.min()) * 0.5
+mid_z = (Z.max() + Z.min()) * 0.5
+ax.set_xlim(mid_x - max_range, mid_x + max_range)
+ax.set_ylim(mid_y - max_range, mid_y + max_range)
+ax.set_zlim(mid_z - max_range, mid_z + max_range)
+
+# Plot a basic wireframe.
+ax.plot_wireframe(X, Y_2, Z)
+plt.show()
 mesh_all = [mesh_val, mesh_val_1]
 ####################################################################
 # 2. Define rotational velocities
@@ -45,7 +76,7 @@ mesh_all = [mesh_val, mesh_val_1]
 rot_vel = model_1.create_input(surface_names[0] + '_rot_vel',
                                val=np.zeros((nx, ny, 3)))
 rot_vel_1 = model_1.create_input(surface_names[1] + '_rot_vel',
-                                 val=np.zeros((nx, ny - 1, 3)))
+                                 val=np.zeros((nx, ny, 3)))
 
 wing = model_1.create_input('wing', val=mesh_val)
 wing_1 = model_1.create_input('wing_1', val=mesh_val_1)
@@ -85,7 +116,6 @@ submodel = VLMSolverModel(
 # ####################################################################
 '''
 e.g., center of leading edge panels
-
 . - . - . - .
 | * |   |   |
 . - . - . - .
@@ -93,13 +123,12 @@ e.g., center of leading edge panels
 . - . - . - .
 | * |   |   |
 . - . - . - .
-
 '''
 # eval_pts_option = 'user_defined'
 # eval_pts_names = [x + '_eval_pts_coords' for x in surface_names]
 
-# eval_pts_shapes = [(1, ny - 1, 3),
-#                    (1, ny - 2, 3)]  # center of leading edge panels
+# eval_pts_shapes = [(1, ny , 3),
+#                    (1, ny , 3)]  # center of leading edge panels
 # sprs = [1] * len(eval_pts_shapes)
 # for i in range(len(eval_pts_names)):
 
@@ -165,22 +194,24 @@ for i in range(len(surface_names)):
     D_name = surface_names[i] + '_D'
     CL_name = surface_names[i] + '_C_L'
     CD_name = surface_names[i] + '_C_D_i'
-    print('lift', L_name, sim.prob[L_name])
-    print('drag', D_name, sim.prob[D_name])
+    print('lift', L_name, '\n', sim.prob[L_name])
+    print('drag', D_name, '\n', sim.prob[D_name])
     print(
         'L_panel',
         L_panel_name,
+        '\n',
         sim.prob[L_panel_name].shape,
         sim.prob[L_panel_name],
     )
     print(
         'D_panel',
         D_panel_name,
+        '\n',
         sim.prob[D_panel_name].shape,
         sim.prob[D_panel_name],
     )
-    print('cl', CL_name, sim.prob[CL_name])
-    print('cd', CD_name, sim.prob[CD_name])
+    print('cl', CL_name, '\n', sim.prob[CL_name])
+    print('cd', CD_name, '\n', sim.prob[CD_name])
 ####################################################################
 # Visualize n2 diagram (line 188)
 ####################################################################
@@ -238,24 +269,3 @@ for i in range(len(surface_names)):
 #     eval_pts_shapes=eval_pts_shapes,
 #     sprs=sprs,
 # )
-
-sim['aic_bd_proj'] @ sim['gamma_b'] + sim['M'] @ sim['gamma_w'].reshape(
-    17, ) + sim['b']
-
-sim['aic_bd_proj'] @ sim['gamma_b'] + sim['M'] @ np.ones(17).reshape(
-    17, ) + sim['b']
-
-sim['aic_bd_proj'] @ sim['gamma_b'] + sim['M'] @ np.concatenate(
-    (sim['gamma_w'].reshape(17, )[:9], np.ones(8))) + sim['b']
-
-sim['aic_bd_proj'] @ np.concatenate(
-    (sim['wing_gamma_b'], np.ones(16))) + sim['M'] @ np.concatenate(
-        (sim['gamma_w'].reshape(17, )[:9], np.ones(8))) + sim['b']
-
-sim['aic_bd_proj'] @ np.ones(34) + sim['M'] @ np.ones(17).reshape(
-    17, ) + sim['b']
-
-sim['aic_bd_proj'] @ np.ones(34) + sim['M'] @ np.ones(17).reshape(
-    17, ) + sim['b']
-
-sim['aic_bd_proj'] @ sim['gamma_b'] + sim['b']

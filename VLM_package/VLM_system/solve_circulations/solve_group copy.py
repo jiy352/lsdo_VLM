@@ -3,7 +3,7 @@ import numpy as np
 from csdl_om import Simulator
 import csdl
 
-from VLM_package.VLM_system.solve_circulations.rhs_group import RHS
+from VLM_package.VLM_system.solve_circulations.rhs_group_old import RHS
 from VLM_package.VLM_system.solve_circulations.assemble_aic import AssembleAic
 from VLM_package.VLM_system.solve_circulations.projection_comp import Projection
 from VLM_package.VLM_system.solve_circulations.seperate_gamma_b import SeperateGammab

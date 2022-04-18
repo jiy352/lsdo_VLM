@@ -3,7 +3,7 @@ import numpy as np
 from csdl_om import Simulator
 import csdl
 
-from VLM_package.VLM_system.solve_circulations.rhs_group import RHS
+from VLM_package.VLM_system.solve_circulations.rhs_group_old import RHS
 from VLM_package.VLM_system.solve_circulations.assemble_aic import AssembleAic
 from VLM_package.VLM_system.solve_circulations.projection_comp import Projection
 
@@ -84,6 +84,36 @@ class SolveMatrix(Model):
             ), 'RHS_group')
 
         nt = self.parameters['nt']
+        '''2. compute A_mtx'''
+        m = AssembleAic(
+            bd_coll_pts_names=coll_pts_coords_names,
+            wake_vortex_pts_names=bd_vtx_coords_names,
+            bd_coll_pts_shapes=bd_coll_pts_shapes,
+            wake_vortex_pts_shapes=bd_vortex_shapes,
+            full_aic_name='aic_bd',
+            delta_t=delta_t,  # one line of wake vortex for fix wake
+        )
+        model.add(m, name='AssembleAic_bd')
+        '''3. project the aic on to the bd_vertices'''
+        aic_shape_row = aic_shape_col = 0
+        for i in range(len(bd_coll_pts_shapes)):
+            aic_shape_row += (bd_coll_pts_shapes[i][0] *
+                              bd_coll_pts_shapes[i][1])
+            aic_shape_col += ((bd_coll_pts_shapes[i][0]) *
+                              (bd_coll_pts_shapes[i][1]))
+        aic_bd_proj_name = 'aic_bd_proj'
+
+        m = Projection(
+            input_vel_names=['aic_bd'],
+            normal_names=bd_vtx_normals,
+            output_vel_names=aic_bd_proj_name,  # this is b
+            input_vel_shapes=[(aic_shape_row, aic_shape_col, 3)
+                              ],  #rotatonal_vel_shapes
+            normal_shapes=bd_coll_pts_shapes,
+        )
+        model.add(m, name='Projection_aic_bd')
+        sum_ny = sum((i[1] - 1) for i in bd_vortex_shapes)
+
         self.add(model, 'prepossing_before_Solve')
         '''3. solve'''
         model = Model()
@@ -94,52 +124,47 @@ class SolveMatrix(Model):
                             bd_coll_pts_shapes[i][1])
             M_shape_col += ((wake_vortex_pts_shapes[i][0] - 1) *
                             (wake_vortex_pts_shapes[i][1] - 1))
-
         M_shape = (M_shape_row, M_shape_col)
         M = model.declare_variable('M', shape=M_shape)
-        M_reshaped_final = model.declare_variable('M_reshaped_final',
-                                                  shape=(M_shape_row,
-                                                         M_shape_row))
         gamma_b_shape = sum((i[0] - 1) * (i[1] - 1) for i in bd_vortex_shapes)
 
         aic_bd_proj_shape = (gamma_b_shape, ) + (gamma_b_shape, )
-        MTX = model.declare_variable('MTX', shape=(aic_bd_proj_shape))
+        aic_bd_proj = model.declare_variable(aic_bd_proj_name,
+                                             shape=(aic_bd_proj_shape))
         gamma_b = model.declare_variable('gamma_b', shape=(gamma_b_shape))
         b = model.declare_variable('b', shape=(gamma_b_shape, ))
 
-        # if method == 'bk_euler':
-        #     gamma_w = model.create_output('gamma_w', shape=(n, nt - 1, sum_ny))
-        #     start = start_b = 0
-        #     for i in range(len(surface_names)):
-        #         nx = bd_vortex_shapes[i][0]
-        #         ny = bd_vortex_shapes[i][1]
-        #         delta = ny - 1
-        #         delta_b = (nx - 1) * (ny - 1)
-        #         val = np.zeros((n, nt - 1, ny - 1))
-        #         surface_name = surface_names[i]
+        if method == 'bk_euler':
+            gamma_w = model.create_output('gamma_w', shape=(n, nt - 1, sum_ny))
+            start = start_b = 0
+            for i in range(len(surface_names)):
+                nx = bd_vortex_shapes[i][0]
+                ny = bd_vortex_shapes[i][1]
+                delta = ny - 1
+                delta_b = (nx - 1) * (ny - 1)
+                val = np.zeros((n, nt - 1, ny - 1))
+                surface_name = surface_names[i]
 
-        #         surface_gamma_b = gamma_b[start:start + delta_b]
-        #         surface_gamma_w_name = surface_names[i] + '_gamma_w'
-        #         surface_gamma_w = csdl.expand(
-        #             surface_gamma_b[(nx - 2) * (ny - 1):], (nt - 1, ny - 1),
-        #             'i->ji')
-        #         model.register_output(surface_gamma_w_name, surface_gamma_w)
-        #         gamma_w[:, :, start:start + delta] = csdl.reshape(
-        #             surface_gamma_w, (1, nt - 1, ny - 1))
-        #         start += delta
-        #         start_b += delta_b
+                surface_gamma_b = gamma_b[start:start + delta_b]
+                surface_gamma_w_name = surface_names[i] + '_gamma_w'
+                surface_gamma_w = csdl.expand(
+                    surface_gamma_b[(nx - 2) * (ny - 1):], (nt - 1, ny - 1),
+                    'i->ji')
+                model.register_output(surface_gamma_w_name, surface_gamma_w)
+                gamma_w[:, :, start:start + delta] = csdl.reshape(
+                    surface_gamma_w, (1, nt - 1, ny - 1))
+                start += delta
+                start_b += delta_b
 
-        #     gamma_w_flatten = csdl.reshape(gamma_w,
-        #                                    new_shape=(gamma_w.shape[1] *
-        #                                               gamma_w.shape[2], ))
+            gamma_w_flatten = csdl.reshape(gamma_w,
+                                           new_shape=(gamma_w.shape[1] *
+                                                      gamma_w.shape[2], ))
 
-        # sum_ny = sum((i[1] - 1) for i in bd_vortex_shapes)
-        # gamma_b[(nx - 2) * (ny - 1):]
-        # y = csdl.einsum(aic_bd_proj, gamma_b,
-        #                 subscripts='ij,j->i') + csdl.einsum(
-        #                     M, gamma_w_flatten, subscripts='ij,j->i') + b
-
-        y = csdl.einsum(MTX, gamma_b, subscripts='ij,j->i') + b
+        sum_ny = sum((i[1] - 1) for i in bd_vortex_shapes)
+        gamma_b[(nx - 2) * (ny - 1):]
+        y = csdl.einsum(aic_bd_proj, gamma_b,
+                        subscripts='ij,j->i') + csdl.einsum(
+                            M, gamma_w_flatten, subscripts='ij,j->i') + b
 
         model.register_output('y', y)
 
@@ -152,14 +177,13 @@ class SolveMatrix(Model):
         )
         solve.linear_solver = ScipyKrylov()
 
-        # aic_bd_proj = self.declare_variable(aic_bd_proj_name,
-        #                                     shape=(aic_shape_row,
-        #                                            aic_shape_col))
-        MTX = self.declare_variable('MTX', shape=(M_shape_row, M_shape_row))
-        # M = self.declare_variable('M', shape=M_shape)
+        aic_bd_proj = self.declare_variable(aic_bd_proj_name,
+                                            shape=(aic_shape_row,
+                                                   aic_shape_col))
+        M = self.declare_variable('M', shape=M_shape)
         b = self.declare_variable('b', shape=gamma_b_shape)
 
-        gamma_b = solve(MTX, b)
+        gamma_b = solve(aic_bd_proj, M, b)
 
 
 if __name__ == "__main__":
