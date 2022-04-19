@@ -29,19 +29,21 @@ class SeperateGammab(Model):
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
 
-        gamma_b_shape = sum((i[0] - 1) * (i[1] - 1) for i in surface_shapes)
+        num_nodes = surface_shapes[0][0]
+        gamma_b_shape = sum((i[1] - 1) * (i[2] - 1) for i in surface_shapes)
 
         # sum of system_shape with all the nx's and ny's
-        gamma_b = self.declare_variable('gamma_b', shape=gamma_b_shape)
+        gamma_b = self.declare_variable('gamma_b',
+                                        shape=(num_nodes, gamma_b_shape))
 
         start = 0
         for i in range(len(surface_shapes)):
             surface_gamma_b_name = surface_names[i] + '_gamma_b'
             surface_shape = surface_shapes[i]
 
-            nx = surface_shape[0]
-            ny = surface_shape[1]
-            surface_gamma_b = gamma_b[start:start + (nx - 1) * (ny - 1)]
+            nx = surface_shape[1]
+            ny = surface_shape[2]
+            surface_gamma_b = gamma_b[:, start:start + (nx - 1) * (ny - 1)]
             start += (nx - 1) * (ny - 1)
             # print(surface_gamma_b_name, surface_gamma_b.shape)
             self.register_output(surface_gamma_b_name, surface_gamma_b)

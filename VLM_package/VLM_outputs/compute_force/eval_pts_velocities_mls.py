@@ -54,6 +54,8 @@ class EvalPtsVel(Model):
         surface_shapes = self.parameters['surface_shapes']
         eval_pts_location = self.parameters['eval_pts_location']
 
+        num_nodes = surface_shapes[0][0]
+
         nt = self.parameters['nt']
         delta_t = self.parameters['delta_t']
 
@@ -65,21 +67,23 @@ class EvalPtsVel(Model):
         ]
 
         wake_vortex_pts_shapes = [
-            tuple((nt, item[1], 3)) for item in surface_shapes
+            tuple((num_nodes, nt, item[2], 3)) for item in surface_shapes
         ]
 
         bdnwake_shapes = [
-            (x[0] + y[0] - 1, x[1], 3)
+            (num_nodes, x[1] + y[1] - 1, x[2], 3)
             for x, y in zip(surface_shapes, wake_vortex_pts_shapes)
         ]
         # output_names = [x + '_aic_force' for x in surface_names]
         circulation_names = [x + '_bdnwake_gamma' for x in surface_names]
+        print('eval pts vel bdnwake_shapes ', bdnwake_shapes)
+        print('eval pts vel eval_pts_shapes ', eval_pts_shapes)
 
-        aic_shapes = [(x[0] * x[1] * (y[0] - 1) * (y[1] - 1), 3)
+        aic_shapes = [(num_nodes, x[1] * x[2] * (y[1] - 1) * (y[2] - 1), 3)
                       for x, y in zip(eval_pts_shapes, bdnwake_shapes)]
 
         circulations_shapes = [
-            ((x[0] - 1) * (x[1] - 1) + (y[0] - 1) * (y[1] - 1))
+            (num_nodes, (x[1] - 1) * (x[2] - 1) + (y[1] - 1) * (y[2] - 1))
             for x, y in zip(surface_shapes, wake_vortex_pts_shapes)
         ]
         eval_induced_velocities_names = [
@@ -92,19 +96,17 @@ class EvalPtsVel(Model):
 
         v_total_eval_names = [x + '_eval_total_vel' for x in surface_names]
 
-        eval_vel_shapes = [(x[0] * x[1], 3) for x in eval_pts_shapes]
-
-        n = 1
-        ode_surface_shapes = [(n, ) + item for item in surface_shapes]
+        eval_vel_shapes = [(num_nodes, x[1] * x[2], 3)
+                           for x in eval_pts_shapes]
 
         #!TODO!: rewrite this comp for mls
         # !fixed!: defining the eval_pts
         for i in range(len(eval_pts_names)):
             mesh = self.declare_variable(surface_names[i],
-                                         shape=ode_surface_shapes[i])
+                                         shape=surface_shapes[i])
 
-            nx = surface_shapes[i][0]
-            ny = surface_shapes[i][1]
+            nx = surface_shapes[i][1]
+            ny = surface_shapes[i][2]
             if self.parameters['eval_pts_option'] == 'auto':
                 eval_pts_coords = (
                     (1 - eval_pts_location) * 0.5 * mesh[:, 0:-1, 0:-1, :] +
@@ -112,9 +114,8 @@ class EvalPtsVel(Model):
                     eval_pts_location * 0.5 * mesh[:, 1:, 0:-1, :] +
                     eval_pts_location * 0.5 * mesh[:, 1:, 1:, :])
 
-                self.register_output(
-                    eval_pts_names[i],
-                    csdl.reshape(eval_pts_coords, (nx - 1, ny - 1, 3)))
+                self.register_output(eval_pts_names[i], eval_pts_coords)
+
             elif self.parameters['eval_pts_option'] == 'user_defined':
                 eval_pts_coords = self.declare_variable(
                     eval_pts_names[i], shape=(eval_pts_shapes[i]))
@@ -127,10 +128,11 @@ class EvalPtsVel(Model):
                  name='BdnWakeCombine')
 
         for i in range(len(surface_shapes)):
-            nx = surface_shapes[i][0]
-            ny = surface_shapes[i][1]
+            nx = surface_shapes[i][1]
+            ny = surface_shapes[i][2]
             bdnwake_coords = self.declare_variable(bdnwake_coords_names[i],
-                                                   shape=(nt + nx - 1, ny, 3))
+                                                   shape=(num_nodes,
+                                                          nt + nx - 1, ny, 3))
         #!TODO:fix this for mls
         # !fixed!: this part is a temp fix-since we don't have +=in csdl, I just made a large velocity matrix contining
         # the induced velocity induced by each bdnwake_coords_names for mls, and sum this matrix by axis to get the
@@ -139,7 +141,7 @@ class EvalPtsVel(Model):
             eval_vel_shape = eval_vel_shapes[i]
 
             aic_shapes = [
-                (x[0] * x[1] * (y[0] - 1) * (y[1] - 1), 3)
+                (num_nodes, x[1] * x[2] * (y[1] - 1) * (y[2] - 1), 3)
                 for x, y in zip(([eval_pts_shapes[i]] *
                                  len(bdnwake_coords_names)), bdnwake_shapes)
             ]
@@ -169,6 +171,7 @@ class EvalPtsVel(Model):
             for j in range(len(bdnwake_coords_names)):
                 aic = self.declare_variable(output_names[j],
                                             shape=(aic_shapes[j]))
+            print('eval pts vel mls aic_shapes', aic_shapes)
 
             self.add(InducedVelocity(
                 aic_names=output_names,
@@ -177,18 +180,21 @@ class EvalPtsVel(Model):
                 circulations_shapes=circulations_shapes,
                 v_induced_names=induced_vel_bdnwake_names),
                      name='eval_pts_ind_vel' + str(i))
-
+            # !!!!!!!!!!!TODO: need to check what is this April 18 2022
             surface_total_induced_col = self.create_output(
                 eval_induced_velocities_col_names[i],
-                shape=(len(bdnwake_coords_names), eval_vel_shapes[i][0], 3))
+                shape=(num_nodes, len(bdnwake_coords_names),
+                       eval_vel_shapes[i][1], 3))
             for j in range(len(bdnwake_coords_names)):
                 induced_vel_bdnwake = self.declare_variable(
-                    induced_vel_bdnwake_names[j], shape=(eval_vel_shape[0], 3))
-                surface_total_induced_col[j, :, :] = csdl.reshape(
-                    induced_vel_bdnwake, (1, eval_vel_shapes[i][0], 3))
+                    induced_vel_bdnwake_names[j],
+                    shape=(num_nodes, eval_vel_shape[1], 3))
+                surface_total_induced_col[:, j, :, :] = csdl.reshape(
+                    induced_vel_bdnwake,
+                    (num_nodes, 1, eval_vel_shapes[i][1], 3))
             eval_induced_velocity = self.register_output(
                 eval_induced_velocities_names[i],
-                csdl.sum(surface_total_induced_col, axes=(0, )))
+                csdl.sum(surface_total_induced_col, axes=(1, )))
 
         # kinematic_vel_names = [
         #     x + '_kinematic_vel' for x in self.parameters['surface_names']
@@ -212,10 +218,11 @@ class EvalPtsVel(Model):
             # kinematic_vel = model_wake_total_vel.declare_variable(
             #     kinematic_vel_name, shape=wake_vel_shape)
             frame_vel = model_wake_total_vel.declare_variable('frame_vel',
-                                                              shape=(3, ))
+                                                              shape=(num_nodes,
+                                                                     3))
             frame_vel_expand = csdl.expand(frame_vel,
                                            eval_vel_shape,
-                                           indices='i->ji')
+                                           indices='li->lji')
 
             v_total_wake = csdl.reshape((v_induced_wake - frame_vel_expand),
                                         new_shape=eval_vel_shape)

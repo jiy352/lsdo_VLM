@@ -13,12 +13,14 @@ class Projection(Model):
 
     parameters
     ----------
-    velocities[num_vel, 3] : numpy array
-        the velocities.
-
+    velocities[num_nodes,num_vel, 3] : numpy array
+        the velocities. num_vel = (nx-1)*(ny-1)
+    normals[num_nodes,nx-1,ny-1, 3] : numpy array
+        the normals.
     Returns
     -------
-    velocity_projections[num_vel] : numpy array
+    For kinematic velocities:
+    velocity_projections[num_nodes,num_vel] : numpy array
         The projected norm of the velocities
     """
     def initialize(self):
@@ -38,6 +40,11 @@ class Projection(Model):
         input_vel_shapes = self.parameters['input_vel_shapes']
         normal_shapes = self.parameters['normal_shapes']
 
+        num_nodes = normal_shapes[0][0]
+        # print('compute_normal line 41 input_vel_names', input_vel_names)
+        # print('compute_normal line 42 input_vel_shapes', input_vel_shapes)
+        # print('compute_normal line 43 normal_shapes', normal_shapes)
+
         output_vel_name = output_vel_names
         # there should only be one concatenated output
         # for both kinematic vel and aic
@@ -45,12 +52,13 @@ class Projection(Model):
         input_vel_shape_sum = 0
 
         # project kinematic vel
-        if len(input_vel_shapes[0]) == 2:
-            output_shape = sum((i[0]) for i in input_vel_shapes)
+        if len(input_vel_shapes[0]) == 3:
+            output_shape = (num_nodes, sum((i[1]) for i in input_vel_shapes))
         # project aic
-        elif len(input_vel_shapes[0]) == 3:
-            output_shape = (sum((i[0]) for i in input_vel_shapes)) + (sum(
-                (i[1]) for i in input_vel_shapes))
+        elif len(input_vel_shapes[0]) == 4:
+            output_shape = (num_nodes, +((sum(
+                (i[1]) for i in input_vel_shapes)) + (sum(
+                    (i[2]) for i in input_vel_shapes))))
 
         start = 0
         if len(input_vel_names) > 1:
@@ -76,25 +84,32 @@ class Projection(Model):
                 # print('normals shape', normals.shape)
                 normals_reshaped = csdl.reshape(
                     normals,
-                    new_shape=(normals.shape[0] * normals.shape[1], 3))
+                    new_shape=(num_nodes, normals.shape[1] * normals.shape[2],
+                               3))
 
-                if len(input_vel_shape) == 2:
+                if len(input_vel_shape) == 3:
                     velocity_projections = csdl.einsum(
                         input_vel,
                         normals_reshaped,
-                        subscripts='ij,ij->i',
+                        subscripts='ijk,ijk->ij',
                         partial_format='sparse',
                     )
-                elif len(input_vel_shape) == 3:
+                elif len(input_vel_shape) == 4:
                     print(
-                        'Implementation error the dim of kinematic vel should be 2'
+                        'Implementation error the dim of kinematic vel should be 3'
                     )
                     print(input_vel_name, normal_name, output_vel_name)
                     exit()
 
-                delta = velocity_projections.shape[0]
-                output_vel[start:start + delta] = velocity_projections
+                delta = velocity_projections.shape[1]
+                print('projection comp output_vel shape', output_vel.shape)
+                print('projection comp velocity_projections shape',
+                      velocity_projections.shape)
+                print('projection comp start start + delta', start,
+                      start + delta)
+                output_vel[:, start:start + delta] = velocity_projections
                 start += delta
+            # start = 0
 
         elif len(input_vel_names) == 1:
             input_vel_name = input_vel_names[0]
@@ -102,8 +117,8 @@ class Projection(Model):
             # we need to concatenate the normal vectors
             # into a whole vec to project the assembled aic matrix
 
-            normal_concatenated_shape = (sum(
-                (i[0] * i[1]) for i in normal_shapes), ) + (3, )
+            normal_concatenated_shape = (num_nodes, ) + (sum(
+                (i[1] * i[2]) for i in normal_shapes), ) + (3, )
 
             normal_concatenated = self.create_output(
                 'normal_concatenated' + '_' + output_vel_name,
@@ -129,27 +144,29 @@ class Projection(Model):
 
                 normals_reshaped = csdl.reshape(
                     normals,
-                    new_shape=(normals.shape[0] * normals.shape[1], 3))
+                    new_shape=(num_nodes, normals.shape[1] * normals.shape[2],
+                               3))
 
-                delta = normals_reshaped.shape[0]
-                normal_concatenated[start:start + delta, :] = normals_reshaped
+                delta = normals_reshaped.shape[1]
+                normal_concatenated[:,
+                                    start:start + delta, :] = normals_reshaped
 
                 start += delta
-            if len(input_vel_shape) == 2:
-                # print('warning: the dim of aic should be 3')
+            if len(input_vel_shape) == 3:
+                # print('warning: the dim of aic should be 4')
                 # print(input_vel_name, normal_name, output_vel_name)
                 velocity_projections = csdl.einsum(
                     input_vel,
                     normals_reshaped,
-                    subscripts='ij,ij->i',
+                    subscripts='kij,kij->ki',
                     partial_format='sparse',
                 )
                 self.register_output(output_vel_name, velocity_projections)
-            elif len(input_vel_shape) == 3:
+            elif len(input_vel_shape) == 4:
                 velocity_projections = csdl.einsum(
                     input_vel,
                     normal_concatenated,
-                    subscripts='ijk,ik->ij',
+                    subscripts='lijk,lik->lij',
                     partial_format='sparse',
                 )
                 self.register_output(output_vel_name, velocity_projections)
@@ -171,22 +188,21 @@ if __name__ == "__main__":
                 mesh[i, :, :, 2] = 0.
         return mesh
 
-    input_vel_names = ['i1', 'i2']
-    normals_names = ['n1', 'n2']
-    output_vel_names = ['o1', 'o2']
-
+    '''1. testing project kinematic vel'''
+    input_vel_names = ['i1']
+    normals_names = ['n1']
+    output_vel_names = 'o1'
+    num_nodes = 2
     # input_vel_shapes = [(2, 3), (4, 3)]
-    input_vel_shapes = [(2, 4, 3), (4, 5, 3)]
-    normal_shapes = [(2, 3), (4, 3)]
+    input_vel_shapes = [(num_nodes, 3, 3)]
+    normal_shapes = [(num_nodes, 1, 3, 3)]
 
     model_1 = Model()
     # i1_val = np.random.random((2, 3))
     # i2_val = np.random.random((4, 3))
 
-    i1_val = np.random.random((2, 4, 3))
-    i2_val = np.random.random((4, 5, 3))
+    i1_val = np.random.random(input_vel_shapes[0])
     i1 = model_1.create_input('i1', val=i1_val)
-    i2 = model_1.create_input('i2', val=i2_val)
     model_1.add(Projection(
         input_vel_names=input_vel_names,
         normal_names=normals_names,
@@ -198,3 +214,4 @@ if __name__ == "__main__":
     sim = Simulator(model_1)
     # sim.visualize_implementation()
     sim.run()
+    '''2. testing project aic'''

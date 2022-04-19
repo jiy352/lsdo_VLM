@@ -28,7 +28,6 @@ class LiftDrag(Model):
     def initialize(self):
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('surface_shapes', types=list)
-        self.parameters.declare('num_nodes', types=int)
 
         self.parameters.declare('eval_pts_option')
         self.parameters.declare('eval_pts_shapes')
@@ -39,7 +38,7 @@ class LiftDrag(Model):
     def define(self):
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
-        num_nodes = self.parameters['num_nodes']
+        num_nodes = surface_shapes[0][0]
 
         rho = self.parameters['rho']
         sprs = self.parameters['sprs']
@@ -50,8 +49,8 @@ class LiftDrag(Model):
         system_size = 0
 
         for i in range(len(surface_names)):
-            nx = surface_shapes[i][0]
-            ny = surface_shapes[i][1]
+            nx = surface_shapes[i][1]
+            ny = surface_shapes[i][2]
             system_size += (nx - 1) * (ny - 1)
 
         submodel = BoundVec(
@@ -60,58 +59,72 @@ class LiftDrag(Model):
         )
         self.add(submodel, name='BoundVec')
 
-        bd_vec = self.declare_variable('bd_vec', shape=((system_size, 3)))
+        bd_vec = self.declare_variable('bd_vec',
+                                       shape=((num_nodes, system_size, 3)))
 
         circulations = self.declare_variable('horseshoe_circulation',
-                                             shape=(system_size, ))
-        circulation_repeat = csdl.expand(circulations, (system_size, 3),
-                                         'i->ij')
+                                             shape=(num_nodes, system_size))
+        circulation_repeat = csdl.expand(circulations,
+                                         (num_nodes, system_size, 3),
+                                         'ki->kij')
+        v_inf = self.declare_variable('v_inf', shape=(num_nodes, 1))
 
         # add frame_vel
         frame_vel = self.declare_variable('frame_vel', shape=(num_nodes, 3))
-        alpha = csdl.arctan(frame_vel[2] / frame_vel[0])
+        alpha = csdl.arctan(frame_vel[:, 2] / frame_vel[:, 0])
+        beta = -csdl.arcsin(frame_vel[:, 1] / v_inf)
 
         if eval_pts_option == 'auto':
             velocities = self.create_output('eval_total_vel',
-                                            shape=(system_size, 3))
+                                            shape=(num_nodes, system_size, 3))
 
             start = 0
             for i in range(len(v_total_wake_names)):
 
-                nx = surface_shapes[i][0]
-                ny = surface_shapes[i][1]
+                nx = surface_shapes[i][1]
+                ny = surface_shapes[i][2]
                 delta = (nx - 1) * (ny - 1)
                 vel_surface = self.declare_variable(v_total_wake_names[i],
-                                                    shape=(delta, 3))
-                velocities[start:start + delta, :] = vel_surface
+                                                    shape=(num_nodes, delta,
+                                                           3))
+                print('compute lift drag vel_surface shape', vel_surface.shape)
+                print('compute lift drag velocities shape', velocities.shape)
+                velocities[:, start:start + delta, :] = vel_surface
                 start = start + delta
 
-            sina = csdl.expand(csdl.sin(alpha), (system_size, 1), 'i->ji')
-            cosa = csdl.expand(csdl.cos(alpha), (system_size, 1), 'i->ji')
+            sina = csdl.expand(csdl.sin(alpha), (num_nodes, system_size, 1),
+                               'ki->kji')
+            cosa = csdl.expand(csdl.cos(alpha), (num_nodes, system_size, 1),
+                               'ki->kji')
+            sinb = csdl.expand(csdl.sin(beta), (num_nodes, system_size, 1),
+                               'ki->kji')
+            cosb = csdl.expand(csdl.cos(beta), (num_nodes, system_size, 1),
+                               'ki->kji')
 
             panel_forces = rho * circulation_repeat * csdl.cross(
-                velocities, bd_vec, axis=1)
+                velocities, bd_vec, axis=2)
 
-            panel_forces_x = panel_forces[:, 0]
-            panel_forces_y = panel_forces[:, 1]
-            panel_forces_z = panel_forces[:, 2]
-            # self.register_output('panel_forces_z', panel_forces_z)
-            b = frame_vel[0]**2 + frame_vel[1]**2 + frame_vel[2]**2
+            panel_forces_x = panel_forces[:, :, 0]
+            panel_forces_y = panel_forces[:, :, 1]
+            panel_forces_z = panel_forces[:, :, 2]
+            print('compute lift drag panel_forces', panel_forces.shape)
+            self.register_output('panel_forces', panel_forces)
+            b = frame_vel[:, 0]**2 + frame_vel[:, 1]**2 + frame_vel[:, 2]**2
 
             L_panel = -panel_forces_x * sina + panel_forces_z * cosa
-            D_panel = panel_forces_x * cosa + panel_forces_z * sina
+            D_panel = panel_forces_x * cosa * cosb + panel_forces_z * sina * cosb - panel_forces_y * sinb
             start = 0
             for i in range(len(surface_names)):
 
                 mesh = self.declare_variable(surface_names[i],
-                                             shape=(1, ) + surface_shapes[i])
-                nx = surface_shapes[i][0]
-                ny = surface_shapes[i][1]
+                                             shape=surface_shapes[i])
+                nx = surface_shapes[i][1]
+                ny = surface_shapes[i][2]
                 #!TODO: need to fix for uniformed mesh - should we take an average?
                 chord = csdl.reshape(mesh[:, nx - 1, 0, 0] - mesh[:, 0, 0, 0],
-                                     (1, ))
+                                     (num_nodes, 1))
                 span = csdl.reshape(mesh[:, 0, ny - 1, 1] - mesh[:, 0, 0, 1],
-                                    (1, ))
+                                    (num_nodes, 1))
                 L_panel_name = surface_names[i] + '_L_panel'
                 D_panel_name = surface_names[i] + '_D_panel'
                 L_name = surface_names[i] + '_L'
@@ -120,19 +133,21 @@ class LiftDrag(Model):
                 CD_name = surface_names[i] + '_C_D_i'
 
                 delta = (nx - 1) * (ny - 1)
-                L_panel_surface = L_panel[start:start + delta, :]
-                D_panel_surface = D_panel[start:start + delta, :]
+                L_panel_surface = L_panel[:, start:start + delta, :]
+                D_panel_surface = D_panel[:, start:start + delta, :]
 
                 self.register_output(L_panel_name, L_panel_surface)
                 self.register_output(D_panel_name, D_panel_surface)
-                L = csdl.sum(L_panel_surface, axes=(0, ))
-                D = csdl.sum(D_panel_surface, axes=(0, ))
-                self.register_output(L_name, csdl.reshape(L, (1, 1)))
-                self.register_output(D_name, csdl.reshape(D, (1, 1)))
+                L = csdl.sum(L_panel_surface, axes=(1, ))
+                D = csdl.sum(D_panel_surface, axes=(1, ))
+                self.register_output(L_name, csdl.reshape(L, (num_nodes, 1)))
+                self.register_output(D_name, csdl.reshape(D, (num_nodes, 1)))
                 c_l = L / (0.5 * rho * span * chord * b)
                 c_d = D / (0.5 * rho * span * chord * b)
-                self.register_output(CL_name, csdl.reshape(c_l, (1, 1)))
-                self.register_output(CD_name, csdl.reshape(c_d, (1, 1)))
+                self.register_output(CL_name,
+                                     csdl.reshape(c_l, (num_nodes, 1)))
+                self.register_output(CD_name,
+                                     csdl.reshape(c_d, (num_nodes, 1)))
                 start += delta
 
         if eval_pts_option == 'user_defined':

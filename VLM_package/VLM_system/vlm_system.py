@@ -45,7 +45,7 @@ class VLMSystemModel(csdl.Model):
 
         bd_vortex_shapes = surface_shapes
         delta_t = self.parameters['delta_t']
-        gamma_b_shape = sum((i[0] - 1) * (i[1] - 1) for i in bd_vortex_shapes)
+        gamma_b_shape = sum((i[1] - 1) * (i[2] - 1) for i in bd_vortex_shapes)
 
         frame_vel = self.declare_variable('frame_vel', shape=(3, ))
         v_total_wake_names = [x + '_wake_total_vel' for x in surface_names]
@@ -73,37 +73,40 @@ class VLMSystemModel(csdl.Model):
                              delta_t=delta_t),
                  name='solve_gamma_b_group')
 
-        gamma_b = self.declare_variable('gamma_b', shape=gamma_b_shape)
+        gamma_b = self.declare_variable('gamma_b',
+                                        shape=(num_nodes, gamma_b_shape))
 
         self.add(SeperateGammab(surface_names=surface_names,
                                 surface_shapes=surface_shapes),
                  name='seperate_gamma_b_comp')
 
-        m = csdl.Model()
-        sum_ny = sum((i[1] - 1) for i in bd_vortex_shapes)
-        gamma_w = m.create_output('gamma_w', shape=(num_nodes, nt - 1, sum_ny))
-        start = 0
-        for i in range(len(surface_names)):
-            nx = bd_vortex_shapes[i][0]
-            ny = bd_vortex_shapes[i][1]
-            delta = ny - 1
+        #!TODO:! further check if I can get rid of extract_gamma_w_comp
 
-            val = np.zeros((num_nodes, nt - 1, ny - 1))
-            surface_name = surface_names[i]
+        # m = csdl.Model()
+        # sum_ny = sum((i[1] - 1) for i in bd_vortex_shapes)
+        # gamma_w = m.create_output('gamma_w', shape=(num_nodes, nt - 1, sum_ny))
+        # start = 0
+        # for i in range(len(surface_names)):
+        #     nx = bd_vortex_shapes[i][0]
+        #     ny = bd_vortex_shapes[i][1]
+        #     delta = ny - 1
 
-            surface_gamma_b_name = surface_name + '_gamma_b'
+        #     val = np.zeros((num_nodes, nt - 1, ny - 1))
+        #     surface_name = surface_names[i]
 
-            surface_gamma_b = m.declare_variable(surface_gamma_b_name,
-                                                 shape=((nx - 1) * (ny - 1), ))
-            surface_gamma_w_name = surface_names[i] + '_gamma_w'
-            surface_gamma_w = csdl.expand(
-                surface_gamma_b[(nx - 2) * (ny - 1):], (nt - 1, ny - 1),
-                'i->ji')
-            m.register_output(surface_gamma_w_name, surface_gamma_w)
-            gamma_w[:, :, start:start + delta] = csdl.reshape(
-                surface_gamma_w, (1, nt - 1, ny - 1))
-            start += delta
-        self.add(m, name='extract_gamma_w_comp')
+        #     surface_gamma_b_name = surface_name + '_gamma_b'
+
+        #     surface_gamma_b = m.declare_variable(surface_gamma_b_name,
+        #                                          shape=((nx - 1) * (ny - 1), ))
+        #     surface_gamma_w_name = surface_names[i] + '_gamma_w'
+        #     surface_gamma_w = csdl.expand(
+        #         surface_gamma_b[(nx - 2) * (ny - 1):], (nt - 1, ny - 1),
+        #         'i->ji')
+        #     m.register_output(surface_gamma_w_name, surface_gamma_w)
+        #     gamma_w[:, :, start:start + delta] = csdl.reshape(
+        #         surface_gamma_w, (num_nodes, nt - 1, ny - 1))
+        #     start += delta
+        # self.add(m, name='extract_gamma_w_comp')
 
         # gamma_b = self.declare_variable('gamma_b', shape=gamma_b_shape)
 
@@ -112,17 +115,19 @@ class VLMSystemModel(csdl.Model):
         #          name='seperate_gamma_b')
         # ODE system with surface gamma's
         '''TODO: see if I can delete this'''
-        for i in range(len(surface_names)):
-            nx = bd_vortex_shapes[i][0]
-            ny = bd_vortex_shapes[i][1]
-            val = np.zeros((num_nodes, nt - 1, ny - 1))
-            surface_name = surface_names[i]
+        # for i in range(len(surface_names)):
+        #     nx = bd_vortex_shapes[i][1]
+        #     ny = bd_vortex_shapes[i][2]
+        #     val = np.zeros((num_nodes, nt - 1, ny - 1))
+        #     surface_name = surface_names[i]
 
-            surface_gamma_b_name = surface_name + '_gamma_b'
+        #     surface_gamma_b_name = surface_name + '_gamma_b'
 
-            surface_gamma_b = self.declare_variable(surface_gamma_b_name,
-                                                    shape=((nx - 1) *
-                                                           (ny - 1), ))
+        #     surface_gamma_b = self.declare_variable(surface_gamma_b_name,
+        #                                             shape=(
+        #                                                 num_nodes,
+        #                                                 (nx - 1) * (ny - 1),
+        #                                             ))
 
 
 if __name__ == "__main__":

@@ -18,46 +18,48 @@ class BoundVec(Model):
         # add_input
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
+        num_nodes = surface_shapes[0][0]
 
         bound_vecs_names = [x + '_bound_vecs' for x in surface_names]
 
         for i in range(len(surface_names)):
-            nx = surface_shapes[i][0]
-            ny = surface_shapes[i][1]
+            nx = surface_shapes[i][1]
+            ny = surface_shapes[i][2]
 
             mesh = self.declare_variable(surface_names[i],
-                                         shape=(1, ) + surface_shapes[i])
+                                         shape=surface_shapes[i])
             bound_vecs = csdl.reshape(
                 (0.75 * mesh[:, 0:-1, 0:-1, :] + 0.25 * mesh[:, 1:, 0:-1, :] +
                  -0.75 * mesh[:, 0:-1, 1:, :] + -0.25 * mesh[:, 1:, 1:, :]),
-                new_shape=((nx - 1) * (ny - 1), 3))
+                new_shape=(num_nodes, (nx - 1) * (ny - 1), 3))
 
             self.register_output(bound_vecs_names[i], bound_vecs)
 
         system_size = 0
         for i in range(len(surface_names)):
-            nx = surface_shapes[i][0]
-            ny = surface_shapes[i][1]
+            nx = surface_shapes[i][1]
+            ny = surface_shapes[i][2]
             system_size += (nx - 1) * (ny - 1)
 
         combine_bd_vec = Model()
 
         # combine bd_vecs
         bd_vec_all = combine_bd_vec.create_output('bd_vec',
-                                                  shape=(system_size, 3))
+                                                  shape=(num_nodes,
+                                                         system_size, 3))
         start = 0
         for i in range(len(surface_names)):
             # print(i)
-            nx = surface_shapes[i][0]
-            ny = surface_shapes[i][1]
-            bound_vecs = combine_bd_vec.declare_variable(bound_vecs_names[i],
-                                                         shape=((nx - 1) *
-                                                                (ny - 1), 3))
+            nx = surface_shapes[i][1]
+            ny = surface_shapes[i][2]
+            bound_vecs = combine_bd_vec.declare_variable(
+                bound_vecs_names[i], shape=(num_nodes, (nx - 1) * (ny - 1), 3))
             delta = (nx - 1) * (ny - 1)
             # print('start', start, 'delta', delta)
-            bd_vec_all[start:start + delta, :] = bound_vecs
+            bd_vec_all[:, start:start + delta, :] = bound_vecs
             start += delta
         self.add(combine_bd_vec, 'combine_bd_vec')
+        print('compute bd vec bd_vec_all shape', bd_vec_all.shape)
 
 
 if __name__ == "__main__":

@@ -49,13 +49,15 @@ class SolveMatrix(Model):
     def define(self):
         surface_names = self.parameters['surface_names']
         bd_vortex_shapes = self.parameters['bd_vortex_shapes']
+        num_nodes = bd_vortex_shapes[0][0]
+
         method = self.parameters['method']
         nt = self.parameters['nt']
         n = self.parameters['n']
         delta_t = self.parameters['delta_t']
 
         bd_coll_pts_shapes = [
-            tuple(map(lambda i, j: i - j, item, (1, 1, 0)))
+            tuple(map(lambda i, j: i - j, item, (0, 1, 1, 0)))
             for item in bd_vortex_shapes
         ]
 
@@ -69,9 +71,6 @@ class SolveMatrix(Model):
         wake_vortex_pts_shapes = [
             tuple((nt, item[1], item[2])) for item in bd_vortex_shapes
         ]
-        for i in range(len(bd_vortex_shapes)):
-            nx = bd_vortex_shapes[i][0]
-            ny = bd_vortex_shapes[i][1]
 
         model = Model()
         '''1. add the rhs'''
@@ -90,22 +89,30 @@ class SolveMatrix(Model):
         M_shape_row = M_shape_col = 0
 
         for i in range(len(bd_coll_pts_shapes)):
-            M_shape_row += (bd_coll_pts_shapes[i][0] *
-                            bd_coll_pts_shapes[i][1])
-            M_shape_col += ((wake_vortex_pts_shapes[i][0] - 1) *
-                            (wake_vortex_pts_shapes[i][1] - 1))
+            M_shape_row += (bd_coll_pts_shapes[i][1] *
+                            bd_coll_pts_shapes[i][2])
+            M_shape_col += ((wake_vortex_pts_shapes[i][1] - 1) *
+                            (wake_vortex_pts_shapes[i][2] - 1))
 
         M_shape = (M_shape_row, M_shape_col)
         M = model.declare_variable('M', shape=M_shape)
-        M_reshaped_final = model.declare_variable('M_reshaped_final',
-                                                  shape=(M_shape_row,
-                                                         M_shape_row))
-        gamma_b_shape = sum((i[0] - 1) * (i[1] - 1) for i in bd_vortex_shapes)
+        M_reshaped = model.declare_variable('M_reshaped',
+                                            shape=(num_nodes, M_shape_row,
+                                                   M_shape_row))
 
-        aic_bd_proj_shape = (gamma_b_shape, ) + (gamma_b_shape, )
+        gamma_b_shape = sum((i[1] - 1) * (i[2] - 1) for i in bd_vortex_shapes)
+        # this is gamma_b_shape per time step
+        print('solve_group gamma_b_shape', gamma_b_shape)
+
+        aic_bd_proj_shape = \
+            (num_nodes, ) + (gamma_b_shape, ) + (gamma_b_shape, )
+        '''declare terms in the equations'''
         MTX = model.declare_variable('MTX', shape=(aic_bd_proj_shape))
-        gamma_b = model.declare_variable('gamma_b', shape=(gamma_b_shape))
-        b = model.declare_variable('b', shape=(gamma_b_shape, ))
+        print('solve_group before implicit MTX shape', MTX.shape)
+        print('solve_group before implicit M_reshaped shape', M_reshaped.shape)
+        gamma_b = model.declare_variable('gamma_b',
+                                         shape=(num_nodes, gamma_b_shape))
+        b = model.declare_variable('b', shape=(num_nodes, gamma_b_shape))
 
         # if method == 'bk_euler':
         #     gamma_w = model.create_output('gamma_w', shape=(n, nt - 1, sum_ny))
@@ -139,7 +146,7 @@ class SolveMatrix(Model):
         #                 subscripts='ij,j->i') + csdl.einsum(
         #                     M, gamma_w_flatten, subscripts='ij,j->i') + b
 
-        y = csdl.einsum(MTX, gamma_b, subscripts='ij,j->i') + b
+        y = csdl.einsum(MTX, gamma_b, subscripts='kij,kj->ki') + b
 
         model.register_output('y', y)
 
@@ -155,9 +162,13 @@ class SolveMatrix(Model):
         # aic_bd_proj = self.declare_variable(aic_bd_proj_name,
         #                                     shape=(aic_shape_row,
         #                                            aic_shape_col))
-        MTX = self.declare_variable('MTX', shape=(M_shape_row, M_shape_row))
+        MTX = self.declare_variable('MTX',
+                                    shape=(num_nodes, M_shape_row,
+                                           M_shape_row))
         # M = self.declare_variable('M', shape=M_shape)
-        b = self.declare_variable('b', shape=gamma_b_shape)
+        b = self.declare_variable('b', shape=(num_nodes, gamma_b_shape))
+        print('solve_group after implicit M_shape_row', M_shape_row)
+        print('solve_group after implicit MTX shape', MTX.shape)
 
         gamma_b = solve(MTX, b)
 

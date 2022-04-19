@@ -71,17 +71,22 @@ class InducedVelocity(Model):
             circulations = self.declare_variable(circulations_name,
                                                  shape=circulations_shape)
             aic_reshaped = csdl.reshape(aic,
-                                        new_shape=(int(aic.shape[0] /
-                                                       circulations_shape),
-                                                   circulations_shape, 3))
+                                        new_shape=(circulations_shape[0],
+                                                   int(aic.shape[1] /
+                                                       circulations_shape[1]),
+                                                   circulations_shape[1], 3))
+            print('InducedVelocity aic_shape', aic_shape)
+            print('InducedVelocity aic_reshaped', aic_reshaped.shape)
+            print('InducedVelocity circulations_shape', circulations_shape)
 
             v_induced = csdl.einsum(
                 aic_reshaped,
                 circulations,
-                subscripts='ijk,j->ik',
+                subscripts='lijk,lj->lik',
                 partial_format='sparse',
             )
             self.register_output(v_induced_name, v_induced)
+            print('InducedVelocity v_induced shape', v_induced.shape)
 
 
 if __name__ == "__main__":

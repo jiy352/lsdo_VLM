@@ -51,6 +51,7 @@ class AssembleAic(Model):
         bd_coll_pts_shapes = self.parameters['bd_coll_pts_shapes']
         wake_vortex_pts_shapes = self.parameters['wake_vortex_pts_shapes']
         full_aic_name = self.parameters['full_aic_name']
+        num_nodes = bd_coll_pts_shapes[0][0]
         row_ind = 0
         col_ind = 0
 
@@ -67,10 +68,10 @@ class AssembleAic(Model):
                                                 shape=bd_coll_pts_shapes[i])
             wake_vortex_pts = self.declare_variable(
                 wake_vortex_pts_names[i], shape=wake_vortex_pts_shapes[i])
-            aic_shape_row += (bd_coll_pts_shapes[i][0] *
-                              bd_coll_pts_shapes[i][1])
-            aic_shape_col += ((wake_vortex_pts_shapes[i][0] - 1) *
-                              (wake_vortex_pts_shapes[i][1] - 1))
+            aic_shape_row += (bd_coll_pts_shapes[i][1] *
+                              bd_coll_pts_shapes[i][2])
+            aic_shape_col += ((wake_vortex_pts_shapes[i][1] - 1) *
+                              (wake_vortex_pts_shapes[i][2] - 1))
 
             for j in range(len(wake_vortex_pts_shapes)):
                 eval_pt_names.append(bd_coll_pts_names[i])
@@ -79,6 +80,12 @@ class AssembleAic(Model):
                 vortex_coords_shapes.append(wake_vortex_pts_shapes[j])
                 out_name = full_aic_name + str(i) + str(j)
                 output_names.append(out_name)
+
+        print('assemble_aic line 84 eval_pt_names', eval_pt_names)
+        print('assemble_aic line 85 vortex_coords_names', vortex_coords_names)
+        print('assemble_aic line 86 eval_pt_shapes', eval_pt_shapes)
+        print('assemble_aic l 87 vortex_coords_shapes', vortex_coords_shapes)
+        print('assemble_aic l 87 output_names', output_names)
 
         m = BiotSvart(
             eval_pt_names=eval_pt_names,
@@ -90,7 +97,7 @@ class AssembleAic(Model):
         )
         self.add(m, name='aic_bd_w_seperate')
 
-        aic_shape = (aic_shape_row, aic_shape_col, 3)
+        aic_shape = (num_nodes, aic_shape_row, aic_shape_col, 3)
 
         m1 = Model()
         aic_col_w = m1.create_output(full_aic_name, shape=aic_shape)
@@ -98,21 +105,25 @@ class AssembleAic(Model):
         col = 0
         for i in range(len(bd_coll_pts_shapes)):
             for j in range(len(wake_vortex_pts_shapes)):
-                aic_i_shape = (bd_coll_pts_shapes[i][0] *
-                               bd_coll_pts_shapes[i][1] *
-                               (wake_vortex_pts_shapes[j][0] - 1) *
-                               (wake_vortex_pts_shapes[j][1] - 1), 3)
+                aic_i_shape = (
+                    num_nodes,
+                    bd_coll_pts_shapes[i][1] * bd_coll_pts_shapes[i][2] *
+                    (wake_vortex_pts_shapes[j][1] - 1) *
+                    (wake_vortex_pts_shapes[j][2] - 1),
+                    3,
+                )
                 aic_i = m1.declare_variable(
                     output_names[i * (len(wake_vortex_pts_shapes)) + j],
                     shape=aic_i_shape)
 
-                delta_row = bd_coll_pts_shapes[i][0] * bd_coll_pts_shapes[i][1]
-                delta_col = (wake_vortex_pts_shapes[j][0] -
-                             1) * (wake_vortex_pts_shapes[j][1] - 1)
+                delta_row = bd_coll_pts_shapes[i][1] * bd_coll_pts_shapes[i][2]
+                delta_col = (wake_vortex_pts_shapes[j][1] -
+                             1) * (wake_vortex_pts_shapes[j][2] - 1)
 
-                aic_col_w[row:row + delta_row,
+                aic_col_w[:, row:row + delta_row,
                           col:col + delta_col, :] = csdl.reshape(
-                              aic_i, new_shape=(delta_row, delta_col, 3))
+                              aic_i,
+                              new_shape=(num_nodes, delta_row, delta_col, 3))
                 col = col + delta_col
             col = 0
             row = row + delta_row

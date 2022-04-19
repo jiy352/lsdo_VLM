@@ -31,11 +31,12 @@ class HorseshoeCirculations(Model):
     def define(self):
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
+        num_nodes = surface_shapes[0][0]
 
         system_size = 0
         for i in range(len(surface_names)):
-            nx = surface_shapes[i][0]
-            ny = surface_shapes[i][1]
+            nx = surface_shapes[i][1]
+            ny = surface_shapes[i][2]
             system_size += (nx - 1) * (ny - 1)
 
         data = [np.ones(system_size)]
@@ -46,8 +47,8 @@ class HorseshoeCirculations(Model):
         ind_2 = 0
 
         for i in range(len(surface_names)):
-            nx = surface_shapes[i][0]
-            ny = surface_shapes[i][1]
+            nx = surface_shapes[i][1]
+            ny = surface_shapes[i][2]
             num = (nx - 1) * (ny - 1)
 
             ind_2 += num
@@ -79,12 +80,17 @@ class HorseshoeCirculations(Model):
         # surface_gamma_b_name = surface_names[0] + '_gamma_b'
         surface_gamma_b_name = 'gamma_b'
         surface_gamma_b = self.declare_variable(surface_gamma_b_name,
-                                                shape=(system_size, ))
+                                                shape=(num_nodes, system_size))
         # gamma_b = self.declare_variable('gamma_b', shape=(system_size, ))
 
         # print(gamma_b.shape)
         # print(mtx.shape)
-        horseshoe_circulation = csdl.matvec(mtx, surface_gamma_b)
+        horseshoe_circulation = csdl.einsum(mtx,
+                                            surface_gamma_b,
+                                            subscripts='ij,kj->ki')
+        print('horseshoe_circulation horseshoe_circulation shape',
+              horseshoe_circulation.shape)
+
         self.register_output('horseshoe_circulation', horseshoe_circulation)
 
 

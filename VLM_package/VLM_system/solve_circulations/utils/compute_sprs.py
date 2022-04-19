@@ -20,20 +20,20 @@ def compute_spars(surface_shapes):
     num_bd_panel_array = np.array([])
     for i in range(len(surface_shapes)):
         surface_shape = surface_shapes[i]
-        num_total_bd_panel += (surface_shape[0] - 1) * (surface_shape[1] - 1)
+        num_total_bd_panel += (surface_shape[1] - 1) * (surface_shape[2] - 1)
 
     num_total_bd_ind = np.arange(num_total_bd_panel)
     start = 0
     for i in range(len(surface_shapes)):
         surface_shape = surface_shapes[i]
-        delta = (surface_shape[0] - 1) * (surface_shape[1] - 1)
+        delta = (surface_shape[1] - 1) * (surface_shape[2] - 1)
         # num_bd_panel.append(num_total_bd_ind[start:start +
         #                                      delta][-(surface_shape[1] + 1):])
         # num_bd_panel.append(num_total_bd_ind[start:start +
         #                                      delta][-(surface_shape[1] - 1):])
         num_bd_panel_array = np.concatenate((
             num_bd_panel_array,
-            num_total_bd_ind[start:start + delta][-(surface_shape[1] - 1):],
+            num_total_bd_ind[start:start + delta][-(surface_shape[2] - 1):],
         ))
         start += delta
     '''this only works when there is only one row of wake panel streamwise

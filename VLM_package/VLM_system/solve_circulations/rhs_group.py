@@ -50,26 +50,27 @@ class RHS(Model):
         delta_t = self.parameters['delta_t']
         bd_vortex_shapes = self.parameters['bd_vortex_shapes']
         surface_names = self.parameters['surface_names']
+        num_nodes = bd_vortex_shapes[0][0]
 
         bd_vtx_coords_names = [x + '_bd_vtx_coords' for x in surface_names]
         bd_vtx_normal_names = [x + '_bd_vtx_normals' for x in surface_names]
         coll_pts_coords_names = [x + '_coll_pts_coords' for x in surface_names]
         wake_coords_names = [x + '_wake_coords' for x in surface_names]
         bd_coll_pts_shapes = [
-            tuple(map(lambda i, j: i - j, item, (1, 1, 0)))
+            tuple(map(lambda i, j: i - j, item, (0, 1, 1, 0)))
             for item in bd_vortex_shapes
         ]
         bd_normal_shape = bd_coll_pts_shapes
         wake_vortex_pts_shapes = [
-            tuple((nt, item[1], item[2])) for item in bd_vortex_shapes
+            tuple((item[0], nt, item[2], 3)) for item in bd_vortex_shapes
         ]
 
-        for i in range(len(bd_vortex_shapes)):
-            nx = bd_vortex_shapes[i][0]
-            ny = bd_vortex_shapes[i][1]
-        method = self.parameters['method']
+        # for i in range(len(bd_vortex_shapes)):
+        #     nx = bd_vortex_shapes[i][1]
+        #     ny = bd_vortex_shapes[i][2]
+        # method = self.parameters['method']
         '''1. project the kinematic velocity on to the bd_vertices'''
-        frame_vel = self.declare_variable('frame_vel')
+        frame_vel = self.declare_variable('frame_vel', shape=(num_nodes, 3))
         # bd_vortex_coords = self.declare_variable('bd_vortex_coords',
         #                                          shape=(nx, ny, 3))
         # coll_coords = self.declare_variable('coll_coords',
@@ -92,7 +93,8 @@ class RHS(Model):
             x + '_kinematic_vel' for x in self.parameters['surface_names']
         ]
         kinematic_vel_shapes = [
-            tuple((item[0] * item[1], item[2])) for item in bd_coll_pts_shapes
+            tuple((item[0], item[1] * item[2], item[3]))
+            for item in bd_coll_pts_shapes
         ]
 
         bd_vtx_normals = [x + '_bd_vtx_normals' for x in surface_names]
@@ -101,27 +103,32 @@ class RHS(Model):
             input_vel_names=kinematic_vel_names,
             normal_names=bd_vtx_normal_names,
             output_vel_names='b',  # this is b
-            input_vel_shapes=kinematic_vel_shapes,  #rotatonal_vel_shapes
+            input_vel_shapes=kinematic_vel_shapes,  # rotatonal_vel_shapes
             normal_shapes=bd_coll_pts_shapes,
         )
         self.add(m, name='Projection_k_vel')
         '''2. compute M (bk_euler) or M\gamma_w (fw_euler)'''
 
-        wake_coords_reshaped_names = [
-            x + '_wake_coords_reshaped' for x in surface_names
-        ]
-        for i in range(len(surface_names)):
-            wake_coords_reshaped_name = wake_coords_reshaped_names[i]
-            ny = bd_vortex_shapes[i][1]
-            wake_coords = self.declare_variable(wake_coords_names[i],
-                                                shape=(1, nt, ny, 3))
-            wake_coords_reshaped = csdl.reshape(wake_coords, (nt, ny, 3))
-            self.register_output(wake_coords_reshaped_name,
-                                 wake_coords_reshaped)
+        # wake_coords_reshaped_names = [
+        #     x + '_wake_coords_reshaped' for x in surface_names
+        # ]
+        # for i in range(len(surface_names)):
+        #     wake_coords_reshaped_name = wake_coords_reshaped_names[i]
+        #     ny = bd_vortex_shapes[i][1]
+        #     wake_coords = self.declare_variable(wake_coords_names[i],
+        #                                         shape=(1, nt, ny, 3))
+        #     wake_coords_reshaped = csdl.reshape(wake_coords, (nt, ny, 3))
+        #     self.register_output(wake_coords_reshaped_name,
+        #                          wake_coords_reshaped)
+        print('rhs_group.py line 122 bd_coll_pts_names', coll_pts_coords_names)
+        print('rhs_group.py line 123 wake_vortex_pts_names', wake_coords_names)
+        print('rhs_group.py line 124 bd_coll_pts_shapes', bd_coll_pts_shapes)
+        print('rhs_group.py line 125 wake_vortex_pts_shapes',
+              wake_vortex_pts_shapes)
 
         m = AssembleAic(
             bd_coll_pts_names=coll_pts_coords_names,
-            wake_vortex_pts_names=wake_coords_reshaped_names,
+            wake_vortex_pts_names=wake_coords_names,
             bd_coll_pts_shapes=bd_coll_pts_shapes,
             wake_vortex_pts_shapes=wake_vortex_pts_shapes,
             full_aic_name='aic_M',
@@ -133,10 +140,10 @@ class RHS(Model):
         aic_shape_row = aic_shape_col = 0
 
         for i in range(len(bd_coll_pts_shapes)):
-            aic_shape_row += (bd_coll_pts_shapes[i][0] *
-                              bd_coll_pts_shapes[i][1])
-            aic_shape_col += ((wake_vortex_pts_shapes[i][0] - 1) *
-                              (wake_vortex_pts_shapes[i][1] - 1))
+            aic_shape_row += (bd_coll_pts_shapes[i][1] *
+                              bd_coll_pts_shapes[i][2])
+            aic_shape_col += ((wake_vortex_pts_shapes[i][1] - 1) *
+                              (wake_vortex_pts_shapes[i][2] - 1))
 
         # print('aic_M-----------', (aic_shape_row, aic_shape_col, 3))
         '''3. project the aic on to the bd_vertices'''
@@ -144,31 +151,37 @@ class RHS(Model):
             input_vel_names=['aic_M'],
             normal_names=bd_vtx_normal_names,
             output_vel_names='M',  # this is b
-            input_vel_shapes=[(aic_shape_row, aic_shape_col, 3)
+            input_vel_shapes=[(num_nodes, aic_shape_row, aic_shape_col, 3)
                               ],  #rotatonal_vel_shapes
             normal_shapes=bd_coll_pts_shapes)  # NOTE: need to fix this later
         self.add(m, name='Projection_aic')
 
-        M = self.declare_variable('M', shape=(aic_shape_row, aic_shape_col))
+        M = self.declare_variable('M',
+                                  shape=(num_nodes, aic_shape_row,
+                                         aic_shape_col))
         sprs = compute_spars(bd_vortex_shapes)
-        print(sprs.shape)
-        M_1 = csdl.reshape(M, (1, ) + M.shape)
-        self.register_output('M_1', M_1)
-        print('M_1 shape', M_1.shape)
-        M_reshaped = csdl.custom(M_1,
+
+        print('rhs group sprs shape', sprs.shape)
+        print('rhs group bd_vortex_shapes shape', bd_vortex_shapes)
+
+        # M_1 = csdl.reshape(M, (1, ) + M.shape)
+        # self.register_output('M_1', M_1)
+        # print('M_1 shape', M_1.shape)
+        M_reshaped = csdl.custom(M,
                                  op=Explicit(
-                                     num_nodes=1,
+                                     num_nodes=num_nodes,
                                      sprs=sprs,
                                      num_bd_panel=aic_shape_row,
                                      num_wake_panel=aic_shape_col,
                                  ))
+        print('rhs group M_reshaped shape', M_reshaped.shape)
 
-        self.register_output(
-            'M_reshaped_final',
-            csdl.reshape(
-                M_reshaped,
-                (aic_shape_row, aic_shape_row),
-            ))
+        # self.register_output(
+        #     'M_reshaped_final',
+        #     csdl.reshape(
+        #         M_reshaped,
+        #         (aic_shape_row, aic_shape_row),
+        #     ))
         '''2. compute A_mtx'''
         m = AssembleAic(
             bd_coll_pts_names=coll_pts_coords_names,
@@ -182,30 +195,30 @@ class RHS(Model):
         '''3. project the aic on to the bd_vertices'''
         aic_shape_row = aic_shape_col = 0
         for i in range(len(bd_coll_pts_shapes)):
-            aic_shape_row += (bd_coll_pts_shapes[i][0] *
-                              bd_coll_pts_shapes[i][1])
-            aic_shape_col += ((bd_coll_pts_shapes[i][0]) *
-                              (bd_coll_pts_shapes[i][1]))
+            aic_shape_row += (bd_coll_pts_shapes[i][1] *
+                              bd_coll_pts_shapes[i][2])
+            aic_shape_col += ((bd_coll_pts_shapes[i][1]) *
+                              (bd_coll_pts_shapes[i][2]))
         aic_bd_proj_name = 'aic_bd_proj'
 
         m = Projection(
             input_vel_names=['aic_bd'],
             normal_names=bd_vtx_normals,
             output_vel_names=aic_bd_proj_name,  # this is b
-            input_vel_shapes=[(aic_shape_row, aic_shape_col, 3)
+            input_vel_shapes=[(num_nodes, aic_shape_row, aic_shape_col, 3)
                               ],  #rotatonal_vel_shapes
             normal_shapes=bd_coll_pts_shapes,
         )
         self.add(m, name='Projection_aic_bd')
-        sum_ny = sum((i[1] - 1) for i in bd_vortex_shapes)
+        sum_ny = sum((i[2] - 1) for i in bd_vortex_shapes)
         aic_bd_proj = self.declare_variable(aic_bd_proj_name,
-                                            shape=(aic_shape_row,
+                                            shape=(num_nodes, aic_shape_row,
                                                    aic_shape_col))
         self.register_output(
             'MTX', \
                 aic_bd_proj + csdl.reshape(
                 M_reshaped,
-                (aic_shape_row, aic_shape_row),
+                (num_nodes, aic_shape_row, aic_shape_row),
             ))
 
 

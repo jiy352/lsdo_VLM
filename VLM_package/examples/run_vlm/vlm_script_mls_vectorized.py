@@ -43,25 +43,25 @@ offset = 10
 
 v_inf = np.array([50, 50, 50])
 alpha_deg = np.array([2, 4, 6])
-beta_deg = np.array([0, 4, 6])
 alpha = alpha_deg / 180 * np.pi
-beta = beta_deg / 180 * np.pi
-vx = -v_inf * np.cos(alpha) * np.cos(beta)
-vy = v_inf * np.sin(beta)
-vz = -v_inf * np.sin(alpha) * np.cos(beta)
-free_stream_velocities = np.array([-vx, -vy, -vz]).T
-frame_vel_val = np.array([vx, vy, vz]).T
+vx = -v_inf * np.cos(alpha)
+vz = -v_inf * np.sin(alpha)
+free_stream_velocities = np.array([-vx, np.zeros(num_nodes), -vz]).T
+frame_vel_val = np.array([vx, np.zeros(num_nodes), vz]).T
 
 # single lifting surface
-surface_names = ['wing']
-surface_shapes = [(num_nodes, nx, ny, 3)]
+surface_names = ['wing', 'wing_1']
+surface_shapes = [(num_nodes, nx, ny, 3), (num_nodes, nx, ny, 3)]
 
 model_1 = csdl.Model()
 
 # mesh_val = generate_simple_mesh(nx, ny, num_nodes)
 mesh_val = np.zeros((num_nodes, nx, ny, 3))
+mesh_val_1 = np.zeros((num_nodes, nx, ny, 3))
 for i in range(num_nodes):
     mesh_val[i, :, :, :] = mesh
+    mesh_val_1[i, :, :, :] = mesh.copy()
+    mesh_val_1[i, :, :, 1] = mesh.copy()[:, :, 1] + offset
 
 # mesh_val_1 = generate_simple_mesh(nx, ny - 1,
 #                                   offset=offset).reshape(1, nx, ny - 1, 3)
@@ -78,7 +78,9 @@ rot_vel = model_1.create_input(surface_names[0] + '_rot_vel',
                                val=np.zeros((num_nodes, nx, ny, 3)))
 
 wing = model_1.create_input('wing', val=mesh_val)
+wing = model_1.create_input('wing_1', val=mesh_val_1)
 v_inf = model_1.create_input('v_inf', val=v_inf.reshape(-1, 1))
+
 # ##################################################################
 # 3. Define VLMSolverModel (using internal function)
 # The user needs to provide:

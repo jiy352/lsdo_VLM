@@ -40,17 +40,18 @@ class WakeCoords(Model):
             bd_vtx_coords = self.declare_variable(bd_vtx_coords_name,
                                                   shape=bd_vtx_coords_shape)
             TE = bd_vtx_coords[:, nx - 1, :, :]
-            print('TE shape', TE.shape)
+            # print('TE shape', TE.shape)
             TE_reshaped = csdl.reshape(TE, (num_nodes, ny, 3))
             TE_reshaped_expand = csdl.expand(TE_reshaped,
                                              (num_nodes, nt, ny, 3),
                                              'ijk->iljk')
-            print('TE_reshaped_expand shape', TE_reshaped_expand.shape)
+            # print('TE_reshaped_expand shape', TE_reshaped_expand.shape)
 
             factor = np.einsum('i,jkl->jikl',
                                np.arange(nt) * delta_t,
                                np.ones((num_nodes, ny, 3)))
             #! TODO:! fix this for rotating surfaces
+            # - should be fine actually just to align the wake w/ free stream
             delta_x = csdl.expand(-frame_vel,
                                   (num_nodes, nt, ny, 3), 'il->ijkl') * factor
             wake_coords = TE_reshaped_expand + delta_x
