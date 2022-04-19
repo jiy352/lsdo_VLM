@@ -87,8 +87,8 @@ class LiftDrag(Model):
                 vel_surface = self.declare_variable(v_total_wake_names[i],
                                                     shape=(num_nodes, delta,
                                                            3))
-                print('compute lift drag vel_surface shape', vel_surface.shape)
-                print('compute lift drag velocities shape', velocities.shape)
+                # print('compute lift drag vel_surface shape', vel_surface.shape)
+                # print('compute lift drag velocities shape', velocities.shape)
                 velocities[:, start:start + delta, :] = vel_surface
                 start = start + delta
 
@@ -107,7 +107,7 @@ class LiftDrag(Model):
             panel_forces_x = panel_forces[:, :, 0]
             panel_forces_y = panel_forces[:, :, 1]
             panel_forces_z = panel_forces[:, :, 2]
-            print('compute lift drag panel_forces', panel_forces.shape)
+            # print('compute lift drag panel_forces', panel_forces.shape)
             self.register_output('panel_forces', panel_forces)
             b = frame_vel[:, 0]**2 + frame_vel[:, 1]**2 + frame_vel[:, 2]**2
 
@@ -195,10 +195,10 @@ class LiftDrag(Model):
                 circulation_repeat_surface_eval = csdl.sparsematmat(
                     circulation_repeat_surface, sprs[i])
 
-                print('\nbd_vec_eval shape', bd_vec_eval.shape)
-                print('vel_surface shape', vel_surface.shape)
-                print('circulation_repeat_surface_eval shape',
-                      circulation_repeat_surface_eval.shape)
+                # print('\nbd_vec_eval shape', bd_vec_eval.shape)
+                # print('vel_surface shape', vel_surface.shape)
+                # print('circulation_repeat_surface_eval shape',
+                #       circulation_repeat_surface_eval.shape)
 
                 panel_forces_surface = rho * circulation_repeat_surface_eval * csdl.cross(
                     vel_surface, bd_vec_eval, axis=1)

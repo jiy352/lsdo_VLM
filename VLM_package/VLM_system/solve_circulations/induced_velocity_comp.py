@@ -75,9 +75,9 @@ class InducedVelocity(Model):
                                                    int(aic.shape[1] /
                                                        circulations_shape[1]),
                                                    circulations_shape[1], 3))
-            print('InducedVelocity aic_shape', aic_shape)
-            print('InducedVelocity aic_reshaped', aic_reshaped.shape)
-            print('InducedVelocity circulations_shape', circulations_shape)
+            # print('InducedVelocity aic_shape', aic_shape)
+            # print('InducedVelocity aic_reshaped', aic_reshaped.shape)
+            # print('InducedVelocity circulations_shape', circulations_shape)
 
             v_induced = csdl.einsum(
                 aic_reshaped,
@@ -86,7 +86,7 @@ class InducedVelocity(Model):
                 partial_format='sparse',
             )
             self.register_output(v_induced_name, v_induced)
-            print('InducedVelocity v_induced shape', v_induced.shape)
+            # print('InducedVelocity v_induced shape', v_induced.shape)
 
 
 if __name__ == "__main__":

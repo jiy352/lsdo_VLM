@@ -76,8 +76,8 @@ class EvalPtsVel(Model):
         ]
         # output_names = [x + '_aic_force' for x in surface_names]
         circulation_names = [x + '_bdnwake_gamma' for x in surface_names]
-        print('eval pts vel bdnwake_shapes ', bdnwake_shapes)
-        print('eval pts vel eval_pts_shapes ', eval_pts_shapes)
+        # print('eval pts vel bdnwake_shapes ', bdnwake_shapes)
+        # print('eval pts vel eval_pts_shapes ', eval_pts_shapes)
 
         aic_shapes = [(num_nodes, x[1] * x[2] * (y[1] - 1) * (y[2] - 1), 3)
                       for x, y in zip(eval_pts_shapes, bdnwake_shapes)]
@@ -171,7 +171,7 @@ class EvalPtsVel(Model):
             for j in range(len(bdnwake_coords_names)):
                 aic = self.declare_variable(output_names[j],
                                             shape=(aic_shapes[j]))
-            print('eval pts vel mls aic_shapes', aic_shapes)
+            # print('eval pts vel mls aic_shapes', aic_shapes)
 
             self.add(InducedVelocity(
                 aic_names=output_names,

@@ -120,11 +120,11 @@ class RHS(Model):
         #     wake_coords_reshaped = csdl.reshape(wake_coords, (nt, ny, 3))
         #     self.register_output(wake_coords_reshaped_name,
         #                          wake_coords_reshaped)
-        print('rhs_group.py line 122 bd_coll_pts_names', coll_pts_coords_names)
-        print('rhs_group.py line 123 wake_vortex_pts_names', wake_coords_names)
-        print('rhs_group.py line 124 bd_coll_pts_shapes', bd_coll_pts_shapes)
-        print('rhs_group.py line 125 wake_vortex_pts_shapes',
-              wake_vortex_pts_shapes)
+        # print('rhs_group.py line 122 bd_coll_pts_names', coll_pts_coords_names)
+        # print('rhs_group.py line 123 wake_vortex_pts_names', wake_coords_names)
+        # print('rhs_group.py line 124 bd_coll_pts_shapes', bd_coll_pts_shapes)
+        # print('rhs_group.py line 125 wake_vortex_pts_shapes',
+        #       wake_vortex_pts_shapes)
 
         m = AssembleAic(
             bd_coll_pts_names=coll_pts_coords_names,
@@ -161,8 +161,8 @@ class RHS(Model):
                                          aic_shape_col))
         sprs = compute_spars(bd_vortex_shapes)
 
-        print('rhs group sprs shape', sprs.shape)
-        print('rhs group bd_vortex_shapes shape', bd_vortex_shapes)
+        # print('rhs group sprs shape', sprs.shape)
+        # print('rhs group bd_vortex_shapes shape', bd_vortex_shapes)
 
         # M_1 = csdl.reshape(M, (1, ) + M.shape)
         # self.register_output('M_1', M_1)
@@ -174,7 +174,7 @@ class RHS(Model):
                                      num_bd_panel=aic_shape_row,
                                      num_wake_panel=aic_shape_col,
                                  ))
-        print('rhs group M_reshaped shape', M_reshaped.shape)
+        # print('rhs group M_reshaped shape', M_reshaped.shape)
 
         # self.register_output(
         #     'M_reshaped_final',

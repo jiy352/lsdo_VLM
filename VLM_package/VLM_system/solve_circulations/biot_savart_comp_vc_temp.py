@@ -89,10 +89,10 @@ class BiotSvart(Model):
                               1, :vortex_coords_shape[2] - 1, :]
             A = vortex_coords[:, :vortex_coords_shape[1] - 1, 1:, :]
             D = vortex_coords[:, 1:, 1:, :]
-            print('BScomp l91 C shape', C.shape)
-            print('BScomp l92 B shape', B.shape)
-            print('BScomp l93 A shape', A.shape)
-            print('BScomp l94 D shape', D.shape)
+            # print('BScomp l91 C shape', C.shape)
+            # print('BScomp l92 B shape', B.shape)
+            # print('BScomp l93 A shape', A.shape)
+            # print('BScomp l94 D shape', D.shape)
 
             v_ab = self._induced_vel_line(eval_pts, A, B, vortex_coords_shape,
                                           circulation_name)
@@ -155,11 +155,11 @@ class BiotSvart(Model):
                             new_shape=(num_nodes,
                                         p_2.shape[1] *p_2.shape[2] * num_repeat_p,
                                         3))
-        print('BScomp l154 eval_pts_expand shape', eval_pts_expand.shape)
-        print('BScomp l155 p_1_expand shape', p_1_expand.shape)
-        print('BScomp l156 p_2_expand shape', p_2_expand.shape)
-        print('BScomp l156 p_1 shape', p_1.shape)
-        print('BScomp l156 p_2 shape', p_2.shape)
+        # print('BScomp l154 eval_pts_expand shape', eval_pts_expand.shape)
+        # print('BScomp l155 p_1_expand shape', p_1_expand.shape)
+        # print('BScomp l156 p_2_expand shape', p_2_expand.shape)
+        # print('BScomp l156 p_1 shape', p_1.shape)
+        # print('BScomp l156 p_2 shape', p_2.shape)
 
         r1 = eval_pts_expand - p_1_expand
         r2 = eval_pts_expand - p_2_expand

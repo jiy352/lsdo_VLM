@@ -76,10 +76,10 @@ S
                 bd_n_wake_circulation_name,
                 shape=(num_nodes,
                        surface_gamma_b_shape[1] + (nt - 1) * (ny - 1)))
-            print('combine bd wake surface_gamma_b shape',
-                  surface_gamma_b.shape)
-            print('combine bd wake surface_gamma_w shape',
-                  surface_gamma_w.shape)
+            # print('combine bd wake surface_gamma_b shape',
+            #       surface_gamma_b.shape)
+            # print('combine bd wake surface_gamma_w shape',
+            #       surface_gamma_w.shape)
             bd_n_wake_gamma[:, :surface_gamma_b_shape[1]] = surface_gamma_b
             bd_n_wake_gamma[:, surface_gamma_b_shape[1]:] = surface_gamma_w
 

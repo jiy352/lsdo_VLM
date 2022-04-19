@@ -102,11 +102,11 @@ class Projection(Model):
                     exit()
 
                 delta = velocity_projections.shape[1]
-                print('projection comp output_vel shape', output_vel.shape)
-                print('projection comp velocity_projections shape',
-                      velocity_projections.shape)
-                print('projection comp start start + delta', start,
-                      start + delta)
+                # print('projection comp output_vel shape', output_vel.shape)
+                # print('projection comp velocity_projections shape',
+                #       velocity_projections.shape)
+                # print('projection comp start start + delta', start,
+                #       start + delta)
                 output_vel[:, start:start + delta] = velocity_projections
                 start += delta
             # start = 0

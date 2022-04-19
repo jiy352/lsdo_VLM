@@ -88,8 +88,8 @@ class HorseshoeCirculations(Model):
         horseshoe_circulation = csdl.einsum(mtx,
                                             surface_gamma_b,
                                             subscripts='ij,kj->ki')
-        print('horseshoe_circulation horseshoe_circulation shape',
-              horseshoe_circulation.shape)
+        # print('horseshoe_circulation horseshoe_circulation shape',
+        #       horseshoe_circulation.shape)
 
         self.register_output('horseshoe_circulation', horseshoe_circulation)
 

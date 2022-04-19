@@ -59,7 +59,7 @@ class BoundVec(Model):
             bd_vec_all[:, start:start + delta, :] = bound_vecs
             start += delta
         self.add(combine_bd_vec, 'combine_bd_vec')
-        print('compute bd vec bd_vec_all shape', bd_vec_all.shape)
+        # print('compute bd vec bd_vec_all shape', bd_vec_all.shape)
 
 
 if __name__ == "__main__":

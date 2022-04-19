@@ -81,11 +81,11 @@ class AssembleAic(Model):
                 out_name = full_aic_name + str(i) + str(j)
                 output_names.append(out_name)
 
-        print('assemble_aic line 84 eval_pt_names', eval_pt_names)
-        print('assemble_aic line 85 vortex_coords_names', vortex_coords_names)
-        print('assemble_aic line 86 eval_pt_shapes', eval_pt_shapes)
-        print('assemble_aic l 87 vortex_coords_shapes', vortex_coords_shapes)
-        print('assemble_aic l 87 output_names', output_names)
+        # print('assemble_aic line 84 eval_pt_names', eval_pt_names)
+        # print('assemble_aic line 85 vortex_coords_names', vortex_coords_names)
+        # print('assemble_aic line 86 eval_pt_shapes', eval_pt_shapes)
+        # print('assemble_aic l 87 vortex_coords_shapes', vortex_coords_shapes)
+        # print('assemble_aic l 87 output_names', output_names)
 
         m = BiotSvart(
             eval_pt_names=eval_pt_names,

@@ -102,14 +102,14 @@ class SolveMatrix(Model):
 
         gamma_b_shape = sum((i[1] - 1) * (i[2] - 1) for i in bd_vortex_shapes)
         # this is gamma_b_shape per time step
-        print('solve_group gamma_b_shape', gamma_b_shape)
+        # print('solve_group gamma_b_shape', gamma_b_shape)
 
         aic_bd_proj_shape = \
             (num_nodes, ) + (gamma_b_shape, ) + (gamma_b_shape, )
         '''declare terms in the equations'''
         MTX = model.declare_variable('MTX', shape=(aic_bd_proj_shape))
-        print('solve_group before implicit MTX shape', MTX.shape)
-        print('solve_group before implicit M_reshaped shape', M_reshaped.shape)
+        # print('solve_group before implicit MTX shape', MTX.shape)
+        # print('solve_group before implicit M_reshaped shape', M_reshaped.shape)
         gamma_b = model.declare_variable('gamma_b',
                                          shape=(num_nodes, gamma_b_shape))
         b = model.declare_variable('b', shape=(num_nodes, gamma_b_shape))
@@ -167,8 +167,8 @@ class SolveMatrix(Model):
                                            M_shape_row))
         # M = self.declare_variable('M', shape=M_shape)
         b = self.declare_variable('b', shape=(num_nodes, gamma_b_shape))
-        print('solve_group after implicit M_shape_row', M_shape_row)
-        print('solve_group after implicit MTX shape', MTX.shape)
+        # print('solve_group after implicit M_shape_row', M_shape_row)
+        # print('solve_group after implicit MTX shape', MTX.shape)
 
         gamma_b = solve(MTX, b)
 

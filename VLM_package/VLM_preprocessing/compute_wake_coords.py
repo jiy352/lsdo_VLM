@@ -55,7 +55,7 @@ class WakeCoords(Model):
             delta_x = csdl.expand(-frame_vel,
                                   (num_nodes, nt, ny, 3), 'il->ijkl') * factor
             wake_coords = TE_reshaped_expand + delta_x
-            print('wake_coords shape', wake_coords.shape)
+            # print('wake_coords shape', wake_coords.shape)
 
             self.register_output(wake_coords_names[i], wake_coords)
 
