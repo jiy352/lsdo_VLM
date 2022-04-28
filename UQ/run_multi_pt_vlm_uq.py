@@ -241,6 +241,6 @@ for point in points_dict:
         print(point, 'drag\n', D_name, sim.prob[D_name])
         print(point, 'cl\n', CL_name, sim.prob[CL_name])
         print(point, 'cd\n', CD_name, sim.prob[CD_name])
-sdnkjsdnfskj
+
 print('lift_sum:', sim.prob['lift_sum'])
 print('lift_sum shape:', sim.prob['lift_sum'].shape)
