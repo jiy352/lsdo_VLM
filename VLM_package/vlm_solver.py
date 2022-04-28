@@ -24,6 +24,9 @@ class VLMSolverModel(csdl.Model):
         self.parameters.declare('sprs', default=None)
         self.parameters.declare('model_name')
 
+        self.parameters.declare('coeffs_aoa', default=None)
+        self.parameters.declare('coeffs_cd', default=None)
+
     def define(self):
         # add the mesh info
         surface_names = self.parameters['surface_names']
@@ -39,10 +42,15 @@ class VLMSolverModel(csdl.Model):
         eval_pts_shapes = self.parameters['eval_pts_shapes']
         sprs = self.parameters['sprs']
 
+        coeffs_aoa = self.parameters['coeffs_aoa']
+        coeffs_cd = self.parameters['coeffs_cd']
+
         # frame_vel_val = -free_stream_velocities
         aoa = self.declare_variable(model_name + 'aoa', shape=(num_nodes, 1))
-        side_slip_ang = self.create_input(model_name + 'side_slip_ang', val=np.zeros((num_nodes, 1)))
-        v_inf = self.declare_variable(model_name + 'v_inf', shape=(num_nodes, 1))
+        side_slip_ang = self.create_input(model_name + 'side_slip_ang',
+                                          val=np.zeros((num_nodes, 1)))
+        v_inf = self.declare_variable(model_name + 'v_inf',
+                                      shape=(num_nodes, 1))
 
         alpha = aoa / 180 * np.pi
         beta = side_slip_ang / 180 * np.pi
@@ -51,7 +59,8 @@ class VLMSolverModel(csdl.Model):
         vy = v_inf * csdl.sin(beta)
         vz = -v_inf * csdl.sin(alpha) * csdl.cos(beta)
 
-        frame_vel = self.create_output(model_name + 'frame_vel', shape=(num_nodes, 3))
+        frame_vel = self.create_output(model_name + 'frame_vel',
+                                       shape=(num_nodes, 3))
         frame_vel[:, 0] = vx
         frame_vel[:, 1] = vy
         frame_vel[:, 2] = vz
@@ -79,6 +88,8 @@ class VLMSolverModel(csdl.Model):
             eval_pts_location=eval_pts_location,
             sprs=sprs,
             model_name=model_name,
+            coeffs_aoa=coeffs_aoa,
+            coeffs_cd=coeffs_cd,
         )
         self.add(sub, name='VLM_outputs')
 

@@ -6,7 +6,6 @@ from VLM_package.examples.run_vlm.utils.generate_mesh import generate_mesh
 
 
 class VLMAnalysis(csdl.Model):
-
     def initialize(self):
         self.parameters.declare('num_nodes')
         self.parameters.declare('v_inf_val')
@@ -81,7 +80,12 @@ class VLMAnalysis(csdl.Model):
         # The user can also define the eval_pts_coords inputs (line 97-146)
         # ###################################################################
 
-        eval_pts_shapes = [(num_nodes, x[1] - 1, x[2] - 1, 3) for x in surface_shapes]
+        eval_pts_shapes = [(num_nodes, x[1] - 1, x[2] - 1, 3)
+                           for x in surface_shapes]
+
+        coeffs_aoa = [(0.535, 0.091), (0.535, 0.091)]
+        coeffs_cd = [(0.00695, 1.297e-4, 1.466e-4),
+                     (0.00695, 1.297e-4, 1.466e-4)]
 
         submodel = VLMSolverModel(
             surface_names=surface_names,
@@ -93,13 +97,13 @@ class VLMAnalysis(csdl.Model):
             # if this is not provided, it is defaulted to be 0.25.
             eval_pts_shapes=eval_pts_shapes,
             model_name=model_name,
-        )
+            coeffs_aoa=coeffs_aoa,
+            coeffs_cd=coeffs_cd)
 
         self.add(submodel, 'VLMSolverModel')
 
 
 class MultiPointRun(csdl.Model):
-
     def initialize(self):
         self.parameters.declare('surface_names')
         self.parameters.declare('points_dict')
@@ -113,9 +117,9 @@ class MultiPointRun(csdl.Model):
         nx = 3  # streamwise vertices
         ny = 5  # chordwise vertices
 
-        for span in [6]:
+        for span in [15.401544]:  #50.53 ft
 
-            chord = 1  # chord length
+            chord = 1.030224  # chord length 3.38ft
             surface_shapes = [(nx, ny, 3)]
 
             mesh_dict = {
@@ -156,22 +160,25 @@ class MultiPointRun(csdl.Model):
 
             surface_names_model = []
             for sn in surface_names:
-                surface_names_model.append(model_name+sn)
+                surface_names_model.append(model_name + sn)
 
             # add a VLMAnalysis for each point
-            self.add(VLMAnalysis(
-                num_nodes=num_nodes,
-                v_inf_val=v_inf_val,
-                mesh=mesh,
-                nx=nx,
-                ny=ny,
-                offset=offset,
-                surface_names=surface_names_model,
-                surface_shapes=surface_shapes,
-                model_name=model_name,  # Every name in the VLMAnalysis model has model_name as a prefix. Needed for UQ graph analysis.
-                aoa_val=aoa_val,
-                rho_val=rho_val,
-            ), name=point)
+            self.add(
+                VLMAnalysis(
+                    num_nodes=num_nodes,
+                    v_inf_val=v_inf_val,
+                    mesh=mesh,
+                    nx=nx,
+                    ny=ny,
+                    offset=offset,
+                    surface_names=surface_names_model,
+                    surface_shapes=surface_shapes,
+                    model_name=
+                    model_name,  # Every name in the VLMAnalysis model has model_name as a prefix. Needed for UQ graph analysis.
+                    aoa_val=aoa_val,
+                    rho_val=rho_val,
+                ),
+                name=point)
 
             # lift as output
             L_name = surface_names_model[0] + '_L_panel'
@@ -187,7 +194,6 @@ surface_names = ['wing', 'wing_1']
 # dictionary containing parameters for each point
 # density: # https://www.engineeringtoolbox.com/standard-atmosphere-d_604.html
 
-
 # =============== Setting Points ===============
 points_dict = {}
 num_nodes = 3
@@ -199,7 +205,8 @@ num_nodes = 3
 points_dict['climb'] = {
     'v_inf_val': np.array([92.9, 102.9, 112.9]).reshape(-1, 1),
     'aoa_val': np.array([20, 20, 20]).reshape(-1, 1),
-    'rho_val': np.array([0.9652, 0.9652, 0.9652]).reshape(-1, 1)}
+    'rho_val': np.array([0.9652, 0.9652, 0.9652]).reshape(-1, 1)
+}
 
 # cruise:
 # density 10kft --> 17.56e-4 sl/ft3 --> 0.905kg/m^3
@@ -208,11 +215,14 @@ points_dict['climb'] = {
 points_dict['cruise'] = {
     'v_inf_val': np.array([161.5, 171.5, 181.5]).reshape(-1, 1),
     'aoa_val': np.array([0.0, 0.0, 0.0]).reshape(-1, 1),
-    'rho_val': np.array([0.905, 0.905, 0.905]).reshape(-1, 1)}
+    'rho_val': np.array([0.905, 0.905, 0.905]).reshape(-1, 1)
+}
 rv_list = ['climb_v_inf', 'cruise_v_inf']
 # =============== Setting Points ===============
 
-model = MultiPointRun(surface_names=surface_names, points_dict=points_dict, num_nodes=num_nodes)
+model = MultiPointRun(surface_names=surface_names,
+                      points_dict=points_dict,
+                      num_nodes=num_nodes)
 
 # set to 1 is applying uq reduction
 if 0:
@@ -228,17 +238,19 @@ sim.run()
 for point in points_dict:
     surface_names_point = []
     for sn in surface_names:
-        surface_names_point.append(point+'_'+sn)
+        surface_names_point.append(point + '_' + sn)
     for i in range(len(surface_names)):
 
         L_panel_name = surface_names_point[i] + '_L_panel'
         D_panel_name = surface_names_point[i] + '_D_panel'
         L_name = surface_names_point[i] + '_L'
         D_name = surface_names_point[i] + '_D'
+        D_total_name = surface_names_point[i] + '_D_total'
         CL_name = surface_names_point[i] + '_C_L'
         CD_name = surface_names_point[i] + '_C_D_i'
         print(point, 'lift\n', L_name, sim.prob[L_name])
-        print(point, 'drag\n', D_name, sim.prob[D_name])
+        print(point, 'drag excluding viscous drag\n', D_name, sim.prob[D_name])
+        print(point, 'total drag\n', D_total_name, sim.prob[D_total_name])
         print(point, 'cl\n', CL_name, sim.prob[CL_name])
         print(point, 'cd\n', CD_name, sim.prob[CD_name])
 

@@ -36,7 +36,6 @@ class Outputs(Model):
         the velocities computed using the aic_col_w from biot svart's law
         on bound vertices collcation pts induces by the wakes
     """
-
     def initialize(self):
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('surface_shapes', types=list)
@@ -52,6 +51,9 @@ class Outputs(Model):
         self.parameters.declare('delta_t', default=100)
         self.parameters.declare('model_name')
 
+        self.parameters.declare('coeffs_aoa', default=None)
+        self.parameters.declare('coeffs_cd', default=None)
+
     def define(self):
         nt = self.parameters['nt']
         surface_names = self.parameters['surface_names']
@@ -63,6 +65,9 @@ class Outputs(Model):
         eval_pts_location = self.parameters['eval_pts_location']
         sprs = self.parameters['sprs']
         model_name = self.parameters['model_name']
+
+        coeffs_aoa = self.parameters['coeffs_aoa']
+        coeffs_cd = self.parameters['coeffs_cd']
 
         delta_t = self.parameters['delta_t']
 
@@ -93,6 +98,8 @@ class Outputs(Model):
             eval_pts_shapes=eval_pts_shapes,
             sprs=sprs,
             model_name=model_name,
+            coeffs_aoa=coeffs_aoa,
+            coeffs_cd=coeffs_cd,
         )
         self.add(submodel, name='LiftDrag')
 

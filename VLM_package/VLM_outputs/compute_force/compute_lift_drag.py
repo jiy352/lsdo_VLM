@@ -6,6 +6,8 @@ import numpy as np
 
 from VLM_package.VLM_preprocessing.compute_bound_vec import BoundVec
 
+from VLM_package.VLM_outputs.compute_effective_aoa_cd_v import AOA_CD
+
 
 class LiftDrag(Model):
     """
@@ -33,7 +35,8 @@ class LiftDrag(Model):
         self.parameters.declare('eval_pts_shapes')
         self.parameters.declare('sprs')
         self.parameters.declare('model_name')
-
+        self.parameters.declare('coeffs_aoa', default=None)
+        self.parameters.declare('coeffs_cd', default=None)
 
     def define(self):
         surface_names = self.parameters['surface_names']
@@ -48,6 +51,9 @@ class LiftDrag(Model):
         v_total_wake_names = [x + '_eval_total_vel' for x in surface_names]
         system_size = 0
 
+        coeffs_aoa = self.parameters['coeffs_aoa']
+        coeffs_cd = self.parameters['coeffs_cd']
+
         for i in range(len(surface_names)):
             nx = surface_shapes[i][1]
             ny = surface_shapes[i][2]
@@ -56,26 +62,31 @@ class LiftDrag(Model):
         submodel = BoundVec(
             surface_names=surface_names,
             surface_shapes=surface_shapes,
-            model_name = model_name,
+            model_name=model_name,
         )
         self.add(submodel, name='BoundVec')
 
-        bd_vec = self.declare_variable(model_name +'bd_vec',
+        bd_vec = self.declare_variable(model_name + 'bd_vec',
                                        shape=((num_nodes, system_size, 3)))
 
-        circulations = self.declare_variable(model_name +'horseshoe_circulation',
+        circulations = self.declare_variable(model_name +
+                                             'horseshoe_circulation',
                                              shape=(num_nodes, system_size))
         circulation_repeat = csdl.expand(circulations,
                                          (num_nodes, system_size, 3),
                                          'ki->kij')
-        v_inf = self.declare_variable(model_name + 'v_inf', shape=(num_nodes, 1))
+        v_inf = self.declare_variable(model_name + 'v_inf',
+                                      shape=(num_nodes, 1))
 
         # add frame_vel
-        frame_vel = self.declare_variable(model_name + 'frame_vel', shape=(num_nodes, 3))
+        frame_vel = self.declare_variable(model_name + 'frame_vel',
+                                          shape=(num_nodes, 3))
 
-        aoa = self.declare_variable(model_name +'aoa',shape=(num_nodes,1))
-        side_slip_ang = self.declare_variable(model_name +'side_slip_ang',shape=(num_nodes,1))
-        v_inf = self.declare_variable(model_name + 'v_inf', shape=(num_nodes, 1))
+        aoa = self.declare_variable(model_name + 'aoa', shape=(num_nodes, 1))
+        side_slip_ang = self.declare_variable(model_name + 'side_slip_ang',
+                                              shape=(num_nodes, 1))
+        v_inf = self.declare_variable(model_name + 'v_inf',
+                                      shape=(num_nodes, 1))
 
         rho = self.declare_variable(model_name + 'rho', shape=(num_nodes, 1))
 
@@ -109,8 +120,8 @@ class LiftDrag(Model):
             cosb = csdl.expand(csdl.cos(beta), (num_nodes, system_size, 1),
                                'ki->kji')
 
-            rho_expand = csdl.expand(csdl.reshape(rho,(num_nodes,)),(num_nodes, system_size, 3),'k->kij')
-
+            rho_expand = csdl.expand(csdl.reshape(rho, (num_nodes, )),
+                                     (num_nodes, system_size, 3), 'k->kij')
 
             panel_forces = rho_expand * circulation_repeat * csdl.cross(
                 velocities, bd_vec, axis=2)
@@ -160,6 +171,32 @@ class LiftDrag(Model):
                 self.register_output(CD_name,
                                      csdl.reshape(c_d, (num_nodes, 1)))
                 start += delta
+
+            if self.parameters['coeffs_aoa'] != None:
+
+                sub = AOA_CD(
+                    surface_names=surface_names,
+                    surface_shapes=surface_shapes,
+                    coeffs_aoa=coeffs_aoa,
+                    coeffs_cd=coeffs_cd,
+                )
+                self.add(sub, name='AOA_CD')
+
+                cd_v_names = [x + '_cd_v' for x in surface_names]
+
+                for i in range(len(surface_names)):
+                    D_total_name = surface_names[i] + '_D_total'
+
+                    cd_v = self.declare_variable(cd_v_names[i],
+                                                 shape=(num_nodes, 1))
+                    c_d_total = cd_v + c_d
+
+                    D_total = c_d_total * (0.5 * rho * span * chord * b)
+                    self.register_output(D_total_name, D_total)
+            else:
+                for i in range(len(surface_names)):
+                    D_total_name = surface_names[i] + '_D_total'
+                self.register_output(D_total_name, D + 0)
 
         if eval_pts_option == 'user_defined':
             # sina = csdl.expand(csdl.sin(alpha), (system_size, 1), 'i->ji')
