@@ -5,6 +5,7 @@ import csdl
 import numpy as np
 
 from VLM_package.VLM_preprocessing.compute_bound_vec import BoundVec
+from VLM_package.VLM_outputs.compute_effective_aoa_cd_v import AOA_CD
 
 
 class LiftDrag(Model):
@@ -35,6 +36,9 @@ class LiftDrag(Model):
 
         self.parameters.declare('rho', default=0.38)
 
+        self.parameters.declare('coeffs_aoa', default=None)
+        self.parameters.declare('coeffs_cd', default=None)
+
     def define(self):
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
@@ -44,6 +48,9 @@ class LiftDrag(Model):
         sprs = self.parameters['sprs']
         eval_pts_option = self.parameters['eval_pts_option']
         eval_pts_shapes = self.parameters['eval_pts_shapes']
+
+        coeffs_aoa = self.parameters['coeffs_aoa']
+        coeffs_cd = self.parameters['coeffs_cd']
 
         v_total_wake_names = [x + '_eval_total_vel' for x in surface_names]
         system_size = 0
@@ -148,8 +155,36 @@ class LiftDrag(Model):
                                      csdl.reshape(c_l, (num_nodes, 1)))
                 self.register_output(CD_name,
                                      csdl.reshape(c_d, (num_nodes, 1)))
+
                 start += delta
 
+            if self.parameters['coeffs_aoa'] != None:
+
+                sub = AOA_CD(
+                    surface_names=surface_names,
+                    surface_shapes=surface_shapes,
+                    coeffs_aoa=coeffs_aoa,
+                    coeffs_cd=coeffs_cd,
+                )
+                self.add(sub, name='AOA_CD')
+
+                cd_v_names = [x + '_cd_v' for x in surface_names]
+
+                for i in range(len(surface_names)):
+                    D_total_name = surface_names[i] + '_D_total'
+
+                    cd_v = self.declare_variable(cd_v_names[i],
+                                                 shape=(num_nodes, 1))
+                    c_d_total = cd_v + c_d
+
+                    D_total = c_d_total * (0.5 * rho * span * chord * b)
+                    self.register_output(D_total_name, D_total)
+            else:
+                for i in range(len(surface_names)):
+                    D_total_name = surface_names[i] + '_D_total'
+                self.register_output(D_total_name, D + 0)
+
+        # !TODO: need to fix eval_pts for main branch
         if eval_pts_option == 'user_defined':
             # sina = csdl.expand(csdl.sin(alpha), (system_size, 1), 'i->ji')
             # cosa = csdl.expand(csdl.cos(alpha), (system_size, 1), 'i->ji')

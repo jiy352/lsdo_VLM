@@ -22,6 +22,8 @@ class VLMSolverModel(csdl.Model):
         self.parameters.declare('eval_pts_option', default='auto')
         self.parameters.declare('eval_pts_shapes', types=list)
         self.parameters.declare('sprs', default=None)
+        self.parameters.declare('coeffs_aoa', default=None)
+        self.parameters.declare('coeffs_cd', default=None)
 
     def define(self):
         # add the mesh info
@@ -36,6 +38,9 @@ class VLMSolverModel(csdl.Model):
         eval_pts_location = self.parameters['eval_pts_location']
         eval_pts_shapes = self.parameters['eval_pts_shapes']
         sprs = self.parameters['sprs']
+
+        coeffs_aoa = self.parameters['coeffs_aoa']
+        coeffs_cd = self.parameters['coeffs_cd']
 
         frame_vel_val = -free_stream_velocities
 
@@ -61,19 +66,10 @@ class VLMSolverModel(csdl.Model):
             eval_pts_option=eval_pts_option,
             eval_pts_location=eval_pts_location,
             sprs=sprs,
+            coeffs_aoa=coeffs_aoa,
+            coeffs_cd=coeffs_cd,
         )
         self.add(sub, name='VLM_outputs')
-
-        # coeffs_aoa = [np.loadtxt('cl_aoa_coeff.txt')]
-        # coeffs_cd = [np.loadtxt('cd_aoa_coeff.txt')]
-
-        # sub = AOA_CD(
-        #     surface_names=surface_names,
-        #     surface_shapes=surface_shapes,
-        #     coeffs_aoa=coeffs_aoa,
-        #     coeffs_cd=coeffs_cd,
-        # )
-        # self.add(sub, name='AOA_CD')
 
 
 if __name__ == "__main__":

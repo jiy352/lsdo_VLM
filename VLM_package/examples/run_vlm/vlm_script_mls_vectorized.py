@@ -78,7 +78,7 @@ rot_vel = model_1.create_input(surface_names[0] + '_rot_vel',
                                val=np.zeros((num_nodes, nx, ny, 3)))
 
 wing = model_1.create_input('wing', val=mesh_val)
-wing = model_1.create_input('wing_1', val=mesh_val_1)
+wing_1 = model_1.create_input('wing_1', val=mesh_val_1)
 v_inf = model_1.create_input('v_inf', val=v_inf.reshape(-1, 1))
 
 # ##################################################################

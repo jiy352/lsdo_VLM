@@ -41,16 +41,23 @@ nx = 3
 ny = 5
 offset = 10
 
-v_inf = np.array([50, 50, 50])
-alpha_deg = np.array([2, 4, 6])
-beta_deg = np.array([0, 4, 6])
-alpha = alpha_deg / 180 * np.pi
-beta = beta_deg / 180 * np.pi
-vx = -v_inf * np.cos(alpha) * np.cos(beta)
-vy = v_inf * np.sin(beta)
-vz = -v_inf * np.sin(alpha) * np.cos(beta)
-free_stream_velocities = np.array([-vx, -vy, -vz]).T
-frame_vel_val = np.array([vx, vy, vz]).T
+# v_inf = np.array([50, 50, 50])
+# alpha_deg = np.array([2, 4, 6])
+# beta_deg = np.array([0, 4, 6])
+# alpha = alpha_deg / 180 * np.pi
+# beta = beta_deg / 180 * np.pi
+
+# vx = -v_inf * np.cos(alpha) * np.cos(beta)
+# vy = v_inf * np.sin(beta)
+# vz = -v_inf * np.sin(alpha) * np.cos(beta)
+
+vx = np.ones(num_nodes, ) * 3
+vy = np.zeros(num_nodes, )
+vz = np.ones(num_nodes, )
+v_inf = np.sqrt(vx**2 + vz**2)
+
+free_stream_velocities = np.array([vx, vy, vz]).T
+frame_vel_val = np.array([-vx, -vy, -vz]).T
 
 # single lifting surface
 surface_names = ['wing']
@@ -97,6 +104,9 @@ v_inf = model_1.create_input('v_inf', val=v_inf.reshape(-1, 1))
 
 eval_pts_shapes = [(num_nodes, x[1] - 1, x[2] - 1, 3) for x in surface_shapes]
 
+coeffs_aoa = [(0.535, 0.091)]
+coeffs_cd = [(0.00695, 1.297e-4, 1.466e-4)]
+
 submodel = VLMSolverModel(
     surface_names=surface_names,
     surface_shapes=surface_shapes,
@@ -106,6 +116,8 @@ submodel = VLMSolverModel(
     # The location of the evaluation point is on the quarter-chord,
     # if this is not provided, it is defaulted to be 0.25.
     eval_pts_shapes=eval_pts_shapes,
+    # coeffs_aoa=coeffs_aoa,
+    # coeffs_cd=coeffs_cd
 )
 
 model_1.add(submodel, 'VLMSolverModel')
@@ -124,10 +136,12 @@ for i in range(len(surface_names)):
     D_panel_name = surface_names[i] + '_D_panel'
     L_name = surface_names[i] + '_L'
     D_name = surface_names[i] + '_D'
+    D_total_name = surface_names[i] + '_D_total'
     CL_name = surface_names[i] + '_C_L'
     CD_name = surface_names[i] + '_C_D_i'
     print('lift\n', L_name, sim.prob[L_name])
     print('drag\n', D_name, sim.prob[D_name])
+    print('total drag\n', D_total_name, sim.prob[D_total_name])
     # print(
     #     'L_panel',
     #     L_panel_name,

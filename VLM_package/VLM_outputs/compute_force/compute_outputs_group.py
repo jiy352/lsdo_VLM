@@ -50,6 +50,9 @@ class Outputs(Model):
         self.parameters.declare('nt', default=2)
         self.parameters.declare('delta_t', default=100)
 
+        self.parameters.declare('coeffs_aoa', default=None)
+        self.parameters.declare('coeffs_cd', default=None)
+
     def define(self):
         nt = self.parameters['nt']
         surface_names = self.parameters['surface_names']
@@ -62,6 +65,8 @@ class Outputs(Model):
         sprs = self.parameters['sprs']
 
         delta_t = self.parameters['delta_t']
+        coeffs_aoa = self.parameters['coeffs_aoa']
+        coeffs_cd = self.parameters['coeffs_cd']
 
         submodel = HorseshoeCirculations(
             surface_names=surface_names,
@@ -87,6 +92,8 @@ class Outputs(Model):
             eval_pts_option=eval_pts_option,
             eval_pts_shapes=eval_pts_shapes,
             sprs=sprs,
+            coeffs_aoa=coeffs_aoa,
+            coeffs_cd=coeffs_cd,
         )
         self.add(submodel, name='LiftDrag')
 
