@@ -15,21 +15,23 @@ class VLMSolverModel(csdl.Model):
         self.parameters.declare('surface_shapes', types=list)
         self.parameters.declare('num_nodes', types=int)
 
-        self.parameters.declare('free_stream_velocities', types=np.ndarray)
+        # self.parameters.declare('free_stream_velocities', types=np.ndarray)
 
         self.parameters.declare('eval_pts_location', default=0.25)
 
         self.parameters.declare('eval_pts_option', default='auto')
         self.parameters.declare('eval_pts_shapes', types=list)
         self.parameters.declare('sprs', default=None)
+        self.parameters.declare('model_name')
 
     def define(self):
         # add the mesh info
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
         num_nodes = self.parameters['num_nodes']
+        model_name = self.parameters['model_name']
 
-        free_stream_velocities = self.parameters['free_stream_velocities']
+        # free_stream_velocities = self.parameters['free_stream_velocities']
 
         eval_pts_option = self.parameters['eval_pts_option']
 
@@ -37,15 +39,30 @@ class VLMSolverModel(csdl.Model):
         eval_pts_shapes = self.parameters['eval_pts_shapes']
         sprs = self.parameters['sprs']
 
-        frame_vel_val = -free_stream_velocities
+        # frame_vel_val = -free_stream_velocities
+        aoa = self.declare_variable(model_name + 'aoa', shape=(num_nodes, 1))
+        side_slip_ang = self.create_input(model_name + 'side_slip_ang', val=np.zeros((num_nodes, 1)))
+        v_inf = self.declare_variable(model_name + 'v_inf', shape=(num_nodes, 1))
 
-        frame_vel = self.create_input('frame_vel', val=frame_vel_val)
+        alpha = aoa / 180 * np.pi
+        beta = side_slip_ang / 180 * np.pi
+
+        vx = -v_inf * csdl.cos(alpha) * csdl.cos(beta)
+        vy = v_inf * csdl.sin(beta)
+        vz = -v_inf * csdl.sin(alpha) * csdl.cos(beta)
+
+        frame_vel = self.create_output(model_name + 'frame_vel', shape=(num_nodes, 3))
+        frame_vel[:, 0] = vx
+        frame_vel[:, 1] = vy
+        frame_vel[:, 2] = vz
+        print('vlm_solver frame_vel shape', frame_vel.shape)
 
         self.add(
             VLMSystemModel(
                 surface_names=surface_names,
                 surface_shapes=surface_shapes,
                 num_nodes=num_nodes,
+                model_name=model_name,
                 # frame_vel=frame_vel_val,
             ),
             'VLM_system')
@@ -61,6 +78,7 @@ class VLMSolverModel(csdl.Model):
             eval_pts_option=eval_pts_option,
             eval_pts_location=eval_pts_location,
             sprs=sprs,
+            model_name=model_name,
         )
         self.add(sub, name='VLM_outputs')
 

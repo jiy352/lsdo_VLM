@@ -30,6 +30,7 @@ class ComputeNormal(Model):
     normals[nx-1, ny-1, 3] : numpy array
         The normals of each vortex panel
     """
+
     def initialize(self):
         self.parameters.declare('vortex_coords_names', types=list)
         self.parameters.declare('normals_names', types=list)
@@ -100,7 +101,7 @@ if __name__ == "__main__":
         normals_names=normals_names,
         vortex_coords_shapes=vortex_coords_shapes,
     ),
-                name='ComputeNormal')
+        name='ComputeNormal')
     sim = Simulator(model_1)
     # sim.visualize_implementation()
     sim.run()

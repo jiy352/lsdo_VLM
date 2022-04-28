@@ -36,6 +36,7 @@ class RHS(Model):
         the velocities computed using the aic_col_w from biot svart's law
         on bound vertices collcation pts induces by the wakes
     """
+
     def initialize(self):
         self.parameters.declare('nt', default=5)
         self.parameters.declare('method',
@@ -44,12 +45,14 @@ class RHS(Model):
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('bd_vortex_shapes', types=list)
         self.parameters.declare('delta_t')
+        self.parameters.declare('model_name')
 
     def define(self):
         nt = self.parameters['nt']
         delta_t = self.parameters['delta_t']
         bd_vortex_shapes = self.parameters['bd_vortex_shapes']
         surface_names = self.parameters['surface_names']
+        model_name = self.parameters['model_name']
         num_nodes = bd_vortex_shapes[0][0]
 
         bd_vtx_coords_names = [x + '_bd_vtx_coords' for x in surface_names]
@@ -70,7 +73,7 @@ class RHS(Model):
         #     ny = bd_vortex_shapes[i][2]
         # method = self.parameters['method']
         '''1. project the kinematic velocity on to the bd_vertices'''
-        frame_vel = self.declare_variable('frame_vel', shape=(num_nodes, 3))
+        frame_vel = self.declare_variable(model_name + 'frame_vel', shape=(num_nodes, 3))
         # bd_vortex_coords = self.declare_variable('bd_vortex_coords',
         #                                          shape=(nx, ny, 3))
         # coll_coords = self.declare_variable('coll_coords',
@@ -79,6 +82,7 @@ class RHS(Model):
         m = KinematicVelocity(
             surface_names=surface_names,
             surface_shapes=bd_vortex_shapes,  # (2*3,3)
+            model_name=model_name,
         )
         self.add(m, name='KinematicVelocity')
 
@@ -102,7 +106,7 @@ class RHS(Model):
         m = Projection(
             input_vel_names=kinematic_vel_names,
             normal_names=bd_vtx_normal_names,
-            output_vel_names='b',  # this is b
+            output_vel_names=model_name + 'b',  # this is b
             input_vel_shapes=kinematic_vel_shapes,  # rotatonal_vel_shapes
             normal_shapes=bd_coll_pts_shapes,
         )
@@ -131,7 +135,7 @@ class RHS(Model):
             wake_vortex_pts_names=wake_coords_names,
             bd_coll_pts_shapes=bd_coll_pts_shapes,
             wake_vortex_pts_shapes=wake_vortex_pts_shapes,
-            full_aic_name='aic_M',
+            full_aic_name=model_name+'aic_M',
             delta_t=delta_t,  # one line of wake vortex for fix wake
         )
         self.add(m, name='AssembleAic')
@@ -148,15 +152,15 @@ class RHS(Model):
         # print('aic_M-----------', (aic_shape_row, aic_shape_col, 3))
         '''3. project the aic on to the bd_vertices'''
         m = Projection(
-            input_vel_names=['aic_M'],
+            input_vel_names=[model_name+'aic_M'],
             normal_names=bd_vtx_normal_names,
-            output_vel_names='M',  # this is b
+            output_vel_names=model_name+'M',  # this is b
             input_vel_shapes=[(num_nodes, aic_shape_row, aic_shape_col, 3)
-                              ],  #rotatonal_vel_shapes
+                              ],  # rotatonal_vel_shapes
             normal_shapes=bd_coll_pts_shapes)  # NOTE: need to fix this later
         self.add(m, name='Projection_aic')
 
-        M = self.declare_variable('M',
+        M = self.declare_variable(model_name+'M',
                                   shape=(num_nodes, aic_shape_row,
                                          aic_shape_col))
         sprs = compute_spars(bd_vortex_shapes)
@@ -173,6 +177,7 @@ class RHS(Model):
                                      sprs=sprs,
                                      num_bd_panel=aic_shape_row,
                                      num_wake_panel=aic_shape_col,
+                                     model_name=model_name,
                                  ))
         # print('rhs group M_reshaped shape', M_reshaped.shape)
 
@@ -188,7 +193,7 @@ class RHS(Model):
             wake_vortex_pts_names=bd_vtx_coords_names,
             bd_coll_pts_shapes=bd_coll_pts_shapes,
             wake_vortex_pts_shapes=bd_vortex_shapes,
-            full_aic_name='aic_bd',
+            full_aic_name=model_name+'aic_bd',
             delta_t=delta_t,  # one line of wake vortex for fix wake
         )
         self.add(m, name='AssembleAic_bd')
@@ -199,14 +204,14 @@ class RHS(Model):
                               bd_coll_pts_shapes[i][2])
             aic_shape_col += ((bd_coll_pts_shapes[i][1]) *
                               (bd_coll_pts_shapes[i][2]))
-        aic_bd_proj_name = 'aic_bd_proj'
+        aic_bd_proj_name = model_name+'aic_bd_proj'
 
         m = Projection(
-            input_vel_names=['aic_bd'],
+            input_vel_names=[model_name+'aic_bd'],
             normal_names=bd_vtx_normals,
             output_vel_names=aic_bd_proj_name,  # this is b
             input_vel_shapes=[(num_nodes, aic_shape_row, aic_shape_col, 3)
-                              ],  #rotatonal_vel_shapes
+                              ],  # rotatonal_vel_shapes
             normal_shapes=bd_coll_pts_shapes,
         )
         self.add(m, name='Projection_aic_bd')
@@ -215,8 +220,8 @@ class RHS(Model):
                                             shape=(num_nodes, aic_shape_row,
                                                    aic_shape_col))
         self.register_output(
-            'MTX', \
-                aic_bd_proj + csdl.reshape(
+            model_name+'MTX',
+            aic_bd_proj + csdl.reshape(
                 M_reshaped,
                 (num_nodes, aic_shape_row, aic_shape_row),
             ))
@@ -260,10 +265,10 @@ if __name__ == "__main__":
     wake_coords = model_1.create_input('wake_coords', val=wake_coords_val)
     nx = 3
     ny = 4
-    coll_pts = 0.25 * (bd_vortex_coords[0:nx-1, 0:ny-1, :] +\
-                                               bd_vortex_coords[0:nx-1, 1:ny, :] +\
-                                               bd_vortex_coords[1:, 0:ny-1, :]+\
-                                               bd_vortex_coords[1:, 1:, :])
+    coll_pts = 0.25 * (bd_vortex_coords[0:nx-1, 0:ny-1, :] +
+                       bd_vortex_coords[0:nx-1, 1:ny, :] +
+                       bd_vortex_coords[1:, 0:ny-1, :] +
+                       bd_vortex_coords[1:, 1:, :])
     model_1.register_output('coll_coords', coll_pts)
     model_1.add(RHS())
 

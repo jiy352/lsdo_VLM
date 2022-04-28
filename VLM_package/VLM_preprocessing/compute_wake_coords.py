@@ -9,12 +9,14 @@ class WakeCoords(Model):
     """
     compute wake vortex coords given the vortex coords
     """
+
     def initialize(self):
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('surface_shapes', types=list)
         self.parameters.declare('num_nodes', types=int)
         self.parameters.declare('nt')
         self.parameters.declare('delta_t')
+        self.parameters.declare('model_name')
 
     def define(self):
         # add_input
@@ -23,10 +25,11 @@ class WakeCoords(Model):
         num_nodes = self.parameters['num_nodes']
         nt = self.parameters['nt']
         delta_t = self.parameters['delta_t']
+        model_name = self.parameters['model_name']
 
         wake_coords_names = [x + '_wake_coords' for x in surface_names]
 
-        frame_vel = self.declare_variable('frame_vel', shape=(num_nodes, 3))
+        frame_vel = self.declare_variable(model_name+'frame_vel', shape=(num_nodes, 3))
 
         for i in range(len(surface_names)):
             surface_name = surface_names[i]
@@ -93,7 +96,7 @@ if __name__ == "__main__":
         nt=nt,
         delta_t=1,
     ),
-                name='WakeCoords')
+        name='WakeCoords')
 
     sim = Simulator(model_1)
     # sim.prob.set_val('wing_1', val=wing_1_mesh)

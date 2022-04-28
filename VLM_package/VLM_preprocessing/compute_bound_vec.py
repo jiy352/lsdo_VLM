@@ -1,4 +1,4 @@
-from turtle import shape
+#from turtle import shape
 from csdl_om import Simulator
 from csdl import Model
 import csdl
@@ -10,14 +10,18 @@ class BoundVec(Model):
     """
     compute bound vectors given the vortex coords at 1/4 chord
     """
+
     def initialize(self):
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('surface_shapes', types=list)
+        self.parameters.declare('model_name')
 
     def define(self):
         # add_input
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
+        model_name = self.parameters['model_name']
+
         num_nodes = surface_shapes[0][0]
 
         bound_vecs_names = [x + '_bound_vecs' for x in surface_names]
@@ -44,7 +48,7 @@ class BoundVec(Model):
         combine_bd_vec = Model()
 
         # combine bd_vecs
-        bd_vec_all = combine_bd_vec.create_output('bd_vec',
+        bd_vec_all = combine_bd_vec.create_output(model_name + 'bd_vec',
                                                   shape=(num_nodes,
                                                          system_size, 3))
         start = 0
@@ -70,7 +74,7 @@ if __name__ == "__main__":
     def generate_simple_mesh(nx, ny):
         mesh = np.zeros((nx, ny, 3))
         mesh[:, :, 0] = np.outer(np.arange(nx),
-                                 np.ones(ny))  #+ np.random.random(
+                                 np.ones(ny))  # + np.random.random(
         #  (nx, ny))
         mesh[:, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T
         mesh[:, :, 2] = 0.
@@ -96,7 +100,7 @@ if __name__ == "__main__":
         surface_names=surface_names,
         surface_shapes=surface_shapes,
     ),
-                name='BoundVec')
+        name='BoundVec')
 
     sim = Simulator(model_1)
     # sim.prob.set_val('wing_1', val=wing_1_mesh)

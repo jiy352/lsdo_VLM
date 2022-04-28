@@ -46,6 +46,7 @@ class EvalPtsVel(Model):
         # stands for quarter-chord
         self.parameters.declare('nt')
         self.parameters.declare('delta_t')
+        self.parameters.declare('model_name')
 
     def define(self):
         eval_pts_names = self.parameters['eval_pts_names']
@@ -53,6 +54,7 @@ class EvalPtsVel(Model):
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
         eval_pts_location = self.parameters['eval_pts_location']
+        model_name = self.parameters['model_name']
 
         num_nodes = surface_shapes[0][0]
 
@@ -120,7 +122,7 @@ class EvalPtsVel(Model):
                 eval_pts_coords = self.declare_variable(
                     eval_pts_names[i], shape=(eval_pts_shapes[i]))
 
-        self.add(BdnWakeCombine(
+        self.add(BdnWakeCombine(  # CHECK
             surface_names=surface_names,
             surface_shapes=surface_shapes,
             nt=nt,
@@ -130,7 +132,7 @@ class EvalPtsVel(Model):
         for i in range(len(surface_shapes)):
             nx = surface_shapes[i][1]
             ny = surface_shapes[i][2]
-            bdnwake_coords = self.declare_variable(bdnwake_coords_names[i],
+            bdnwake_coords = self.declare_variable(bdnwake_coords_names[i], #CHECK
                                                    shape=(num_nodes,
                                                           nt + nx - 1, ny, 3))
         #!TODO:fix this for mls
@@ -217,7 +219,7 @@ class EvalPtsVel(Model):
 
             # kinematic_vel = model_wake_total_vel.declare_variable(
             #     kinematic_vel_name, shape=wake_vel_shape)
-            frame_vel = model_wake_total_vel.declare_variable('frame_vel',
+            frame_vel = model_wake_total_vel.declare_variable(model_name+'frame_vel',
                                                               shape=(num_nodes,
                                                                      3))
             frame_vel_expand = csdl.expand(frame_vel,

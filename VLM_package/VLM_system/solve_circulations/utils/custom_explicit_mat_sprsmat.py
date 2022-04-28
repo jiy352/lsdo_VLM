@@ -47,16 +47,18 @@ class Explicit(csdl.CustomExplicitOperation):
         self.parameters.declare('sprs')  #, types = tuple)
         self.parameters.declare('num_bd_panel')  #, types = tuple)
         self.parameters.declare('num_wake_panel')  #, types = tuple)
+        self.parameters.declare('model_name')  #, types = tuple)
 
     def define(self):
         sprs = self.parameters['sprs']
         num_nodes = self.parameters['num_nodes']
         num_bd_panel = self.parameters['num_bd_panel']
         num_wake_panel = self.parameters['num_wake_panel']
+        model_name = self.parameters['model_name']
 
-        self.add_input('M', shape=(num_nodes, num_bd_panel, num_wake_panel))
+        self.add_input(model_name+'M', shape=(num_nodes, num_bd_panel, num_wake_panel))
 
-        self.add_output('M_reshaped',
+        self.add_output(model_name+'M_reshaped',
                         shape=(num_nodes, num_bd_panel, num_bd_panel))
 
         num_row_rep = sprs.shape[0]
@@ -70,8 +72,8 @@ class Explicit(csdl.CustomExplicitOperation):
             np.arange(num_nodes * num_bd_panel * num_wake_panel).reshape(
                 -1, num_wake_panel)
         ] * num_bd_panel)
-        self.declare_derivatives('M_reshaped',
-                                 'M',
+        self.declare_derivatives(model_name+'M_reshaped',
+                                 model_name+'M',
                                  rows=rows.flatten(),
                                  cols=cols.flatten())
 
@@ -80,8 +82,9 @@ class Explicit(csdl.CustomExplicitOperation):
         num_nodes = self.parameters['num_nodes']
         num_bd_panel = self.parameters['num_bd_panel']
         num_wake_panel = self.parameters['num_wake_panel']
+        model_name = self.parameters['model_name']
 
-        outputs['M_reshaped'] = np.einsum('ijk,kl->ijl', inputs['M'],
+        outputs[model_name+'M_reshaped'] = np.einsum('ijk,kl->ijl', inputs[model_name+'M'],
                                           sprs.todense())
 
     def compute_derivatives(self, inputs, derivatives):
@@ -89,8 +92,9 @@ class Explicit(csdl.CustomExplicitOperation):
         num_nodes = self.parameters['num_nodes']
         num_bd_panel = self.parameters['num_bd_panel']
         num_wake_panel = self.parameters['num_wake_panel']
+        model_name = self.parameters['model_name']
 
-        derivatives['M_reshaped', 'M'] = np.tile(sprs.T.todense().flatten(),
+        derivatives[model_name+'M_reshaped', model_name+'M'] = np.tile(sprs.T.todense().flatten(),
                                                  num_nodes * num_bd_panel)
 
         # sparse.coo_matrix(

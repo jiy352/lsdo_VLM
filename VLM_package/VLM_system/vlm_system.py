@@ -18,6 +18,7 @@ class VLMSystemModel(csdl.Model):
     3. seperate_gamma_b_comp
     4. extract_gamma_w_comp
     '''
+
     def initialize(self):
         self.parameters.declare('num_nodes')
         self.parameters.declare('surface_names', types=list)
@@ -30,6 +31,7 @@ class VLMSystemModel(csdl.Model):
         self.parameters.declare('nt', default=2)
         self.parameters.declare('free_wake', default=False)
         self.parameters.declare('temp_fix_option', default=False)
+        self.parameters.declare('model_name', default=False)
 
     def define(self):
         # rename parameters
@@ -38,6 +40,7 @@ class VLMSystemModel(csdl.Model):
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
         free_wake = self.parameters['free_wake']
+        model_name = self.parameters['model_name']
 
         temp_fix_option = self.parameters['temp_fix_option']
 
@@ -47,7 +50,7 @@ class VLMSystemModel(csdl.Model):
         delta_t = self.parameters['delta_t']
         gamma_b_shape = sum((i[1] - 1) * (i[2] - 1) for i in bd_vortex_shapes)
 
-        frame_vel = self.declare_variable('frame_vel', shape=(3, ))
+        # frame_vel = self.declare_variable('frame_vel', shape=(3, ))
         v_total_wake_names = [x + '_wake_total_vel' for x in surface_names]
         wake_vortex_pts_shapes = [
             tuple((nt, item[1], 3)) for item in surface_shapes
@@ -63,6 +66,7 @@ class VLMSystemModel(csdl.Model):
             num_nodes=num_nodes,
             nt=nt,
             delta_t=delta_t,
+            model_name=model_name,
         )
         # m.optimize_ir(False)
         self.add(m, name='WakeCoords_comp')
@@ -70,14 +74,16 @@ class VLMSystemModel(csdl.Model):
         self.add(SolveMatrix(nt=nt,
                              surface_names=surface_names,
                              bd_vortex_shapes=bd_vortex_shapes,
-                             delta_t=delta_t),
+                             delta_t=delta_t,
+                             model_name=model_name),
                  name='solve_gamma_b_group')
 
-        gamma_b = self.declare_variable('gamma_b',
+        gamma_b = self.declare_variable(model_name + 'gamma_b',
                                         shape=(num_nodes, gamma_b_shape))
 
         self.add(SeperateGammab(surface_names=surface_names,
-                                surface_shapes=surface_shapes),
+                                surface_shapes=surface_shapes,
+                                model_name=model_name),
                  name='seperate_gamma_b_comp')
 
         #!TODO:! further check if I can get rid of extract_gamma_w_comp

@@ -15,7 +15,7 @@ class KinematicVelocity(Model):
 
     parameters
     ----------
-    
+
     delta_t
     num_t
     axis[str]
@@ -28,14 +28,18 @@ class KinematicVelocity(Model):
     kinematic_vel[nt, num_evel_pts_x, num_evel_pts_y, 3] : csdl array
         Induced velocities at found along the 3/4 chord.
     """
+
     def initialize(self):
 
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('surface_shapes', types=list)
+        self.parameters.declare('model_name')
 
     def define(self):
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
+        model_name = self.parameters['model_name']
+
         # get num_nodes from surface shape
         num_nodes = surface_shapes[0][0]
 
@@ -55,7 +59,7 @@ class KinematicVelocity(Model):
             x + '_kinematic_vel' for x in self.parameters['surface_names']
         ]
 
-        frame_vel = self.declare_variable('frame_vel', shape=(num_nodes, 3))
+        frame_vel = self.declare_variable(model_name+'frame_vel', shape=(num_nodes, 3))
 
         for i in range(len(rotatonal_vel_names)):
             rotatonal_vel_name = rotatonal_vel_names[i]
@@ -108,6 +112,6 @@ if __name__ == "__main__":
         surface_names=surface_names,
         surface_shapes=surface_shapes,
     ),
-                name='KinematicVelocity')
+        name='KinematicVelocity')
     sim = Simulator(model_1)
     sim.run()

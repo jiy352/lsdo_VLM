@@ -1,0 +1,8 @@
+setup.py
+VLM_package/__init__.py
+VLM_package/api.py
+VLM_package/vlm_solver.py
+VLM_package.egg-info/PKG-INFO
+VLM_package.egg-info/SOURCES.txt
+VLM_package.egg-info/dependency_links.txt
+VLM_package.egg-info/top_level.txt

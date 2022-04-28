@@ -36,6 +36,7 @@ class Outputs(Model):
         the velocities computed using the aic_col_w from biot svart's law
         on bound vertices collcation pts induces by the wakes
     """
+
     def initialize(self):
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('surface_shapes', types=list)
@@ -49,6 +50,7 @@ class Outputs(Model):
 
         self.parameters.declare('nt', default=2)
         self.parameters.declare('delta_t', default=100)
+        self.parameters.declare('model_name')
 
     def define(self):
         nt = self.parameters['nt']
@@ -60,12 +62,14 @@ class Outputs(Model):
         eval_pts_option = self.parameters['eval_pts_option']
         eval_pts_location = self.parameters['eval_pts_location']
         sprs = self.parameters['sprs']
+        model_name = self.parameters['model_name']
 
         delta_t = self.parameters['delta_t']
 
         submodel = HorseshoeCirculations(
             surface_names=surface_names,
             surface_shapes=surface_shapes,
+            model_name=model_name,
         )
         self.add(submodel, name='compute_horseshoe_circulation')
 
@@ -78,6 +82,7 @@ class Outputs(Model):
             surface_shapes=surface_shapes,
             nt=nt,
             delta_t=delta_t,
+            model_name=model_name,
         )
         self.add(submodel, name='EvalPtsVel')
 
@@ -87,6 +92,7 @@ class Outputs(Model):
             eval_pts_option=eval_pts_option,
             eval_pts_shapes=eval_pts_shapes,
             sprs=sprs,
+            model_name=model_name,
         )
         self.add(submodel, name='LiftDrag')
 

@@ -17,9 +17,9 @@ Please see vlm_scipt_mls.py for how to use user defined evaluation pts
 
 for span in [6]:
 
-    nx = 3
-    ny = 5
-    chord = 1
+    nx = 3  # streamwise vertices
+    ny = 5  # chordwise vertices
+    chord = 1  # chord length
     surface_shapes = [(nx, ny, 3)]
 
     mesh_dict = {
@@ -41,13 +41,20 @@ nx = 3
 ny = 5
 offset = 10
 
-v_inf = np.array([50, 50, 50])
-alpha_deg = np.array([2, 4, 6])
-alpha = alpha_deg / 180 * np.pi
-vx = -v_inf * np.cos(alpha)
-vz = -v_inf * np.sin(alpha)
-free_stream_velocities = np.array([-vx, np.zeros(num_nodes), -vz]).T
-frame_vel_val = np.array([vx, np.zeros(num_nodes), vz]).T
+######################
+# v_inf degree
+# rho
+# aoa
+######################
+
+v_inf_val = np.array([50, 60, 70]).reshape(-1, 1)
+aoa_val = np.array([2, 4, 6]).reshape(-1, 1)
+# rho = np.array()
+# alpha = alpha_deg / 180 * np.pi
+# vx = -v_inf * np.cos(alpha)
+# vz = -v_inf * np.sin(alpha)
+# free_stream_velocities = np.array([-vx, np.zeros(num_nodes), -vz]).T
+# frame_vel_val = np.array([vx, np.zeros(num_nodes), vz]).T
 
 # single lifting surface
 surface_names = ['wing', 'wing_1']
@@ -78,9 +85,12 @@ rot_vel = model_1.create_input(surface_names[0] + '_rot_vel',
                                val=np.zeros((num_nodes, nx, ny, 3)))
 
 wing = model_1.create_input('wing', val=mesh_val)
-wing = model_1.create_input('wing_1', val=mesh_val_1)
-v_inf = model_1.create_input('v_inf', val=v_inf.reshape(-1, 1))
+wing_1 = model_1.create_input('wing_1', val=mesh_val_1)
+v_inf = model_1.create_input('v_inf', val=v_inf_val)
+aoa = model_1.create_input('aoa', val=aoa_val)
 
+# rho = model_1.create_input('rho', val=np.array([0.38,0.38,0.38])
+# aoa = model_1.create_input('aoa', val=np.array([10,10,10])
 # ##################################################################
 # 3. Define VLMSolverModel (using internal function)
 # The user needs to provide:
@@ -103,7 +113,7 @@ submodel = VLMSolverModel(
     surface_names=surface_names,
     surface_shapes=surface_shapes,
     num_nodes=num_nodes,
-    free_stream_velocities=free_stream_velocities,
+    # free_stream_velocities=free_stream_velocities,
     eval_pts_location=0.25,
     # The location of the evaluation point is on the quarter-chord,
     # if this is not provided, it is defaulted to be 0.25.
@@ -111,6 +121,13 @@ submodel = VLMSolverModel(
 )
 
 model_1.add(submodel, 'VLMSolverModel')
+
+
+uq_reduction = 0
+uq_reduction = 1
+if uq_reduction:
+    from apply_uq import apply_uq
+    apply_uq(model_1, num_nodes, ['aoa', 'v_inf'])
 
 sim = Simulator(model_1)
 

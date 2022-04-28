@@ -27,10 +27,12 @@ class HorseshoeCirculations(Model):
     def initialize(self):
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('surface_shapes', types=list)
+        self.parameters.declare('model_name')
 
     def define(self):
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
+        model_name = self.parameters['model_name']
         num_nodes = surface_shapes[0][0]
 
         system_size = 0
@@ -71,14 +73,14 @@ class HorseshoeCirculations(Model):
         mtx_val = csc_matrix((data, (rows, cols)),
                              shape=(system_size, system_size)).toarray()
 
-        mtx = self.create_input('mtx', val=mtx_val)
+        mtx = self.create_input(model_name+'mtx', val=mtx_val)
 
         # gamma_b = self.declare_variable(
         #     'gamma_b', shape_by_conn=True)  # shape_by_conn not working
 
         #!TODO:fix this for mls!
         # surface_gamma_b_name = surface_names[0] + '_gamma_b'
-        surface_gamma_b_name = 'gamma_b'
+        surface_gamma_b_name = model_name+'gamma_b'
         surface_gamma_b = self.declare_variable(surface_gamma_b_name,
                                                 shape=(num_nodes, system_size))
         # gamma_b = self.declare_variable('gamma_b', shape=(system_size, ))
@@ -91,7 +93,7 @@ class HorseshoeCirculations(Model):
         # print('horseshoe_circulation horseshoe_circulation shape',
         #       horseshoe_circulation.shape)
 
-        self.register_output('horseshoe_circulation', horseshoe_circulation)
+        self.register_output(model_name+'horseshoe_circulation', horseshoe_circulation)
 
 
 if __name__ == "__main__":

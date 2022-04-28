@@ -1,4 +1,4 @@
-from turtle import shape
+#from turtle import shape
 from csdl_om import Simulator
 from csdl import Model
 import csdl
@@ -32,15 +32,15 @@ class LiftDrag(Model):
         self.parameters.declare('eval_pts_option')
         self.parameters.declare('eval_pts_shapes')
         self.parameters.declare('sprs')
+        self.parameters.declare('model_name')
 
-        self.parameters.declare('rho', default=0.38)
 
     def define(self):
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
+        model_name = self.parameters['model_name']
         num_nodes = surface_shapes[0][0]
 
-        rho = self.parameters['rho']
         sprs = self.parameters['sprs']
         eval_pts_option = self.parameters['eval_pts_option']
         eval_pts_shapes = self.parameters['eval_pts_shapes']
@@ -56,26 +56,34 @@ class LiftDrag(Model):
         submodel = BoundVec(
             surface_names=surface_names,
             surface_shapes=surface_shapes,
+            model_name = model_name,
         )
         self.add(submodel, name='BoundVec')
 
-        bd_vec = self.declare_variable('bd_vec',
+        bd_vec = self.declare_variable(model_name +'bd_vec',
                                        shape=((num_nodes, system_size, 3)))
 
-        circulations = self.declare_variable('horseshoe_circulation',
+        circulations = self.declare_variable(model_name +'horseshoe_circulation',
                                              shape=(num_nodes, system_size))
         circulation_repeat = csdl.expand(circulations,
                                          (num_nodes, system_size, 3),
                                          'ki->kij')
-        v_inf = self.declare_variable('v_inf', shape=(num_nodes, 1))
+        v_inf = self.declare_variable(model_name + 'v_inf', shape=(num_nodes, 1))
 
         # add frame_vel
-        frame_vel = self.declare_variable('frame_vel', shape=(num_nodes, 3))
-        alpha = csdl.arctan(frame_vel[:, 2] / frame_vel[:, 0])
-        beta = -csdl.arcsin(frame_vel[:, 1] / v_inf)
+        frame_vel = self.declare_variable(model_name + 'frame_vel', shape=(num_nodes, 3))
+
+        aoa = self.declare_variable(model_name +'aoa',shape=(num_nodes,1))
+        side_slip_ang = self.declare_variable(model_name +'side_slip_ang',shape=(num_nodes,1))
+        v_inf = self.declare_variable(model_name + 'v_inf', shape=(num_nodes, 1))
+
+        rho = self.declare_variable(model_name + 'rho', shape=(num_nodes, 1))
+
+        alpha = aoa / 180 * np.pi
+        beta = side_slip_ang / 180 * np.pi
 
         if eval_pts_option == 'auto':
-            velocities = self.create_output('eval_total_vel',
+            velocities = self.create_output(model_name + 'eval_total_vel',
                                             shape=(num_nodes, system_size, 3))
 
             start = 0
@@ -101,14 +109,17 @@ class LiftDrag(Model):
             cosb = csdl.expand(csdl.cos(beta), (num_nodes, system_size, 1),
                                'ki->kji')
 
-            panel_forces = rho * circulation_repeat * csdl.cross(
+            rho_expand = csdl.expand(csdl.reshape(rho,(num_nodes,)),(num_nodes, system_size, 3),'k->kij')
+
+
+            panel_forces = rho_expand * circulation_repeat * csdl.cross(
                 velocities, bd_vec, axis=2)
 
             panel_forces_x = panel_forces[:, :, 0]
             panel_forces_y = panel_forces[:, :, 1]
             panel_forces_z = panel_forces[:, :, 2]
             # print('compute lift drag panel_forces', panel_forces.shape)
-            self.register_output('panel_forces', panel_forces)
+            self.register_output(model_name + 'panel_forces', panel_forces)
             b = frame_vel[:, 0]**2 + frame_vel[:, 1]**2 + frame_vel[:, 2]**2
 
             L_panel = -panel_forces_x * sina + panel_forces_z * cosa

@@ -20,20 +20,23 @@ class SeperateGammab(Model):
     -------
     surface_name+'_gamma_b' : csdl array
     """
+
     def initialize(self):
 
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('surface_shapes', types=list)
+        self.parameters.declare('model_name')
 
     def define(self):
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
+        model_name = self.parameters['model_name']
 
         num_nodes = surface_shapes[0][0]
         gamma_b_shape = sum((i[1] - 1) * (i[2] - 1) for i in surface_shapes)
 
         # sum of system_shape with all the nx's and ny's
-        gamma_b = self.declare_variable('gamma_b',
+        gamma_b = self.declare_variable(model_name + 'gamma_b',
                                         shape=(num_nodes, gamma_b_shape))
 
         start = 0
@@ -63,7 +66,7 @@ if __name__ == "__main__":
         surface_names=surface_names,
         surface_shapes=surface_shapes,
     ),
-                name='SeperateGammab')
+        name='SeperateGammab')
     sim = Simulator(model_1)
     sim.run()
     print('gamma_b', gamma_b.shape, gamma_b)
