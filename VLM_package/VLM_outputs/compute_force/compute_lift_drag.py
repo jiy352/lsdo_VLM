@@ -34,7 +34,7 @@ class LiftDrag(Model):
         self.parameters.declare('eval_pts_shapes')
         self.parameters.declare('sprs')
 
-        self.parameters.declare('rho', default=0.38)
+        self.parameters.declare('rho', default=0.9652)
 
         self.parameters.declare('coeffs_aoa', default=None)
         self.parameters.declare('coeffs_cd', default=None)

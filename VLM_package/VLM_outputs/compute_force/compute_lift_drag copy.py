@@ -30,7 +30,7 @@ class LiftDrag(Model):
         self.parameters.declare('surface_shapes', types=list)
         self.parameters.declare('num_nodes', types=int)
 
-        self.parameters.declare('rho', default=0.38)
+        self.parameters.declare('rho', default=0.9652)
 
     def define(self):
         surface_names = self.parameters['surface_names']

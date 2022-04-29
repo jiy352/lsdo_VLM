@@ -33,7 +33,8 @@ class AOA_CD(Model):
         cd_v_names = [x + '_cd_v' for x in surface_names]
 
         num_nodes = surface_shapes[0][0]
-        rho = self.declare_variable('rho', val=np.ones((num_nodes, 1)) * 0.38)
+        rho = self.declare_variable('rho',
+                                    val=np.ones((num_nodes, 1)) * 0.9652)
 
         # here aoa are all in degrees
         ###! fix for mls

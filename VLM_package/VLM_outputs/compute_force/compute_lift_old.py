@@ -33,7 +33,7 @@ class LiftDrag(Model):
         self.parameters.declare('eval_pts_shapes')
         self.parameters.declare('sprs')
 
-        self.parameters.declare('rho', default=0.38)
+        self.parameters.declare('rho', default=0.9652)
 
     def define(self):
         surface_names = self.parameters['surface_names']
