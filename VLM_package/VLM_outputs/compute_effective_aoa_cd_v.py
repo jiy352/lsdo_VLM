@@ -63,7 +63,7 @@ class AOA_CD(Model):
             print('effective_aoa shape', effective_aoa.shape)
             print('cl_span shape', cl_span.shape)
 
-            cd_v = -csdl.sum(coeff_cd[2] * effective_aoa**2 +
+            cd_v = csdl.sum(coeff_cd[2] * effective_aoa**2 +
                              coeff_cd[1] * effective_aoa + coeff_cd[0],
                              axes=(1, )) / num_span
             # print('cd_v shape', cd_v.shape)
