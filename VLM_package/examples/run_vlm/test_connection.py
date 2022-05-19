@@ -1,4 +1,3 @@
-from reprlib import recursive_repr
 import numpy as np
 
 from VLM_package.VLM_preprocessing.generate_simple_mesh import *
@@ -132,7 +131,18 @@ submodel = VLMSolverModel(
 
 model_1.add(submodel, 'VLMSolverModel')
 
-sim = Simulator(model_1)
+model_2 = csdl.Model()
+a = model_2.declare_variable('lift', shape=(num_nodes, 1))
+# b = model_2.create_input('blahblah', val=1.0)
+c = a + 0.
+model_2.register_output('trash', c)
+top_model = csdl.Model()
+top_model.add(model_1, 'model1', promotes=[])
+top_model.add(model_2, 'model2', promotes=[])
+top_model.connect('model1.wing_L', 'model2.lift')
+top_model.create_input('blah', val=1.0)
+
+sim = Simulator(top_model)
 
 sim.run()
 

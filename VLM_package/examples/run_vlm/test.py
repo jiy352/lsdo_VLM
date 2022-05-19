@@ -1,4 +1,3 @@
-from reprlib import recursive_repr
 import numpy as np
 
 from VLM_package.VLM_preprocessing.generate_simple_mesh import *
@@ -60,15 +59,15 @@ offset = 10
 aoa = 20
 side_slip_ang = 0
 alpha = aoa / 180 * np.pi
-v_inf = np.array([87.0856319, 99.24, 111.3943681])
+v_inf = np.array([50.00999, 99.24, 111.3943681])
 
 beta = side_slip_ang / 180 * np.pi
 vx = -v_inf * np.cos(alpha) * np.cos(beta)
 vy = v_inf * np.sin(beta)
 vz = -v_inf * np.sin(alpha) * np.cos(beta)
 
-free_stream_velocities = np.array([-vx, -vy, -vz]).T
-frame_vel_val = np.array([vx, vy, vz]).T
+free_stream_velocities = np.array([np.ones(3) * 50, -vy, np.ones(3)]).T
+frame_vel_val = np.array([np.ones(3) * -50, vy, np.ones(3)]).T
 
 # single lifting surface
 surface_names = ['wing']
