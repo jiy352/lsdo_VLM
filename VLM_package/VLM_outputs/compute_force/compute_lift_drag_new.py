@@ -121,18 +121,18 @@ class LiftDrag(Model):
                 's_panel',
                 csdl.reshape(s_panel, ((surface_shapes[i][0] - 1) *
                                        (surface_shapes[i][1] - 1), )).shape)
-            aera_eval = csdl.sparsematmat(
+            area_eval = csdl.sparsematmat(
                 csdl.reshape(s_panel, ((surface_shapes[i][0] - 1) *
                                        (surface_shapes[i][1] - 1), 1)),
                 sprs[i])
 
             print('circulation_repeat_eval', circulation_repeat_eval.shape)
-            print('aera_eval', aera_eval.shape)
+            print('area_eval', area_eval.shape)
 
             panel_forces = rho * circulation_repeat_eval * csdl.cross(
                 velocities, bd_vec_eval, axis=1) / csdl.expand(
-                    csdl.reshape(aera_eval, (aera_eval.shape[0])),
-                    (aera_eval.shape[0], 3), 'i->ij')
+                    csdl.reshape(area_eval, (area_eval.shape[0])),
+                    (area_eval.shape[0], 3), 'i->ij')
             print('panel_forces', panel_forces.shape)
 
             panel_forces_x = panel_forces[:, 0]
