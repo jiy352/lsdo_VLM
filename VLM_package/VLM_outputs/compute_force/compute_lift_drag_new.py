@@ -99,8 +99,9 @@ class LiftDrag(Model):
         cosa = csdl.expand(csdl.cos(alpha), (system_size, 1), 'i->ji')
 
         print('velocities_______________000000000000', velocities.shape)
+        print('system_size', system_size)
 
-        print('bd_vec_______________000000000000', bd_vec[0:19, :].shape)
+        print('bd_vec_______________000000000000', bd_vec.shape)
         print('velocities_______________000000000000',
               circulation_repeat.shape)
 
@@ -110,17 +111,36 @@ class LiftDrag(Model):
             bd_vec_eval = csdl.sparsematmat(bd_vec, sprs[i])
             sina_eval = csdl.sparsematmat(sina, sprs[i])
             cosa_eval = csdl.sparsematmat(cosa, sprs[i])
+            s_panel = self.declare_variable(surface_names[i] + '_s_panel',
+                                            shape=(1, surface_shapes[i][0] - 1,
+                                                   surface_shapes[i][1] - 1))
+            print('s_panel', s_panel.shape)
+            print('sina', sina.shape)
+            print(' sprs[i]', sprs[i].shape)
+            print(
+                's_panel',
+                csdl.reshape(s_panel, ((surface_shapes[i][0] - 1) *
+                                       (surface_shapes[i][1] - 1), )).shape)
+            aera_eval = csdl.sparsematmat(
+                csdl.reshape(s_panel, ((surface_shapes[i][0] - 1) *
+                                       (surface_shapes[i][1] - 1), 1)),
+                sprs[i])
 
             print('circulation_repeat_eval', circulation_repeat_eval.shape)
+            print('aera_eval', aera_eval.shape)
 
             panel_forces = rho * circulation_repeat_eval * csdl.cross(
-                velocities, bd_vec_eval, axis=1)
+                velocities, bd_vec_eval, axis=1) / csdl.expand(
+                    csdl.reshape(aera_eval, (aera_eval.shape[0])),
+                    (aera_eval.shape[0], 3), 'i->ij')
+            print('panel_forces', panel_forces.shape)
 
             panel_forces_x = panel_forces[:, 0]
             panel_forces_y = panel_forces[:, 1]
             panel_forces_z = panel_forces[:, 2]
             # self.register_output('bd_vec', bd_vec)
-            self.register_output('panel_forces_z', panel_forces_z)
+            self.register_output(surface_names[i] + '_panel_forces',
+                                 panel_forces)
 
             L = csdl.sum(-panel_forces_x * sina_eval +
                          panel_forces_z * cosa_eval,

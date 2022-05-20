@@ -92,6 +92,7 @@ class LiftDrag(Model):
         alpha = csdl.arctan(frame_vel[2] / frame_vel[0])
         sina = csdl.expand(csdl.sin(alpha), (system_size, 1), 'i->ji')
         cosa = csdl.expand(csdl.cos(alpha), (system_size, 1), 'i->ji')
+        print('system_size', system_size)
 
         panel_forces = rho * circulation_repeat * csdl.cross(
             velocities, bd_vec, axis=1)

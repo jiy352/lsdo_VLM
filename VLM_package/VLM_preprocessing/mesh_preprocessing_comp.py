@@ -109,6 +109,14 @@ class MeshPreprocessing(Model):
                                                 bd_vtx_coords[1:, 0:ny-1, :]+\
                                                 bd_vtx_coords[1:, 1:, :])
                 self.register_output(coll_pts_coords_name, coll_pts_coords)
+                print('def_mesh', def_mesh.shape)
+                i = def_mesh[:, :-1, 1:, :] - def_mesh[:, 1:, :-1, :]
+                j = def_mesh[:, :-1, :-1, :] - def_mesh[:, 1:, 1:, :]
+                normals = csdl.cross(i, j, axis=3)
+                s_panel = (csdl.sum(normals**2, axes=(3, )))**0.5 * 0.5
+                # area = |ixj|/2
+                print('s_panel', s_panel.shape)
+                self.register_output(s_panel_name, s_panel)
 
 
 if __name__ == "__main__":
