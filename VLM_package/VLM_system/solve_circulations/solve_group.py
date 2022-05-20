@@ -171,7 +171,7 @@ class SolveMatrix(Model):
         # print('solve_group after implicit MTX shape', MTX.shape)
 
         gamma_b = solve(MTX, b)
-        model.visualize_sparsity(recursive=True)
+        # model.visualize_sparsity(recursive=True)
 
 
 if __name__ == "__main__":

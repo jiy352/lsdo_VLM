@@ -5,6 +5,7 @@ from VLM_package.VLM_preprocessing.generate_simple_mesh import *
 from VLM_package.vlm_solver import VLMSolverModel
 
 from VLM_package.examples.run_vlm.utils.generate_mesh import generate_mesh
+from scipy.sparse import coo_array
 '''
 This example demonstrates the basic VLM simulation 
 with a single lifting surface with internal function to generate evaluation pts
@@ -66,7 +67,7 @@ for i in range(num_nodes):
 # mesh_val_1 = generate_simple_mesh(nx, ny - 1,
 #                                   offset=offset).reshape(1, nx, ny - 1, 3)
 
-mesh_all = [mesh_val]
+mesh_all = [mesh_val, mesh_val_1]
 ####################################################################
 # 2. Define rotational velocities
 # (naming conventions: name=surface_name+'_rot_vel' )
@@ -80,7 +81,7 @@ rot_vel = model_1.create_input(surface_names[0] + '_rot_vel',
 wing = model_1.create_input('wing', val=mesh_val)
 wing_1 = model_1.create_input('wing_1', val=mesh_val_1)
 v_inf = model_1.create_input('v_inf', val=v_inf.reshape(-1, 1))
-
+# '''
 # ##################################################################
 # 3. Define VLMSolverModel (using internal function)
 # The user needs to provide:
@@ -109,6 +110,74 @@ submodel = VLMSolverModel(
     # if this is not provided, it is defaulted to be 0.25.
     eval_pts_shapes=eval_pts_shapes,
 )
+# '''
+# ####################################################################
+# 3. Define VLMSolverModel (user-defined eval_pts)
+# # This example demos how to provide
+# # user-defined eval_pts_coords as a csdl variable
+# ####################################################################
+'''
+e.g., center of leading edge panels
+. - . - . - .
+| * |   |   |
+. - . - . - .
+| * |   |   |
+. - . - . - .
+| * |   |   |
+. - . - . - .
+'''
+
+# eval_pts_option = 'user_defined'
+# eval_pts_names = [x + '_eval_pts_coords' for x in surface_names]
+
+# eval_pts_shapes = [(num_nodes, 1, ny - 1, 3),
+#                    (num_nodes, 1, ny - 1, 3)]  # center of leading edge panels
+# sprs = [1] * len(eval_pts_shapes)
+# for i in range(len(eval_pts_names)):
+
+#     surface_shape = surface_shapes[i]
+#     mesh_current = mesh_all[i]
+#     n_chord_panel = surface_shape[1] - 1
+#     n_span_panel = surface_shape[2] - 1
+
+#     eval_pts_location = 0.5
+
+#     all_center_pts = (
+#         (1 - eval_pts_location) * 0.5 * mesh_current[:, 0:-1, 0:-1, :] +
+#         (1 - eval_pts_location) * 0.5 * mesh_current[:, 0:-1, 1:, :] +
+#         eval_pts_location * 0.5 * mesh_current[:, 1:, 0:-1, :] +
+#         eval_pts_location * 0.5 * mesh_current[:, 1:, 1:, :])
+
+#     eval_pts_coords = all_center_pts[:, 0, :, :].reshape(
+#         eval_pts_shapes[i])  # center of leading edge panels (nx = 0)
+#     if eval_pts_option == 'user_defined':
+#         eval_pts = model_1.create_input(eval_pts_names[i],
+#                                         val=eval_pts_coords.reshape(
+#                                             eval_pts_shapes[i]))
+
+#         row = np.arange(n_span_panel)
+#         col = np.arange(n_span_panel)
+#         data = np.ones(n_span_panel)
+#         sprs[i] = coo_array(
+#             (data, (row, col)),
+#             shape=(n_span_panel, n_chord_panel * n_span_panel),
+#         )
+
+#         #here we need to define a sparse matrix, such that
+#         # sprs@vector = the ones that we selected
+#         # shapes: (num_evel_pts, num_total_circualtion_strength)
+#         # num_total_circualtion_strength=(nx-1)*(ny-1)
+
+# submodel = VLMSolverModel(
+#     surface_names=surface_names,
+#     surface_shapes=surface_shapes,
+#     num_nodes=num_nodes,
+#     free_stream_velocities=free_stream_velocities,
+#     # eval_pts_location=0.25,
+#     eval_pts_option=eval_pts_option,
+#     eval_pts_shapes=eval_pts_shapes,
+#     sprs=sprs,
+# )
 
 model_1.add(submodel, 'VLMSolverModel')
 
