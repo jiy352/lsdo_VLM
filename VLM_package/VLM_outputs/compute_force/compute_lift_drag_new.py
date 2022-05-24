@@ -133,7 +133,7 @@ class LiftDrag(Model):
                 velocities, bd_vec_eval, axis=1) / csdl.expand(
                     csdl.reshape(area_eval, (area_eval.shape[0])),
                     (area_eval.shape[0], 3), 'i->ij')
-            print('panel_forces', panel_forces.shape)
+            # print('panel_forces', panel_forces.shape)
 
             panel_forces_x = panel_forces[:, 0]
             panel_forces_y = panel_forces[:, 1]
