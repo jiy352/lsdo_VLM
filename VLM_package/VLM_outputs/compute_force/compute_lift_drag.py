@@ -79,7 +79,12 @@ class LiftDrag(Model):
         # add frame_vel
         frame_vel = self.declare_variable('frame_vel', shape=(num_nodes, 3))
         alpha = csdl.arctan(frame_vel[:, 2] / frame_vel[:, 0])
-        beta = -csdl.arcsin(frame_vel[:, 1] / v_inf)
+        sinbeta = csdl.reshape(frame_vel[:, 1] / v_inf,
+                               new_shape=(num_nodes, ))
+
+        beta = csdl.reshape(-csdl.arcsin(sinbeta), new_shape=(num_nodes, 1))
+        # print('beta shape', beta.shape)
+        # print('sinbeta shape', sinbeta.shape)
 
         if eval_pts_option == 'auto':
             velocities = self.create_output('eval_total_vel',

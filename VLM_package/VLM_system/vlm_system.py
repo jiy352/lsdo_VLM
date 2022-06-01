@@ -3,6 +3,7 @@ from csdl_om import Simulator
 
 import numpy as np
 from VLM_package.VLM_system.solve_circulations.solve_group import SolveMatrix
+from VLM_package.VLM_system.solve_circulations.compute_residual import ComputeResidual
 from VLM_package.VLM_preprocessing.mesh_preprocessing_comp import MeshPreprocessing
 from VLM_package.VLM_preprocessing.compute_wake_coords import WakeCoords
 
@@ -30,6 +31,7 @@ class VLMSystemModel(csdl.Model):
         self.parameters.declare('nt', default=2)
         self.parameters.declare('free_wake', default=False)
         self.parameters.declare('temp_fix_option', default=False)
+        self.parameters.declare('solve_option', default='direct')
 
     def define(self):
         # rename parameters
@@ -67,12 +69,18 @@ class VLMSystemModel(csdl.Model):
         # m.optimize_ir(False)
         self.add(m, name='WakeCoords_comp')
 
-        self.add(SolveMatrix(nt=nt,
-                             surface_names=surface_names,
-                             bd_vortex_shapes=bd_vortex_shapes,
-                             delta_t=delta_t),
-                 name='solve_gamma_b_group')
-
+        if self.parameters['solve_option'] == 'direct':
+            self.add(SolveMatrix(nt=nt,
+                                 surface_names=surface_names,
+                                 bd_vortex_shapes=bd_vortex_shapes,
+                                 delta_t=delta_t),
+                     name='solve_gamma_b_group')
+        elif self.parameters['solve_option'] == 'optimization':
+            self.add(ComputeResidual(nt=nt,
+                                     surface_names=surface_names,
+                                     bd_vortex_shapes=bd_vortex_shapes,
+                                     delta_t=delta_t),
+                     name='solve_gamma_b_group')
         gamma_b = self.declare_variable('gamma_b',
                                         shape=(num_nodes, gamma_b_shape))
 
