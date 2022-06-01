@@ -219,3 +219,4 @@ for i in range(len(surface_names)):
 # sim.visualize_implementation()
 # res = np.einsum('ijk,ik->ij', sim['MTX'], sim['gamma_b']) + sim['b']
 # norm = np.linalg.norm(res)
+sim.prob.compute_totals()
