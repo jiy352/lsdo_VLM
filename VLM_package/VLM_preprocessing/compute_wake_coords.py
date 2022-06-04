@@ -50,7 +50,8 @@ class WakeCoords(Model):
             factor = np.einsum('i,jkl->jikl',
                                np.arange(nt) * delta_t,
                                np.ones((num_nodes, ny, 3)))
-            factor_var = self.create_input('factor', val=factor)
+            factor_var = self.create_input(surface_name + '_factor',
+                                           val=factor)
             #! TODO:! fix this for rotating surfaces
             # - should be fine actually just to align the wake w/ free stream
             delta_x = csdl.expand(-frame_vel, (num_nodes, nt, ny, 3),

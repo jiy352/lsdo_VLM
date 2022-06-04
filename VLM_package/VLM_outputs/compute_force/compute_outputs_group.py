@@ -52,6 +52,7 @@ class Outputs(Model):
 
         self.parameters.declare('coeffs_aoa', default=None)
         self.parameters.declare('coeffs_cd', default=None)
+        self.parameters.declare('AcStates', default=None)
 
     def define(self):
         nt = self.parameters['nt']
@@ -94,6 +95,7 @@ class Outputs(Model):
             sprs=sprs,
             coeffs_aoa=coeffs_aoa,
             coeffs_cd=coeffs_cd,
+            AcStates=self.parameters['AcStates'],
         )
         self.add(submodel, name='LiftDrag')
 

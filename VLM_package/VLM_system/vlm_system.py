@@ -8,6 +8,7 @@ from VLM_package.VLM_preprocessing.mesh_preprocessing_comp import MeshPreprocess
 from VLM_package.VLM_preprocessing.compute_wake_coords import WakeCoords
 
 from VLM_package.VLM_system.solve_circulations.seperate_gamma_b import SeperateGammab
+from VLM_package.VLM_preprocessing.adapter_comp import AdapterComp
 
 
 class VLMSystemModel(csdl.Model):
@@ -24,6 +25,8 @@ class VLMSystemModel(csdl.Model):
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('surface_shapes', types=list)
         self.parameters.declare('delta_t', default=100)
+
+        self.parameters.declare('AcStates', default=None)
 
         # We also passed in parameters to this ODE model in ODEproblem.create_model() in 'run.py' which we can access here.
         # for now, we just make frame_vel an option, bd_vortex_coords, as static parameters
@@ -49,7 +52,7 @@ class VLMSystemModel(csdl.Model):
         delta_t = self.parameters['delta_t']
         gamma_b_shape = sum((i[1] - 1) * (i[2] - 1) for i in bd_vortex_shapes)
 
-        frame_vel = self.declare_variable('frame_vel', shape=(3, ))
+        # frame_vel = self.declare_variable('frame_vel', shape=(3, ))
         v_total_wake_names = [x + '_wake_total_vel' for x in surface_names]
         wake_vortex_pts_shapes = [
             tuple((nt, item[1], 3)) for item in surface_shapes
@@ -59,6 +62,21 @@ class VLMSystemModel(csdl.Model):
         self.add(MeshPreprocessing(surface_names=surface_names,
                                    surface_shapes=surface_shapes),
                  name='MeshPreprocessing_comp')
+        AcStates = self.parameters["AcStates"]
+        if AcStates != None:
+            add_adapter = True
+        else:
+            add_adapter = False
+
+        if add_adapter == True:
+            m = AdapterComp(
+                surface_names=surface_names,
+                surface_shapes=surface_shapes,
+                AcStates=AcStates,
+            )
+            # m.optimize_ir(False)
+            self.add(m, name='adapter_comp')
+
         m = WakeCoords(
             surface_names=surface_names,
             surface_shapes=surface_shapes,

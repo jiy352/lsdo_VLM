@@ -38,13 +38,41 @@ class LiftDrag(Model):
 
         self.parameters.declare('coeffs_aoa', default=None)
         self.parameters.declare('coeffs_cd', default=None)
+        self.parameters.declare('AcStates', default=None)
 
     def define(self):
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
         num_nodes = surface_shapes[0][0]
+        AcStates = self.parameters['AcStates']
+        frame_vel = self.declare_variable('frame_vel', shape=(num_nodes, 3))
 
-        rho = self.parameters['rho']
+        system_size = 0
+        for i in range(len(surface_names)):
+            nx = surface_shapes[i][1]
+            ny = surface_shapes[i][2]
+            system_size += (nx - 1) * (ny - 1)
+
+        if AcStates == None:
+            rho = self.parameters['rho']
+            v_inf = self.declare_variable('v_inf', shape=(num_nodes, 1))
+            # add frame_vel
+
+            alpha = csdl.arctan(frame_vel[:, 2] / frame_vel[:, 0])
+            sinbeta = csdl.reshape(frame_vel[:, 1] / v_inf,
+                                   new_shape=(num_nodes, ))
+
+            beta = csdl.reshape(-csdl.arcsin(sinbeta),
+                                new_shape=(num_nodes, 1))
+
+        else:
+            rho = self.declare_variable(AcStates.rho.value,
+                                        shape=(num_nodes, 1))
+            rho_expand = csdl.expand(csdl.reshape(rho, (num_nodes, )),
+                                     (num_nodes, system_size, 3), 'k->kij')
+            alpha = self.declare_variable('alpha', shape=(num_nodes, 1))
+            beta = self.declare_variable('beta', shape=(num_nodes, 1))
+
         sprs = self.parameters['sprs']
         eval_pts_option = self.parameters['eval_pts_option']
         eval_pts_shapes = self.parameters['eval_pts_shapes']
@@ -53,12 +81,6 @@ class LiftDrag(Model):
         coeffs_cd = self.parameters['coeffs_cd']
 
         v_total_wake_names = [x + '_eval_total_vel' for x in surface_names]
-        system_size = 0
-
-        for i in range(len(surface_names)):
-            nx = surface_shapes[i][1]
-            ny = surface_shapes[i][2]
-            system_size += (nx - 1) * (ny - 1)
 
         submodel = BoundVec(
             surface_names=surface_names,
@@ -74,15 +96,7 @@ class LiftDrag(Model):
         circulation_repeat = csdl.expand(circulations,
                                          (num_nodes, system_size, 3),
                                          'ki->kij')
-        v_inf = self.declare_variable('v_inf', shape=(num_nodes, 1))
 
-        # add frame_vel
-        frame_vel = self.declare_variable('frame_vel', shape=(num_nodes, 3))
-        alpha = csdl.arctan(frame_vel[:, 2] / frame_vel[:, 0])
-        sinbeta = csdl.reshape(frame_vel[:, 1] / v_inf,
-                               new_shape=(num_nodes, ))
-
-        beta = csdl.reshape(-csdl.arcsin(sinbeta), new_shape=(num_nodes, 1))
         # print('beta shape', beta.shape)
         # print('sinbeta shape', sinbeta.shape)
 
@@ -112,9 +126,12 @@ class LiftDrag(Model):
                                'ki->kji')
             cosb = csdl.expand(csdl.cos(beta), (num_nodes, system_size, 1),
                                'ki->kji')
-
-            panel_forces = rho * circulation_repeat * csdl.cross(
-                velocities, bd_vec, axis=2)
+            if AcStates == None:
+                panel_forces = rho * circulation_repeat * csdl.cross(
+                    velocities, bd_vec, axis=2)
+            else:
+                panel_forces = rho_expand * circulation_repeat * csdl.cross(
+                    velocities, bd_vec, axis=2)
 
             panel_forces_x = panel_forces[:, :, 0]
             panel_forces_y = panel_forces[:, :, 1]
@@ -170,6 +187,7 @@ class LiftDrag(Model):
                     surface_shapes=surface_shapes,
                     coeffs_aoa=coeffs_aoa,
                     coeffs_cd=coeffs_cd,
+                    # AcStates=self.parameters['AcStates'],
                 )
                 self.add(sub, name='AOA_CD')
 
