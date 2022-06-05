@@ -79,16 +79,33 @@ class MeshPreprocessing(Model):
             # compute the wetted area:
             normals = csdl.cross(i, j, axis=3)
             s_panel = (csdl.sum(normals**2, axes=(3, )))**0.5 * 0.5
+            print('s_panel shape:', s_panel.shape)
             self.register_output(s_panel_name, s_panel)
             # TODO: implement projected area if needed
-            '''chords_vec = def_mesh[:, 0:nx - 1, :, :] - def_mesh[:,
-                                                                1:, :, :]
-            chords = csdl.pnorm(chords_vec, axis=(3))
+            # TODO: implement chords, and spans as an average of top and bottom
+
+            # # compute the chords:
+            # chords_vec = def_mesh[:, 0:nx - 1, :, :] - def_mesh[:, 1:, :, :]
+            # chords = csdl.pnorm(chords_vec, axis=(3))
             # self.register_output(chord_name, chords)
 
-            span_vec = def_mesh[:, :, 0:ny - 1, :] - def_mesh[:, :, 1:, :]
-            spans = csdl.pnorm(span_vec, axis=(2))
+            # # compute the spans:
+            # span_vec = def_mesh[:, :, 0:ny - 1, :] - def_mesh[:, :, 1:, :]
+            # spans = csdl.pnorm(span_vec, axis=(3))
             # self.register_output(span_name, spans)
+
+            # compute the chords:
+            chords_vec = def_mesh[:, 0:nx - 1,
+                                  0:ny - 1, :] - def_mesh[:, 1:, 0:ny - 1, :]
+            chords = csdl.pnorm(chords_vec, axis=(3))
+            self.register_output(chord_name, chords)
+
+            # compute the spans:
+            span_vec = def_mesh[:, 0:nx - 1,
+                                0:ny - 1, :] - def_mesh[:, 0:nx - 1, 1:, :]
+            spans = csdl.pnorm(span_vec, axis=(3))
+            self.register_output(span_name, spans)
+            '''
             # TODO: need to fix this before computing the forces
 
             i = def_mesh[:, :-1, 1:, :] - def_mesh[:, 1:, :-1, :]

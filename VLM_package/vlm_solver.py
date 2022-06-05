@@ -3,7 +3,6 @@ from VLM_package.VLM_outputs.compute_force.compute_outputs_group import Outputs
 import numpy as np
 
 from VLM_package.VLM_preprocessing.generate_simple_mesh import *
-from VLM_package.VLM_outputs.compute_effective_aoa_cd_v import AOA_CD
 
 # Here nt is just a dummy variable that always equal to 2. since we are using a long wake panel,
 # we can just make nt=2 and delta_t a large number.

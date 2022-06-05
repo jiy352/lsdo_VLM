@@ -47,8 +47,6 @@ class LiftDrag(Model):
         AcStates = self.parameters['AcStates']
         frame_vel = self.declare_variable('frame_vel', shape=(num_nodes, 3))
 
-        cl_span_names = [x + '_cl_span' for x in surface_names]
-
         system_size = 0
         for i in range(len(surface_names)):
             nx = surface_shapes[i][1]
@@ -56,7 +54,7 @@ class LiftDrag(Model):
             system_size += (nx - 1) * (ny - 1)
 
         if AcStates == None:
-            rho_val = self.parameters['rho']
+            rho = self.parameters['rho']
             v_inf = self.declare_variable('v_inf', shape=(num_nodes, 1))
             # add frame_vel
 
@@ -66,10 +64,7 @@ class LiftDrag(Model):
 
             beta = csdl.reshape(-csdl.arcsin(sinbeta),
                                 new_shape=(num_nodes, 1))
-            rho = self.declare_variable('rho',
-                                        val=np.ones((num_nodes, 1)) * rho_val)
-            rho_expand = csdl.expand(csdl.reshape(rho, (num_nodes, )),
-                                     (num_nodes, system_size, 3), 'k->kij')
+
         else:
             rho = self.declare_variable(AcStates.rho.value,
                                         shape=(num_nodes, 1))
@@ -108,8 +103,7 @@ class LiftDrag(Model):
         if eval_pts_option == 'auto':
             velocities = self.create_output('eval_total_vel',
                                             shape=(num_nodes, system_size, 3))
-            s_panels_all = self.create_output('s_panels_all',
-                                              shape=(num_nodes, system_size))
+
             start = 0
             for i in range(len(v_total_wake_names)):
 
@@ -119,26 +113,9 @@ class LiftDrag(Model):
                 vel_surface = self.declare_variable(v_total_wake_names[i],
                                                     shape=(num_nodes, delta,
                                                            3))
-                s_panels = self.declare_variable(surface_names[i] + '_s_panel',
-                                                 shape=(num_nodes, nx - 1,
-                                                        ny - 1))
-                spans = self.declare_variable(
-                    surface_names[i] + '_span_length',
-                    shape=(num_nodes, nx - 1, ny - 1))
-                chords = self.declare_variable(
-                    surface_names[i] + '_chord_length',
-                    shape=(num_nodes, nx - 1, ny - 1))
-
                 # print('compute lift drag vel_surface shape', vel_surface.shape)
                 # print('compute lift drag velocities shape', velocities.shape)
                 velocities[:, start:start + delta, :] = vel_surface
-                s_panels_all[:, start:start + delta] = csdl.reshape(
-                    s_panels, (num_nodes, delta))
-
-                # spans_all[:, start:start + delta] = csdl.reshape(
-                #     spans, (num_nodes, delta))
-                # chords_all[:, start:start + delta] = csdl.reshape(
-                #     chords, (num_nodes, delta))
                 start = start + delta
 
             sina = csdl.expand(csdl.sin(alpha), (num_nodes, system_size, 1),
@@ -150,44 +127,21 @@ class LiftDrag(Model):
             cosb = csdl.expand(csdl.cos(beta), (num_nodes, system_size, 1),
                                'ki->kji')
             if AcStates == None:
-                panel_forces = rho_expand * circulation_repeat * csdl.cross(
+                panel_forces = rho * circulation_repeat * csdl.cross(
                     velocities, bd_vec, axis=2)
             else:
                 panel_forces = rho_expand * circulation_repeat * csdl.cross(
                     velocities, bd_vec, axis=2)
 
-            self.register_output('panel_forces', panel_forces)
-
             panel_forces_x = panel_forces[:, :, 0]
             panel_forces_y = panel_forces[:, :, 1]
             panel_forces_z = panel_forces[:, :, 2]
             # print('compute lift drag panel_forces', panel_forces.shape)
+            self.register_output('panel_forces', panel_forces)
             b = frame_vel[:, 0]**2 + frame_vel[:, 1]**2 + frame_vel[:, 2]**2
 
             L_panel = -panel_forces_x * sina + panel_forces_z * cosa
             D_panel = panel_forces_x * cosa * cosb + panel_forces_z * sina * cosb - panel_forces_y * sinb
-            traction_panel = panel_forces / csdl.expand(
-                s_panels_all, panel_forces.shape, 'ij->ijk')
-
-            # rho_expand_1 = csdl.expand(csdl.reshape(rho, (num_nodes, )),
-            #                            (num_nodes, system_size, 1), 'k->kij')
-            # b_expand_1 = csdl.expand(csdl.reshape(b, (num_nodes, )),
-            #                          (num_nodes, system_size, 1), 'kj->kij')
-
-            # print('shapes in compute lift drag\n L_panel', L_panel.shape)
-            # print('shapes in compute lift drag\n rho_expand_1',
-            #       rho_expand_1.shape)
-            # print('shapes in compute lift drag\n s_panels_all',
-            #       s_panels_all.shape)
-
-            # cl_panel = L_panel / (0.5 * rho_expand_1 * csdl.reshape(
-            #     s_panels_all, (num_nodes, system_size, 1)) * b_expand_1)
-            # cd_i_panel = D_panel / (0.5 * rho_expand_1 * csdl.reshape(
-            #     s_panels_all, (num_nodes, system_size, 1)) * b_expand_1)
-
-            s_panels_sum = csdl.reshape(csdl.sum(s_panels_all, axes=(1, )),
-                                        (num_nodes, 1))
-            print('s_panels_all shape', s_panels_all.shape)
 
             start = 0
             for i in range(len(surface_names)):
@@ -197,21 +151,24 @@ class LiftDrag(Model):
                 nx = surface_shapes[i][1]
                 ny = surface_shapes[i][2]
 
-                # s_panels = self.declare_variable(surface_names[i] + '_s_panel',
-                #                                  shape=(num_nodes, nx - 1,
-                #                                         ny - 1))
-
-                # nx = surface_shapes[i][1]
-                # ny = surface_shapes[i][2]
+                spans = self.declare_variable(surface_names[i] +
+                                              '_span_length',
+                                              shape=(num_nodes, nx - 1))
+                chords = self.declare_variable(surface_names[i] +
+                                               '_chord_length',
+                                               shape=(num_nodes, ny - 1))
+                s_panels = self.declare_variable(surface_names[i] + '_s_panel',
+                                                 shape=(num_nodes, nx - 1,
+                                                        ny - 1))
+                nx = surface_shapes[i][1]
+                ny = surface_shapes[i][2]
                 #!TODO: need to fix for uniformed mesh - should we take an average?
-                # chord = csdl.reshape(mesh[:, nx - 1, 0, 0] - mesh[:, 0, 0, 0],
-                #                      (num_nodes, 1))
-                # span = csdl.reshape(mesh[:, 0, ny - 1, 1] - mesh[:, 0, 0, 1],
-                #                     (num_nodes, 1))
+                chord = csdl.reshape(mesh[:, nx - 1, 0, 0] - mesh[:, 0, 0, 0],
+                                     (num_nodes, 1))
+                span = csdl.reshape(mesh[:, 0, ny - 1, 1] - mesh[:, 0, 0, 1],
+                                    (num_nodes, 1))
                 L_panel_name = surface_names[i] + '_L_panel'
                 D_panel_name = surface_names[i] + '_D_panel'
-                traction_surfaces_name = surface_names[i] + '_traction_surfaces'
-
                 L_name = surface_names[i] + '_L'
                 D_name = surface_names[i] + '_D'
                 CL_name = surface_names[i] + '_C_L'
@@ -220,85 +177,23 @@ class LiftDrag(Model):
                 delta = (nx - 1) * (ny - 1)
                 L_panel_surface = L_panel[:, start:start + delta, :]
                 D_panel_surface = D_panel[:, start:start + delta, :]
-                # cl_panel_surface = cl_panel[:, start:start + delta, :]
-                # cdi_panel_surface = cd_i_panel[:, start:start + delta, :]
-                traction_surfaces = traction_panel[:, start:start + delta, :]
 
                 self.register_output(L_panel_name, L_panel_surface)
                 self.register_output(D_panel_name, D_panel_surface)
-                self.register_output(traction_surfaces_name, traction_surfaces)
-
                 L = csdl.sum(L_panel_surface, axes=(1, ))
                 D = csdl.sum(D_panel_surface, axes=(1, ))
                 self.register_output(L_name, csdl.reshape(L, (num_nodes, 1)))
                 self.register_output(D_name, csdl.reshape(D, (num_nodes, 1)))
-
-                c_l = L / (0.5 * rho * s_panels_sum * b)
+                c_l = L / (0.5 * rho * span * chord * b)
+                c_d = D / (0.5 * rho * span * chord * b)
                 self.register_output(CL_name,
                                      csdl.reshape(c_l, (num_nodes, 1)))
-
-                # if self.parameters['coeffs_aoa'] == None:
-
-                # c_l_foil = csdl.sum(
-                #     csdl.reshape(L_panel_surface,
-                #                  (num_nodes, nx - 1, ny - 1)),
-                #     axes=(1, )) / (0.5 * rho * span * chord * b)
-                # c_d_foil = csdl.sum(
-                #     csdl.reshape(D_panel_surface,
-                #                  (num_nodes, nx - 1, ny - 1)),
-                #     axes=(1, ))  # / (0.5 * rho * span * chord * b)
-
-                # print('shapes \n L_panel_surface', L_panel_surface.shape)
-                # print('shapes \n rho', rho.shape)
-                # print('shapes \n s_panels_sum', s_panels_sum.shape)
-                # print('shapes \n b', b.shape)
-
-                # c_l = L / (0.5 * rho * s_panels_sum * b)
-                # L / (0.5 * rho * span * chord * b)
-                c_d = D / (0.5 * rho * s_panels_sum * b)
-                # D / (0.5 * rho * span * chord * b)
-
-                # self.register_output(surface_names[i] + 'dummy',
-                #                      (0.5 * rho * s_panels_sum * b))
-
-                # self.register_output(CL_name,
-                #                      csdl.reshape(c_l, (num_nodes, 1)))
                 self.register_output(CD_name,
                                      csdl.reshape(c_d, (num_nodes, 1)))
 
                 start += delta
 
             if self.parameters['coeffs_aoa'] != None:
-                print('coeffs_aoa is ', self.parameters['coeffs_aoa'])
-                cl_span_names = [x + '_cl_span' for x in surface_names]
-                cd_span_names = [x + '_cd_i_span' for x in surface_names]
-                nx = surface_shapes[i][1]
-                ny = surface_shapes[i][2]
-                for i in range(len(surface_names)):
-
-                    s_panels = self.declare_variable(
-                        surface_names[i] + '_s_panel',
-                        shape=(num_nodes, nx - 1, ny - 1))
-                    surface_span = csdl.reshape(csdl.sum(s_panels, axes=(1, )),
-                                                (num_nodes, ny - 1, 1))
-                    rho_b_exp = csdl.expand(rho * b, (num_nodes, ny - 1, 1),
-                                            'ik->ijk')
-
-                    cl_span = csdl.reshape(
-                        csdl.sum(csdl.reshape(L_panel_surface,
-                                              (num_nodes, nx - 1, ny - 1)),
-                                 axes=(1, )),
-                        (num_nodes, ny - 1, 1)) / (0.5 * rho_b_exp *
-                                                   surface_span)
-                    print()
-                    cd_span = csdl.reshape(
-                        csdl.sum(csdl.reshape(D_panel_surface,
-                                              (num_nodes, nx - 1, ny - 1)),
-                                 axes=(1, )),
-                        (num_nodes, ny - 1, 1)) / (0.5 * rho_b_exp *
-                                                   surface_span)
-                    self.register_output(cl_span_names[i], cl_span)
-                    self.register_output(cd_span_names[i], cd_span)
 
                 sub = AOA_CD(
                     surface_names=surface_names,
@@ -309,26 +204,21 @@ class LiftDrag(Model):
                 )
                 self.add(sub, name='AOA_CD')
 
-                #     cd_v_names = [x + '_cd_v' for x in surface_names]
+                cd_v_names = [x + '_cd_v' for x in surface_names]
 
-                #     for i in range(len(surface_names)):
-                D_total_name = surface_names[i] + '_D_total'
-
-                #         cd_v = self.declare_variable(cd_v_names[i],
-                #                                      shape=(num_nodes, 1))
-                #         c_d_total = cd_v + c_d
-                CD_total_names = [x + '_C_D' for x in surface_names]
                 for i in range(len(surface_names)):
+                    D_total_name = surface_names[i] + '_D_total'
 
-                    c_d_total = self.declare_variable(CD_total_names[i],
-                                                      shape=(num_nodes, 1))
+                    cd_v = self.declare_variable(cd_v_names[i],
+                                                 shape=(num_nodes, 1))
+                    c_d_total = cd_v + c_d
 
-                    D_total = c_d_total * (0.5 * rho * s_panels_sum * b)
-                self.register_output(D_total_name, D_total)
-            # else:
-            #     for i in range(len(surface_names)):
-            #         D_total_name = surface_names[i] + '_D_total'
-            #     self.register_output(D_total_name, D + 0)
+                    D_total = c_d_total * (0.5 * rho * span * chord * b)
+                    self.register_output(D_total_name, D_total)
+            else:
+                for i in range(len(surface_names)):
+                    D_total_name = surface_names[i] + '_D_total'
+                self.register_output(D_total_name, D + 0)
 
         # !TODO: need to fix eval_pts for main branch
         if eval_pts_option == 'user_defined':
