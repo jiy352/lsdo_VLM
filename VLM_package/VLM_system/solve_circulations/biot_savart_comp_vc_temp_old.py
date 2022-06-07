@@ -3,7 +3,6 @@ from csdl_om import Simulator
 from csdl import Model
 import csdl
 import numpy as np
-from VLM_package.VLM_system.solve_circulations.utils.einsum_kij_kij_ki import EinsumKijKijKi
 
 
 class BiotSvart(Model):
@@ -251,32 +250,13 @@ class BiotSvart(Model):
             #     subscripts='ij,ij->i',
             # )))
 
-            # array2 = ((csdl.einsum(
-            #     (r1 * r2_norm - r2 * r1_norm) /
-            #     (r1_norm * r2_norm + mesh_resolution * self.parameters['eps']),
-            #     r0,
-            #     subscripts='kij,kij->ki',
-            #     partial_format='sparse',
-            # )))
-
-            in_1 = (r1 * r2_norm - r2 * r1_norm) / (
-                r1_norm * r2_norm + mesh_resolution * self.parameters['eps'])
-
-            in_2 = r0
-            in_1_name = 'in_1' + str(randint(0, 1000))
-            in_2_name = 'in_2' + str(randint(10000, 20000))
-            self.register_output(in_1_name, in_1)
-            self.register_output(in_2_name, in_2)
-            array2 = csdl.custom(in_1,
-                                 in_2,
-                                 op=EinsumKijKijKi(in_name_1=in_1_name,
-                                                   in_name_2=in_2_name,
-                                                   in_shape=in_1.shape,
-                                                   out_name='out_array2' +
-                                                   str(randint(0, 100000))))
-            del in_1
-            del in_2
-
+            array2 = ((csdl.einsum(
+                (r1 * r2_norm - r2 * r1_norm) /
+                (r1_norm * r2_norm + mesh_resolution * self.parameters['eps']),
+                r0,
+                subscripts='kij,kij->ki',
+                partial_format='sparse',
+            )))
             # pertubation = 0.01219
             # v_induced_line = array1 * csdl.expand(
             #     array2, array1.shape, 'i->ij') / (
@@ -296,34 +276,15 @@ class BiotSvart(Model):
             #     (r1_norm * r2_norm * (r1_x_r2_norm_sq + pertubation * 1e-3))
             # )
         else:
-            # array2 = ((csdl.einsum(
-            #     (r1 * r2_norm - r2 * r1_norm) / (r1_norm * r2_norm),
-            #     r0,
-            #     subscripts='kij,kij->ki',
-            #     partial_format='sparse',
-            # )))
-
-            in_3 = (r1 * r2_norm - r2 * r1_norm) / (r1_norm * r2_norm)
-
-            in_4 = r0
-
-            in_3_name = 'in_3' + str(randint(0, 1000))
-            in_4_name = 'in_4' + str(randint(0, 1000))
-            self.register_output(in_3_name, in_3)
-            self.register_output(in_4_name, in_4)
-
-            array2 = csdl.custom(in_3,
-                                 in_4,
-                                 op=EinsumKijKijKi(in_name_1=in_3_name,
-                                                   in_name_2=in_4_name,
-                                                   in_shape=in_3.shape,
-                                                   out_name='out1_array2' +
-                                                   str(randint(0, 10000))))
-
+            array2 = ((csdl.einsum(
+                (r1 * r2_norm - r2 * r1_norm) / (r1_norm * r2_norm),
+                r0,
+                subscripts='kij,kij->ki',
+                partial_format='sparse',
+            )))
             v_induced_line = array1 * csdl.expand(
                 array2, array1.shape, 'ki->kij') / (r1_x_r2_norm_sq)
-            del in_3
-            del in_4
+
         return v_induced_line
 
 

@@ -92,6 +92,7 @@ class Outputs(Model):
             surface_shapes=surface_shapes,
             eval_pts_option=eval_pts_option,
             eval_pts_shapes=eval_pts_shapes,
+            eval_pts_names=eval_pts_names,
             sprs=sprs,
             coeffs_aoa=coeffs_aoa,
             coeffs_cd=coeffs_cd,

@@ -105,4 +105,4 @@ class Explicit(csdl.CustomExplicitOperation):
 # M_reshaped = sim['M_reshaped']
 # M = sim['M']
 # sim.prob.check_partials(compact_print=True)
-# print(np.einsum('ijk,ik->ij', A, x) + b)
+# # print(np.einsum('ijk,ik->ij', A, x) + b)

@@ -4,8 +4,6 @@ import csdl
 import numpy as np
 from numpy.core.fromnumeric import size
 import random
-from VLM_package.VLM_system.solve_circulations.utils.einsum_kij_kij_ki import EinsumKijKijKi
-from VLM_package.VLM_system.solve_circulations.utils.einsum_lijk_lik_lij import EinsumLijkLikLij
 
 
 class Projection(Model):
@@ -157,43 +155,20 @@ class Projection(Model):
             if len(input_vel_shape) == 3:
                 # print('warning: the dim of aic should be 4')
                 # print(input_vel_name, normal_name, output_vel_name)
-
-                # velocity_projections = csdl.einsum(
-                #     input_vel,
-                #     normals_reshaped,
-                #     subscripts='kij,kij->ki',
-                #     partial_format='sparse',
-                # )
-                self.register_output(normal_name + '_reshaped',
-                                     normals_reshaped)
-
-                velocity_projections = csdl.custom(
+                velocity_projections = csdl.einsum(
                     input_vel,
                     normals_reshaped,
-                    op=EinsumKijKijKi(in_name_1=input_vel_name,
-                                      in_name_2=normal_name + '_reshaped',
-                                      in_shape=input_vel.shape,
-                                      out_name=output_vel_name))
-
+                    subscripts='kij,kij->ki',
+                    partial_format='sparse',
+                )
                 self.register_output(output_vel_name, velocity_projections)
             elif len(input_vel_shape) == 4:
-                # velocity_projections = csdl.einsum(
-                #     input_vel,
-                #     normal_concatenated,
-                #     subscripts='lijk,lik->lij',
-                #     partial_format='sparse',
-                # )
-                # self.register_output(normal_name + '_cat', normal_concatenated)
-
-                velocity_projections = csdl.custom(
+                velocity_projections = csdl.einsum(
                     input_vel,
                     normal_concatenated,
-                    op=EinsumLijkLikLij(in_name_1=input_vel_name,
-                                        in_name_2='normal_concatenated' + '_' +
-                                        output_vel_name,
-                                        in_shape=input_vel.shape,
-                                        out_name=output_vel_name))
-
+                    subscripts='lijk,lik->lij',
+                    partial_format='sparse',
+                )
                 self.register_output(output_vel_name, velocity_projections)
 
 

@@ -13,6 +13,7 @@ from numpy.core.fromnumeric import size
 # cannot reshape chords
 # prjected vs wetted s_ref?
 # line 153 why cannot put 0.5 outside the ()
+from VLM_package.VLM_system.solve_circulations.utils.einsum_lijk_lj_lik import EinsumLijkLjLik
 
 
 class InducedVelocity(Model):
@@ -78,13 +79,22 @@ class InducedVelocity(Model):
             # print('InducedVelocity aic_shape', aic_shape)
             # print('InducedVelocity aic_reshaped', aic_reshaped.shape)
             # print('InducedVelocity circulations_shape', circulations_shape)
+            # v_induced = csdl.einsum(
+            #     aic_reshaped,
+            #     circulations,
+            #     subscripts='lijk,lj->lik',
+            #     partial_format='dense',
+            # )
+            self.register_output(aic_name + '_reshaped', aic_reshaped)
 
-            v_induced = csdl.einsum(
-                aic_reshaped,
-                circulations,
-                subscripts='lijk,lj->lik',
-                partial_format='sparse',
-            )
+            v_induced = csdl.custom(aic_reshaped,
+                                    circulations,
+                                    op=EinsumLijkLjLik(
+                                        in_name_1=aic_name + '_reshaped',
+                                        in_name_2=circulations_name,
+                                        in_shape=aic_reshaped.shape,
+                                        out_name=v_induced_name))
+
             self.register_output(v_induced_name, v_induced)
             # print('InducedVelocity v_induced shape', v_induced.shape)
 

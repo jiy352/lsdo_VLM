@@ -2,6 +2,7 @@ from turtle import shape
 from csdl_om import Simulator
 from csdl import Model
 import csdl
+from matplotlib.pyplot import axis
 import numpy as np
 
 from VLM_package.VLM_preprocessing.compute_bound_vec import BoundVec
@@ -35,6 +36,7 @@ class LiftDrag(Model):
         self.parameters.declare('sprs')
 
         self.parameters.declare('rho', default=0.9652)
+        self.parameters.declare('eval_pts_names', types=None)
 
         self.parameters.declare('coeffs_aoa', default=None)
         self.parameters.declare('coeffs_cd', default=None)
@@ -105,11 +107,16 @@ class LiftDrag(Model):
         # print('beta shape', beta.shape)
         # print('sinbeta shape', sinbeta.shape)
 
+        eval_pts_names = self.parameters['eval_pts_names']
+
         if eval_pts_option == 'auto':
             velocities = self.create_output('eval_total_vel',
                                             shape=(num_nodes, system_size, 3))
             s_panels_all = self.create_output('s_panels_all',
                                               shape=(num_nodes, system_size))
+            eval_pts_all = self.create_output('eval_pts_all',
+                                              shape=(num_nodes, system_size,
+                                                     3))
             start = 0
             for i in range(len(v_total_wake_names)):
 
@@ -128,13 +135,16 @@ class LiftDrag(Model):
                 chords = self.declare_variable(
                     surface_names[i] + '_chord_length',
                     shape=(num_nodes, nx - 1, ny - 1))
-
+                eval_pts = self.declare_variable(eval_pts_names[i],
+                                                 shape=(num_nodes, nx - 1,
+                                                        ny - 1, 3))
                 # print('compute lift drag vel_surface shape', vel_surface.shape)
                 # print('compute lift drag velocities shape', velocities.shape)
                 velocities[:, start:start + delta, :] = vel_surface
                 s_panels_all[:, start:start + delta] = csdl.reshape(
                     s_panels, (num_nodes, delta))
-
+                eval_pts_all[:, start:start + delta, :] = csdl.reshape(
+                    eval_pts, (num_nodes, delta, 3))
                 # spans_all[:, start:start + delta] = csdl.reshape(
                 #     spans, (num_nodes, delta))
                 # chords_all[:, start:start + delta] = csdl.reshape(
@@ -168,6 +178,20 @@ class LiftDrag(Model):
             D_panel = panel_forces_x * cosa * cosb + panel_forces_z * sina * cosb - panel_forces_y * sinb
             traction_panel = panel_forces / csdl.expand(
                 s_panels_all, panel_forces.shape, 'ij->ijk')
+
+            total_forces = csdl.sum(panel_forces, axes=(1, ))
+            print('shapes total force', total_forces.shape)
+            print('shapes panel_forces', panel_forces.shape)
+            print('shapes eval_pts_all', eval_pts_all.shape)
+            # print('shapes eval_pts_all',
+            #       csdl.cross(panel_forces, eval_pts_all, axis=(2, )))
+
+            total_moment = csdl.sum(csdl.cross(panel_forces,
+                                               eval_pts_all,
+                                               axis=2),
+                                    axes=(1, ))
+            self.register_output('F', total_forces)
+            self.register_output('Moment', total_moment)
 
             # rho_expand_1 = csdl.expand(csdl.reshape(rho, (num_nodes, )),
             #                            (num_nodes, system_size, 1), 'k->kij')
