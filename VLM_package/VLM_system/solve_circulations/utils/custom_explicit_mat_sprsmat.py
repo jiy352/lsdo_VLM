@@ -24,7 +24,7 @@ class M(Model):
         )
         # sprs_all = np.concatenate([sprs.toarray()] * n).reshape(
         #     n, num_wake_panel, num_bd_panel)
-        M = self.declare_variable('M',
+        M = self.declare_variable('M_mat',
                                   val=np.random.random(
                                       (n, num_bd_panel, num_wake_panel)))
         M_reshaped = csdl.custom(M,
@@ -54,7 +54,8 @@ class Explicit(csdl.CustomExplicitOperation):
         num_bd_panel = self.parameters['num_bd_panel']
         num_wake_panel = self.parameters['num_wake_panel']
 
-        self.add_input('M', shape=(num_nodes, num_bd_panel, num_wake_panel))
+        self.add_input('M_mat',
+                       shape=(num_nodes, num_bd_panel, num_wake_panel))
 
         self.add_output('M_reshaped',
                         shape=(num_nodes, num_bd_panel, num_bd_panel))
@@ -71,7 +72,7 @@ class Explicit(csdl.CustomExplicitOperation):
                 -1, num_wake_panel)
         ] * num_bd_panel)
         self.declare_derivatives('M_reshaped',
-                                 'M',
+                                 'M_mat',
                                  rows=rows.flatten(),
                                  cols=cols.flatten())
 
@@ -81,7 +82,7 @@ class Explicit(csdl.CustomExplicitOperation):
         num_bd_panel = self.parameters['num_bd_panel']
         num_wake_panel = self.parameters['num_wake_panel']
 
-        outputs['M_reshaped'] = np.einsum('ijk,kl->ijl', inputs['M'],
+        outputs['M_reshaped'] = np.einsum('ijk,kl->ijl', inputs['M_mat'],
                                           sprs.todense())
 
     def compute_derivatives(self, inputs, derivatives):
@@ -90,19 +91,20 @@ class Explicit(csdl.CustomExplicitOperation):
         num_bd_panel = self.parameters['num_bd_panel']
         num_wake_panel = self.parameters['num_wake_panel']
 
-        derivatives['M_reshaped', 'M'] = np.tile(sprs.T.todense().flatten(),
-                                                 num_nodes * num_bd_panel)
+        derivatives['M_reshaped',
+                    'M_mat'] = np.tile(sprs.T.todense().flatten(),
+                                       num_nodes * num_bd_panel)
 
         # sparse.coo_matrix(
         #     (np.tile(sprs.T.todense().flatten(), num_nodes * num_bd_panel)))
 
-        # derivatives['M_reshaped', 'M'] = np.tile(sprs.T.reshape(18, 1),
+        # derivatives['M_reshaped', 'M_mat'] = np.tile(sprs.T.reshape(18, 1),
         #                                          num_nodes * num_bd_panel)
 
 
 # sim = Simulator(M())
 # sim.run()
 # M_reshaped = sim['M_reshaped']
-# M = sim['M']
+# M = sim['M_mat']
 # sim.prob.check_partials(compact_print=True)
 # # print(np.einsum('ijk,ik->ij', A, x) + b)

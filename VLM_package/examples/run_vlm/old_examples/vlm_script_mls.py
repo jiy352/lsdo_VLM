@@ -239,23 +239,23 @@ for i in range(len(surface_names)):
 #     sprs=sprs,
 # )
 
-sim['aic_bd_proj'] @ sim['gamma_b'] + sim['M'] @ sim['gamma_w'].reshape(
+sim['aic_bd_proj'] @ sim['gamma_b'] + sim['M_mat'] @ sim['gamma_w'].reshape(
     17, ) + sim['b']
 
-sim['aic_bd_proj'] @ sim['gamma_b'] + sim['M'] @ np.ones(17).reshape(
+sim['aic_bd_proj'] @ sim['gamma_b'] + sim['M_mat'] @ np.ones(17).reshape(
     17, ) + sim['b']
 
-sim['aic_bd_proj'] @ sim['gamma_b'] + sim['M'] @ np.concatenate(
+sim['aic_bd_proj'] @ sim['gamma_b'] + sim['M_mat'] @ np.concatenate(
     (sim['gamma_w'].reshape(17, )[:9], np.ones(8))) + sim['b']
 
 sim['aic_bd_proj'] @ np.concatenate(
-    (sim['wing_gamma_b'], np.ones(16))) + sim['M'] @ np.concatenate(
+    (sim['wing_gamma_b'], np.ones(16))) + sim['M_mat'] @ np.concatenate(
         (sim['gamma_w'].reshape(17, )[:9], np.ones(8))) + sim['b']
 
-sim['aic_bd_proj'] @ np.ones(34) + sim['M'] @ np.ones(17).reshape(
+sim['aic_bd_proj'] @ np.ones(34) + sim['M_mat'] @ np.ones(17).reshape(
     17, ) + sim['b']
 
-sim['aic_bd_proj'] @ np.ones(34) + sim['M'] @ np.ones(17).reshape(
+sim['aic_bd_proj'] @ np.ones(34) + sim['M_mat'] @ np.ones(17).reshape(
     17, ) + sim['b']
 
 sim['aic_bd_proj'] @ sim['gamma_b'] + sim['b']

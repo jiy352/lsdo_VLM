@@ -1,4 +1,6 @@
 from cProfile import label
+
+from VLM_package.examples.run_vlm.AcStates_enum_vlm import AcStates_vlm
 import numpy as np
 
 from VLM_package.VLM_preprocessing.generate_simple_mesh import *
@@ -7,7 +9,7 @@ from VLM_package.vlm_solver import VLMSolverModel
 
 from VLM_package.examples.run_vlm.utils.generate_mesh import generate_mesh
 
-from VLM_package.examples.run_vlm.AcStates_enum import *
+from VLM_package.examples.run_vlm.AcStates_enum_vlm import *
 # import pyvista as pv
 '''
 This example demonstrates the basic VLM simulation 
@@ -18,13 +20,13 @@ Please see vlm_scipt_mls.py for how to use user defined evaluation pts
 ####################################################################
 # 1. Define VLM inputs that share the common names within CADDEE
 ####################################################################
-num_nodes = 1
+num_nodes = 3
 create_opt = 'create_inputs'
 model_1 = csdl.Model()
 
 print('creating inputs that share the same names within CADDEE:')
 
-for data in AcStates:
+for data in AcStates_vlm:
     print('{:15} = {}'.format(data.name, data.value))
     name = data.name
     string_name = data.value
@@ -150,7 +152,7 @@ submodel = VLMSolverModel(
     # The location of the evaluation point is on the quarter-chord,
     # if this is not provided, it is defaulted to be 0.25.
     eval_pts_shapes=eval_pts_shapes,
-    AcStates=AcStates,
+    AcStates=AcStates_vlm,
 )
 
 model_1.add(submodel, 'VLMSolverModel')

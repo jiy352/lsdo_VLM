@@ -75,7 +75,7 @@ sim.run()
 print('lift', sim.prob['L'])
 print('drag', sim.prob['D'])
 sim.visualize_implementation()
-# sim['aic_bd_proj'] @ sim['gamma_b'] + sim['M'] @ sim['gamma_w'].reshape(
+# sim['aic_bd_proj'] @ sim['gamma_b'] + sim['M_mat'] @ sim['gamma_w'].reshape(
 #     num_y - 1) + sim['b']
 
-# sim['aic_bd_proj'] @ sim['gamma_b'] + sim['M'] @ np.ones(num_y - 1) + sim['b']
+# sim['aic_bd_proj'] @ sim['gamma_b'] + sim['M_mat'] @ np.ones(num_y - 1) + sim['b']

@@ -126,7 +126,7 @@ class SolveMatrix(Model):
                             (wake_vortex_pts_shapes[i][1] - 1))
         M_shape = (M_shape_row, M_shape_col)
 
-        M = model.declare_variable('M', shape=M_shape)
+        M = model.declare_variable('M_mat', shape=M_shape)
         # TODO: fix this for mls
         gamma_b_shape = sum((i[0] - 1) * (i[1] - 1) for i in bd_vortex_shapes)
 
@@ -218,7 +218,7 @@ class SolveMatrix(Model):
         )
         solve.linear_solver = ScipyKrylov()
 
-        M = self.declare_variable('M', shape=M_shape)
+        M = self.declare_variable('M_mat', shape=M_shape)
         # print('MMMMM', M.shape)
         aic_bd_proj = self.declare_variable(aic_bd_proj_name,
                                             shape=(aic_shape_row,

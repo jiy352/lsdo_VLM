@@ -150,13 +150,13 @@ class RHS(Model):
         m = Projection(
             input_vel_names=['aic_M'],
             normal_names=bd_vtx_normal_names,
-            output_vel_names='M',  # this is b
+            output_vel_names='M_mat',  # this is b
             input_vel_shapes=[(num_nodes, aic_shape_row, aic_shape_col, 3)
                               ],  #rotatonal_vel_shapes
             normal_shapes=bd_coll_pts_shapes)  # NOTE: need to fix this later
         self.add(m, name='Projection_aic')
 
-        M = self.declare_variable('M',
+        M = self.declare_variable('M_mat',
                                   shape=(num_nodes, aic_shape_row,
                                          aic_shape_col))
         sprs = compute_spars(bd_vortex_shapes)

@@ -139,7 +139,7 @@ class RHS(Model):
         m = Projection(
             input_vel_names=['aic_M'],
             normal_names=bd_vtx_normal_names,
-            output_vel_names='M',  # this is b
+            output_vel_names='M_mat',  # this is b
             input_vel_shapes=[(aic_shape_row, aic_shape_col, 3)
                               ],  #rotatonal_vel_shapes
             normal_shapes=bd_coll_pts_shapes)  # NOTE: need to fix this later

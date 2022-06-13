@@ -95,7 +95,7 @@ class SolveMatrix(Model):
                             (wake_vortex_pts_shapes[i][2] - 1))
 
         M_shape = (M_shape_row, M_shape_col)
-        M = model.declare_variable('M', shape=M_shape)
+        M = model.declare_variable('M_mat', shape=M_shape)
         M_reshaped = model.declare_variable('M_reshaped',
                                             shape=(num_nodes, M_shape_row,
                                                    M_shape_row))
@@ -165,7 +165,7 @@ class SolveMatrix(Model):
         MTX = self.declare_variable('MTX',
                                     shape=(num_nodes, M_shape_row,
                                            M_shape_row))
-        # M = self.declare_variable('M', shape=M_shape)
+        # M = self.declare_variable('M_mat', shape=M_shape)
         b = self.declare_variable('b', shape=(num_nodes, gamma_b_shape))
         # print('solve_group after implicit M_shape_row', M_shape_row)
         # print('solve_group after implicit MTX shape', MTX.shape)

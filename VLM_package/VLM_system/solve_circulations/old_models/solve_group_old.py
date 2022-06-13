@@ -125,7 +125,7 @@ class SolveMatrix(Model):
             M_shape_col += ((wake_vortex_pts_shapes[i][0] - 1) *
                             (wake_vortex_pts_shapes[i][1] - 1))
         M_shape = (M_shape_row, M_shape_col)
-        M = model.declare_variable('M', shape=M_shape)
+        M = model.declare_variable('M_mat', shape=M_shape)
         gamma_b_shape = sum((i[0] - 1) * (i[1] - 1) for i in bd_vortex_shapes)
 
         aic_bd_proj_shape = (gamma_b_shape, ) + (gamma_b_shape, )
@@ -180,7 +180,7 @@ class SolveMatrix(Model):
         aic_bd_proj = self.declare_variable(aic_bd_proj_name,
                                             shape=(aic_shape_row,
                                                    aic_shape_col))
-        M = self.declare_variable('M', shape=M_shape)
+        M = self.declare_variable('M_mat', shape=M_shape)
         b = self.declare_variable('b', shape=gamma_b_shape)
 
         gamma_b = solve(aic_bd_proj, M, b)

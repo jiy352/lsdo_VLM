@@ -179,19 +179,19 @@ class LiftDrag(Model):
             traction_panel = panel_forces / csdl.expand(
                 s_panels_all, panel_forces.shape, 'ij->ijk')
 
-            total_forces = csdl.sum(panel_forces, axes=(1, ))
-            print('shapes total force', total_forces.shape)
-            print('shapes panel_forces', panel_forces.shape)
-            print('shapes eval_pts_all', eval_pts_all.shape)
-            # print('shapes eval_pts_all',
-            #       csdl.cross(panel_forces, eval_pts_all, axis=(2, )))
+            # total_forces = csdl.sum(panel_forces, axes=(1, ))
+            # print('shapes total force', total_forces.shape)
+            # print('shapes panel_forces', panel_forces.shape)
+            # print('shapes eval_pts_all', eval_pts_all.shape)
+            # # print('shapes eval_pts_all',
+            # #       csdl.cross(panel_forces, eval_pts_all, axis=(2, )))
 
-            total_moment = csdl.sum(csdl.cross(panel_forces,
-                                               eval_pts_all,
-                                               axis=2),
-                                    axes=(1, ))
-            self.register_output('F', total_forces)
-            self.register_output('Moment', total_moment)
+            # total_moment = csdl.sum(csdl.cross(panel_forces,
+            #                                    eval_pts_all,
+            #                                    axis=2),
+            #                         axes=(1, ))
+            # self.register_output('F', total_forces)
+            # self.register_output('M', total_moment)
 
             # rho_expand_1 = csdl.expand(csdl.reshape(rho, (num_nodes, )),
             #                            (num_nodes, system_size, 1), 'k->kij')
@@ -349,6 +349,20 @@ class LiftDrag(Model):
 
                     D_total = c_d_total * (0.5 * rho * s_panels_sum * b)
                 self.register_output(D_total_name, D_total)
+
+            total_forces = csdl.sum(panel_forces, axes=(1, ))
+            print('shapes total force', total_forces.shape)
+            print('shapes panel_forces', panel_forces.shape)
+            print('shapes eval_pts_all', eval_pts_all.shape)
+            # print('shapes eval_pts_all',
+            #       csdl.cross(panel_forces, eval_pts_all, axis=(2, )))
+
+            total_moment = csdl.sum(csdl.cross(panel_forces,
+                                               eval_pts_all,
+                                               axis=2),
+                                    axes=(1, ))
+            self.register_output('F', total_forces)
+            self.register_output('M', total_moment)
             # else:
             #     for i in range(len(surface_names)):
             #         D_total_name = surface_names[i] + '_D_total'
