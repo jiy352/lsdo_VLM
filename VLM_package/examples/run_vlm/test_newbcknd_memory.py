@@ -2,7 +2,7 @@ import numpy as np
 
 import csdl_lite
 
-from VLM_package.VLM_preprocessing.generate_simple_mesh import *
+from VLM_package.VLM_preprocessing.utils.generate_simple_mesh import *
 
 from VLM_package.vlm_solver import VLMSolverModel
 
@@ -73,11 +73,12 @@ mesh_all = [mesh_val]
 # the rotational vel are defaulted to be zeros)
 ####################################################################
 
-rot_vel = model_1.create_input(surface_names[0] + '_rot_vel',
-                               val=np.zeros((num_nodes, nx, ny, 3)))
-_002 = model_1.create_input('_002c', val=np.ones((3, (nx - 1) * (ny - 1), 3)))
+# _002 = model_1.create_input('_002c', val=np.ones((3, (nx - 1) * (ny - 1), 3)))
 wing = model_1.create_input('wing', val=mesh_val)
+# rot_vel = model_1.create_input(surface_names[0] + '_rot_vel',
+#                                val=np.zeros((num_nodes, nx, ny, 3)))
 v_inf = model_1.create_input('v_inf', val=v_inf.reshape(-1, 1))
+rho = model_1.create_input('rho', val=0.96 * np.ones((num_nodes, 1)))
 # ##################################################################
 # 3. Define VLMSolverModel (using internal function)
 # The user needs to provide:
@@ -113,9 +114,9 @@ submodel = VLMSolverModel(
 
 model_1.add(submodel, 'VLMSolverModel')
 
-sim = csdl_lite.Simulator(model_1, analytics=False)
+# sim = csdl_lite.Simulator(model_1, analytics=False)
 
-# sim = Simulator(model_1)
+sim = Simulator(model_1)
 
 sim.run()
 
@@ -164,4 +165,9 @@ t_run = time.time() - t_start
 print('the total simulation time is:', t_run)
 
 print('running check_partials\n=========================')
-sim.check_partials(compact_print=True)
+# sim.check_partials(compact_print=True)
+# sim.prob.check_totals(compact_print=True)
+sim.visualize_implementation()
+
+b = sim.check_partials(compact_print=False, out_stream=None)
+sim.assert_check_partials(b, 5e-3, 1e-5)

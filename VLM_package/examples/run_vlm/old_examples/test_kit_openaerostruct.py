@@ -6,7 +6,7 @@ import numpy as np
 
 from openaerostruct_generate_mesh import generate_mesh
 
-from VLM_package.VLM_preprocessing.generate_simple_mesh import *
+from VLM_package.VLM_preprocessing.utils.generate_simple_mesh import *
 
 nt = 2
 

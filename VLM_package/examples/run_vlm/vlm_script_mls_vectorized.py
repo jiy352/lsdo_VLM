@@ -1,6 +1,7 @@
 import numpy as np
+import csdl_lite
 
-from VLM_package.VLM_preprocessing.generate_simple_mesh import *
+from VLM_package.VLM_preprocessing.utils.generate_simple_mesh import *
 
 from VLM_package.vlm_solver import VLMSolverModel
 
@@ -181,7 +182,8 @@ e.g., center of leading edge panels
 
 model_1.add(submodel, 'VLMSolverModel')
 
-sim = Simulator(model_1)
+# sim = Simulator(model_1)
+sim = csdl_lite.Simulator(model_1, analytics=False)
 
 sim.run()
 

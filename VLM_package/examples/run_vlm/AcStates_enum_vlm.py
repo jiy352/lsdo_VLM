@@ -36,7 +36,7 @@ class AcStates_vlm(enum.Enum):
     phiw = 'phiw'
     gamma = 'gamma'
     psiw = 'psiw'
-    rho = 'rho'
+    # rho = 'rho'
 
 
 # num_nodes = 3
@@ -71,8 +71,11 @@ num_nodes = 1
 v_inf = np.array([50])
 alpha_deg = np.array([2])
 alpha = alpha_deg / 180 * np.pi
-vx = -v_inf * np.cos(alpha)
-vz = -v_inf * np.sin(alpha)
+# vx = -v_inf * np.cos(alpha)
+# vz = -v_inf * np.sin(alpha)
+
+vx = np.array([50])
+vz = np.array([2])
 
 AcStates_val_dict = {
     AcStates_vlm.u.value: vx.reshape(num_nodes, 1),
@@ -90,7 +93,7 @@ AcStates_val_dict = {
     AcStates_vlm.phiw.value: np.ones((num_nodes, 1)),
     AcStates_vlm.gamma.value: np.ones((num_nodes, 1)),
     AcStates_vlm.psiw.value: np.ones((num_nodes, 1)),
-    AcStates_vlm.rho.value: np.ones((num_nodes, 1)) * 0.96,
+    # AcStates_vlm.rho.value: np.ones((num_nodes, 1)) * 0.96,
 }
 
 # class AcStates_vlm(enum.Enum):
@@ -115,3 +118,29 @@ AcStates_val_dict = {
 
 # print('AcStates_vlm.u name is:', AcStates_vlm.u.name)
 # print('AcStates_vlm.u value is:', AcStates_vlm.u.value)
+
+# num_nodes = 2
+
+# v_inf = np.array([50, 50])
+# alpha_deg = np.array([2, 4])
+# alpha = alpha_deg / 180 * np.pi
+# vx = -v_inf * np.cos(alpha)
+# vz = -v_inf * np.sin(alpha)
+
+# AcStates_val_dict = {
+#     AcStates_vlm.u.value: vx.reshape(num_nodes, 1),
+#     AcStates_vlm.v.value: np.zeros((num_nodes, 1)),
+#     AcStates_vlm.w.value: vz.reshape(num_nodes, 1),
+#     AcStates_vlm.p.value: np.zeros((num_nodes, 1)),
+#     AcStates_vlm.q.value: np.zeros((num_nodes, 1)),
+#     AcStates_vlm.r.value: np.zeros((num_nodes, 1)),
+#     AcStates_vlm.phi.value: np.zeros((num_nodes, 1)),
+#     AcStates_vlm.theta.value: np.zeros((num_nodes, 1)),
+#     AcStates_vlm.psi.value: np.zeros((num_nodes, 1)),
+#     AcStates_vlm.x.value: np.zeros((num_nodes, 1)),
+#     AcStates_vlm.y.value: np.zeros((num_nodes, 1)),
+#     AcStates_vlm.z.value: np.zeros((num_nodes, 1)),
+#     AcStates_vlm.phiw.value: np.ones((num_nodes, 1)),
+#     AcStates_vlm.gamma.value: np.ones((num_nodes, 1)),
+#     AcStates_vlm.psiw.value: np.ones((num_nodes, 1)),
+# }

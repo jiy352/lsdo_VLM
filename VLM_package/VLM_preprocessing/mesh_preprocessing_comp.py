@@ -56,6 +56,9 @@ class MeshPreprocessing(Model):
                                              shape=surface_shapes[i])
             bd_vtx_coords = self.create_output(bd_vtx_coords_name,
                                                shape=(def_mesh.shape))
+            # print('bd_vtx_coords shape', bd_vtx_coords.shape)
+            # print('def_mesh shape', def_mesh.shape)
+            # print('nx ny', nx, ny)
 
             bd_vtx_coords[:, 0:nx -
                           1, :, :] = def_mesh[:, 0:nx -
@@ -79,7 +82,6 @@ class MeshPreprocessing(Model):
             # compute the wetted area:
             normals = csdl.cross(i, j, axis=3)
             s_panel = (csdl.sum(normals**2, axes=(3, )))**0.5 * 0.5
-            print('s_panel shape:', s_panel.shape)
             self.register_output(s_panel_name, s_panel)
             # TODO: implement projected area if needed
             # TODO: implement chords, and spans as an average of top and bottom

@@ -2,7 +2,7 @@ import csdl
 import csdl_om
 
 import numpy as np
-from VLM_package.VLM_preprocessing.generate_simple_mesh import *
+from VLM_package.VLM_preprocessing.utils.generate_simple_mesh import *
 
 
 class Rotate(csdl.CustomExplicitOperation):
@@ -50,7 +50,7 @@ class Rotate(csdl.CustomExplicitOperation):
         mesh_shape = self.parameters["mesh_shape"]
         val = self.parameters["val"]
 
-        self.add_input("twist", val=val, units="deg")
+        self.add_input("twist", val=val)
         self.add_input("in_mesh", shape=mesh_shape, units="m")
 
         self.add_output("mesh", shape=mesh_shape, units="m")

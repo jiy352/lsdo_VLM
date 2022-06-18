@@ -134,6 +134,9 @@ class BiotSvart(Model):
         # self.register_output('eval_pts_expand' + str(randint(0, 1000)),
         #                      eval_pts_expand)
 
+        # print('num_nodes', num_nodes)
+        # print('(p_1.shape[1] * p_1.shape[2]', (p_1.shape[1] * p_1.shape[2]))
+
 
         p_1_expand = csdl.reshape(\
             csdl.expand(

@@ -1,9 +1,9 @@
-from cProfile import label
-
+import csdl_lite
 from VLM_package.examples.run_vlm.AcStates_enum_vlm import AcStates_vlm
+from numpy import indices
 import numpy as np
 
-from VLM_package.VLM_preprocessing.generate_simple_mesh import *
+from VLM_package.VLM_preprocessing.utils.generate_simple_mesh import *
 
 from VLM_package.vlm_solver import VLMSolverModel
 
@@ -20,7 +20,7 @@ Please see vlm_scipt_mls.py for how to use user defined evaluation pts
 ####################################################################
 # 1. Define VLM inputs that share the common names within CADDEE
 ####################################################################
-num_nodes = 3
+num_nodes = 1
 create_opt = 'create_inputs'
 model_1 = csdl.Model()
 
@@ -44,10 +44,13 @@ for data in AcStates_vlm:
 ####################################################################
 # single lifting surface
 nx = 3  # number of points in streamwise direction
-ny = 11  # number of points in spanwise direction
+ny = 15  # number of points in spanwise direction
 
-surface_names = ['wing', 'wing_1']
-surface_shapes = [(num_nodes, nx, ny, 3), (num_nodes, nx, ny, 3)]
+# surface_names = ['wing', 'wing_1']
+# surface_shapes = [(num_nodes, nx, ny, 3), (num_nodes, nx, ny, 3)]
+
+surface_names = ['wing']
+surface_shapes = [(num_nodes, nx, ny, 3)]
 
 chord = 1.49352
 span = 16.2 / chord
@@ -59,7 +62,7 @@ mesh_dict = {
     "wing_type": "rect",
     "symmetry": False,
     "span": span,
-    "chord": chord,
+    "root_chord": chord,
     "span_cos_spacing": False,
     "chord_cos_spacing": False,
 }
@@ -82,7 +85,7 @@ for i in range(num_nodes):
     mesh_val_1[i, :, :, 0] = mesh.copy()[:, :, 0]
 
 wing = model_1.create_input('wing', val=mesh_val)
-wing_1 = model_1.create_input('wing_1', val=mesh_val_1)
+# wing_1 = model_1.create_input('wing_1', val=mesh_val_1)
 # '''
 ############################################
 # Plot the lifting surfaces
@@ -120,8 +123,8 @@ wing_1 = model_1.create_input('wing_1', val=mesh_val_1)
 # 2. preprocessing to connect to the vlm solver
 ####################################################################
 
-# rot_vel = model_1.create_input(surface_names[0] + '_rot_vel',
-#                                val=np.zeros((num_nodes, nx, ny, 3)))
+rot_vel = model_1.create_input(surface_names[0] + '_rot_vel',
+                               val=np.zeros((num_nodes, nx, ny, 3)))
 
 # v_inf = model_1.create_input('v_inf', val=v_inf.reshape(-1, 1))
 
@@ -141,6 +144,8 @@ wing_1 = model_1.create_input('wing_1', val=mesh_val_1)
 # The user can also define the eval_pts_coords inputs (line 97-146)
 # ###################################################################
 
+rho = model_1.create_input('rho', val=0.96 * np.ones((num_nodes, 1)))
+
 eval_pts_shapes = [(num_nodes, x[1] - 1, x[2] - 1, 3) for x in surface_shapes]
 
 submodel = VLMSolverModel(
@@ -158,6 +163,7 @@ submodel = VLMSolverModel(
 model_1.add(submodel, 'VLMSolverModel')
 
 sim = Simulator(model_1)
+# sim = csdl_lite.Simulator(model_1)
 
 sim.run()
 
@@ -165,30 +171,39 @@ sim.run()
 # Print VLM outputs
 ####################################################################
 
-for i in range(len(surface_names)):
+# for i in range(len(surface_names)):
 
-    L_panel_name = surface_names[i] + '_L_panel'
-    D_panel_name = surface_names[i] + '_D_panel'
-    L_name = surface_names[i] + '_L'
-    D_name = surface_names[i] + '_D'
-    CL_name = surface_names[i] + '_C_L'
-    CD_name = surface_names[i] + '_C_D_i'
-    print('lift\n', L_name, sim.prob[L_name])
-    print('drag\n', D_name, sim.prob[D_name])
-    # print(
-    #     'L_panel',
-    #     L_panel_name,
-    #     sim.prob[L_panel_name].shape,
-    #     sim.prob[L_panel_name],
-    # )
-    # print(
-    #     'D_panel',
-    #     D_panel_name,
-    #     sim.prob[D_panel_name].shape,
-    #     sim.prob[D_panel_name],
-    # )
-    print('cl\n', CL_name, sim.prob[CL_name])
-    print('cd\n', CD_name, sim.prob[CD_name])
+#     # L_panel_name = surface_names[i] + '_L_panel'
+#     # D_panel_name = surface_names[i] + '_D_panel'
+#     # L_name = surface_names[i] + '_L'
+#     # D_name = surface_names[i] + '_D'
+#     # CL_name = surface_names[i] + '_C_L'
+#     # CD_name = surface_names[i] + '_C_D_i'
+#     # print('lift\n', L_name, sim.prob[L_name])
+#     # print('drag\n', D_name, sim.prob[D_name])
+#     # # print(
+#     # #     'L_panel',
+#     # #     L_panel_name,
+#     # #     sim.prob[L_panel_name].shape,
+#     # #     sim.prob[L_panel_name],
+#     # # )
+#     # # print(
+#     # #     'D_panel',
+#     # #     D_panel_name,
+#     # #     sim.prob[D_panel_name].shape,
+#     # #     sim.prob[D_panel_name],
+#     # # )
+#     # print('cl\n', CL_name, sim.prob[CL_name])
+#     # print('cd\n', CD_name, sim.prob[CD_name])
+
+#     L_panel_name = surface_names[i] + '_L_panel'
+#     D_panel_name = surface_names[i] + '_D_panel'
+#     L_name = surface_names[i] + '_L'
+#     D_name = surface_names[i] + '_D'
+#     CL_name = surface_names[i] + '_C_L'
+#     CD_name = surface_names[i] + '_C_D_i'
+#     print('lift\n', L_name, sim[L_name])
+#     print('drag\n', D_name, sim[D_name])
 ####################################################################
 # Visualize n2 diagram (line 188)
 ####################################################################
@@ -196,3 +211,25 @@ for i in range(len(surface_names)):
 # sim.visualize_implementation()
 # res = np.einsum('ijk,ik->ij', sim['MTX'], sim['gamma_b']) + sim['b']
 # norm = np.linalg.norm(res)
+print('running check_partials\n=========================')
+
+b = sim.check_partials(compact_print=True)
+# sim.assert_check_partials(b, 5e-3, 1e-5)
+c = np.zeros(1220)
+i = 0
+keys = []
+for key in b.keys():
+    c[i] = b[key]['relative_error_norm']
+    keys.append(key)
+    i = i + 1
+sorted_array = np.sort(c)[::-1]
+indices = np.argsort(c)[::-1]
+for i in range(c.size):
+    if (sorted_array[i] > 1e-4) & (sorted_array[i] != np.inf):
+        print(keys[i])
+        print(sorted_array[i])
+
+# {k: v for k, v in sorted(b[b.keys].items(), key=lambda item: item[1])}
+
+# b = sim.check_partials(compact_print=True, out_stream=None)
+# sim.assert_check_partials(b, 5e-3, 1e-5)

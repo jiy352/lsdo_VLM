@@ -148,35 +148,46 @@ class Projection(Model):
                     normals,
                     new_shape=(num_nodes, normals.shape[1] * normals.shape[2],
                                3))
+                if len(input_vel_shape) == 3:
+                    self.register_output(normal_name + '_reshaped',
+                                         normals_reshaped)
+                    velocity_projections = csdl.custom(
+                        input_vel,
+                        normals_reshaped,
+                        op=EinsumKijKijKi(in_name_1=input_vel_name,
+                                          in_name_2=normal_name + '_reshaped',
+                                          in_shape=input_vel.shape,
+                                          out_name=output_vel_name))
 
+                    self.register_output(output_vel_name, velocity_projections)
                 delta = normals_reshaped.shape[1]
                 normal_concatenated[:,
                                     start:start + delta, :] = normals_reshaped
 
                 start += delta
-            if len(input_vel_shape) == 3:
-                # print('warning: the dim of aic should be 4')
-                # print(input_vel_name, normal_name, output_vel_name)
+            # if len(input_vel_shape) == 3:
+            #     # print('warning: the dim of aic should be 4')
+            #     # print(input_vel_name, normal_name, output_vel_name)
 
-                # velocity_projections = csdl.einsum(
-                #     input_vel,
-                #     normals_reshaped,
-                #     subscripts='kij,kij->ki',
-                #     partial_format='sparse',
-                # )
-                self.register_output(normal_name + '_reshaped',
-                                     normals_reshaped)
+            #     # velocity_projections = csdl.einsum(
+            #     #     input_vel,
+            #     #     normals_reshaped,
+            #     #     subscripts='kij,kij->ki',
+            #     #     partial_format='sparse',
+            #     # )
+            #     self.register_output(normal_name + '_reshaped',
+            #                          normals_reshaped)
 
-                velocity_projections = csdl.custom(
-                    input_vel,
-                    normals_reshaped,
-                    op=EinsumKijKijKi(in_name_1=input_vel_name,
-                                      in_name_2=normal_name + '_reshaped',
-                                      in_shape=input_vel.shape,
-                                      out_name=output_vel_name))
+            #     velocity_projections = csdl.custom(
+            #         input_vel,
+            #         normals_reshaped,
+            #         op=EinsumKijKijKi(in_name_1=input_vel_name,
+            #                           in_name_2=normal_name + '_reshaped',
+            #                           in_shape=input_vel.shape,
+            #                           out_name=output_vel_name))
 
-                self.register_output(output_vel_name, velocity_projections)
-            elif len(input_vel_shape) == 4:
+            #     self.register_output(output_vel_name, velocity_projections)
+            if len(input_vel_shape) == 4:
                 # velocity_projections = csdl.einsum(
                 #     input_vel,
                 #     normal_concatenated,

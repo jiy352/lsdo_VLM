@@ -59,12 +59,21 @@ class AdapterComp(Model):
         frame_vel = self.create_output('frame_vel', shape=(num_nodes, 3))
         # print('frame_vel[:, 0] shape', frame_vel[:, 0].shape)
 
+        #####################################
+        # TODO fix when u>0
+        #####################################
+
         frame_vel[:, 0] = u
         frame_vel[:, 1] = v
         frame_vel[:, 2] = w
 
         alpha = csdl.arctan(frame_vel[:, 2] / frame_vel[:, 0])
-        beta = -csdl.arcsin(frame_vel[:, 1] / v_inf)
+
+        sinbeta = csdl.reshape(frame_vel[:, 1] / v_inf,
+                               new_shape=(num_nodes, ))
+
+        beta = csdl.reshape(-csdl.arcsin(sinbeta), new_shape=(num_nodes, 1))
+
         self.register_output('alpha', alpha)
         self.register_output('beta', beta)
 

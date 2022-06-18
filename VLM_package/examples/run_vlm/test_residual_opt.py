@@ -1,7 +1,7 @@
 from math import gamma
 import numpy as np
 
-from VLM_package.VLM_preprocessing.generate_simple_mesh import *
+from VLM_package.VLM_preprocessing.utils.generate_simple_mesh import *
 
 from VLM_package.vlm_solver import VLMSolverModel
 
@@ -9,6 +9,8 @@ from VLM_package.examples.run_vlm.utils.generate_mesh import generate_mesh
 
 from VLM_package.VLM_preprocessing.geometry.generate_mesh_given_twist import Rotate
 from VLM_package.VLM_preprocessing.geometry.generate_spline import BSpline
+
+import csdl_lite
 
 import openmdao.api as om
 '''
@@ -42,7 +44,7 @@ for span in [15.401544]:
     # Generate half-wing mesh of rectangular wing
 mesh = generate_mesh(mesh_dict)
 
-num_nodes = 3
+num_nodes = 1
 nx = 3
 ny = 5
 offset = 10
@@ -62,10 +64,10 @@ offset = 10
 # vz = np.ones(num_nodes, )
 # v_inf = np.sqrt(vx**2 + vz**2)
 
-aoa = 20
+aoa = 5
 side_slip_ang = 0
 alpha = aoa / 180 * np.pi
-v_inf = np.array([87.0856319, 99.24, 111.3943681])
+v_inf = np.array([87.0856319])
 
 beta = side_slip_ang / 180 * np.pi
 vx = -v_inf * np.cos(alpha) * np.cos(beta)
@@ -152,71 +154,182 @@ submodel = VLMSolverModel(
     coeffs_aoa=coeffs_aoa,
     coeffs_cd=coeffs_cd,
     solve_option='optimization')
-a = model_1.declare_variable('a', val=1)
-model_1.register_output('dummy_obj', a + 0)
+# a = model_1.declare_variable('a', val=1)
+# model_1.register_output('dummy_obj', a + 0)
+
+model_1.declare_variable(surface_names[0] + '_D', shape=(num_nodes, 1))
 
 model_1.add(submodel, 'VLMSolverModel')
 model_1.add_constraint('residual', equals=0)
-model_1.add_design_variable('gamma_b')
-model_1.add_objective('dummy_obj')
+model_1.add_constraint('wing_C_L', equals=0.5)
 
-sim = Simulator(model_1)
+model_1.add_design_variable('gamma_b')
+model_1.add_design_variable('twist_cp', upper=100, lower=-100)
+model_1.add_objective(surface_names[0] + '_D')
+
+sim = csdl_lite.Simulator(model_1)
 
 sim.run()
-sim.prob.driver = om.pyOptSparseDriver()
+# sim.prob.driver = om.pyOptSparseDriver()
 
-sim.prob.driver.options["optimizer"] = "SNOPT"
+# sim.prob.driver.options["optimizer"] = "SNOPT"
 
-driver = sim.prob.driver
+# driver = sim.prob.driver
 
-driver.options["optimizer"] = "SNOPT"
-driver.opt_settings["Verify level"] = 0
+# driver.options["optimizer"] = "SNOPT"
+# driver.opt_settings["Verify level"] = 0
 
-driver.opt_settings["Major iterations limit"] = 100
-driver.opt_settings["Minor iterations limit"] = 100000
-driver.opt_settings["Iterations limit"] = 100000000
-driver.opt_settings["Major step limit"] = 2.0
+# driver.opt_settings["Major iterations limit"] = 100
+# driver.opt_settings["Minor iterations limit"] = 100000
+# driver.opt_settings["Iterations limit"] = 100000000
+# driver.opt_settings["Major step limit"] = 2.0
 
-driver.opt_settings["Major feasibility tolerance"] = 1.0e-5
-driver.opt_settings["Major optimality tolerance"] = 6.0e-6
+# driver.opt_settings["Major feasibility tolerance"] = 1.0e-5
+# driver.opt_settings["Major optimality tolerance"] = 6.0e-6
 
-sim.prob.run_driver()
+# sim.prob.run_driver()
 
 ####################################################################
 # Print VLM outputs
 ####################################################################
 
-for i in range(len(surface_names)):
+# for i in range(len(surface_names)):
+#     L_panel_name = surface_names[i] + '_L_panel'
+#     D_panel_name = surface_names[i] + '_D_panel'
+#     L_name = surface_names[i] + '_L'
+#     D_name = surface_names[i] + '_D'
+#     D_total_name = surface_names[i] + '_D_total'
+#     CL_name = surface_names[i] + '_C_L'
+#     CD_name = surface_names[i] + '_C_D_i'
+#     print('lift\n', L_name, sim.prob[L_name])
+#     print('drag\n', D_name, sim.prob[D_name])
+#     print('total drag\n', D_total_name, sim.prob[D_total_name])
+#     # print(
+#     #     'L_panel',
+#     #     L_panel_name,
+#     #     sim.prob[L_panel_name].shape,
+#     #     sim.prob[L_panel_name],
+#     # )
+#     # print(
+#     #     'D_panel',
+#     #     D_panel_name,
+#     #     sim.prob[D_panel_name].shape,
+#     #     sim.prob[D_panel_name],
+#     # )
+#     print('cl\n', CL_name, sim.prob[CL_name])
+#     print('cd\n', CD_name, sim.prob[CD_name])
 
-    L_panel_name = surface_names[i] + '_L_panel'
-    D_panel_name = surface_names[i] + '_D_panel'
-    L_name = surface_names[i] + '_L'
-    D_name = surface_names[i] + '_D'
-    D_total_name = surface_names[i] + '_D_total'
-    CL_name = surface_names[i] + '_C_L'
-    CD_name = surface_names[i] + '_C_D_i'
-    print('lift\n', L_name, sim.prob[L_name])
-    print('drag\n', D_name, sim.prob[D_name])
-    print('total drag\n', D_total_name, sim.prob[D_total_name])
-    # print(
-    #     'L_panel',
-    #     L_panel_name,
-    #     sim.prob[L_panel_name].shape,
-    #     sim.prob[L_panel_name],
-    # )
-    # print(
-    #     'D_panel',
-    #     D_panel_name,
-    #     sim.prob[D_panel_name].shape,
-    #     sim.prob[D_panel_name],
-    # )
-    print('cl\n', CL_name, sim.prob[CL_name])
-    print('cd\n', CD_name, sim.prob[CD_name])
-####################################################################
-# Visualize n2 diagram (line 188)
-####################################################################
+print('running check_partials\n=========================')
+# sim.check_partials(compact_print=True)
+# sim.prob.check_totals(
+#     of='wing_D',
+#     wrt='wing_bd_vtx_coords',
+#     compact_print=True,
+# )
+# sim.compute_totals(
+#     of='wing_D',
+#     wrt='wing_bd_vtx_coords',
+# )
+sim.compute_totals(of='wing_eval_total_vel', wrt='wing_D')
 
-# sim.visualize_implementation()
-# res = np.einsum('ijk,ik->ij', sim['MTX'], sim['gamma_b']) + sim['b']
-# norm = np.linalg.norm(res)
-sim.prob.compute_totals()
+# sim.compute_totals(
+#     of='wing_eval_total_vel',
+#     wrt='wing_bd_vtx_coords',
+# )
+
+sim.compute_totals(
+    of='wing_C_L',
+    wrt='wing_gamma_b',
+)
+
+# sim.prob.check_totals(
+#     of='wing_C_L',
+#     wrt='twist_cp',
+#     compact_print=False,
+# )
+
+# b = sim.check_partials(compact_print=False, out_stream=None)
+# sim.assert_check_partials(b, 5e-3, 1e-5)
+
+# ####################################################################
+# # Visualize n2 diagram (line 188)
+# ####################################################################
+
+# # sim.visualize_implementation()
+# # res = np.einsum('ijk,ik->ij', sim['MTX'], sim['gamma_b']) + sim['b']
+# # norm = np.linalg.norm(res)
+# sim.prob.compute_totals()
+
+# # importing numpy package
+# import numpy as np
+
+# # importing matplotlib package
+# import matplotlib.pyplot as plt
+
+# # importing mplot3d from
+# # mpl_toolkits
+# from mpl_toolkits import mplot3d
+
+# # creating an empty canvas
+# fig = plt.figure()
+
+# # defining the axes with the projection
+# # as 3D so as to plot 3D graphs
+# ax = plt.axes(projection="3d")
+
+# # creating a wide range of points x,y,z
+# x = sim['in_mesh'][:, :, 0].flatten()
+# y = sim['in_mesh'][:, :, 1].flatten()
+# z = sim['in_mesh'][:, :, 2].flatten()
+
+# # plotting a 3D line graph with X-coordinate,
+# # Y-coordinate and Z-coordinate respectively
+# ax.plot3D(x, y, z, 'red')
+
+# ax.scatter3D(x, y, z, c=z, cmap='cividis')
+# plt.savefig('org_mesh.png')
+
+# # Showing the above plot
+# plt.show()
+
+# fig = plt.figure()
+
+# # defining the axes with the projection
+# # as 3D so as to plot 3D graphs
+# ax = plt.axes(projection="3d")
+
+# # creating a wide range of points x,y,z
+# x = sim['mesh'][:, :, 0].flatten()
+# y = sim['mesh'][:, :, 1].flatten()
+# z = sim['mesh'][:, :, 2].flatten()
+
+# # plotting a 3D line graph with X-coordinate,
+# # Y-coordinate and Z-coordinate respectively
+# ax.plot3D(x, y, z, 'red')
+
+# ax.scatter3D(x, y, z, c=z, cmap='cividis')
+
+# ##########################
+# X = x
+# Y = y
+# Z = z
+# max_range = np.array([X.max() - X.min(),
+#                       Y.max() - Y.min(),
+#                       Z.max() - Z.min()]).max() / 2.0
+
+# mid_x = (X.max() + X.min()) * 0.5
+
+# mid_y = (Y.max() + Y.min()) * 0.5
+
+# mid_z = (Z.max() + Z.min()) * 0.5
+
+# ax.set_xlim(mid_x - max_range, mid_x + max_range)
+
+# ax.set_ylim(mid_y - max_range, mid_y + max_range)
+
+# ax.set_zlim(mid_z - max_range, mid_z + max_range)
+
+# plt.savefig('org_mesh.png')
+
+# # Showing the above plot
+# plt.show()

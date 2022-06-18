@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.sparse import coo_array
 
-from VLM_package.VLM_preprocessing.generate_simple_mesh import *
+from VLM_package.VLM_preprocessing.utils.generate_simple_mesh import *
 
 from VLM_package.vlm_solver import VLMSolverModel
 '''
