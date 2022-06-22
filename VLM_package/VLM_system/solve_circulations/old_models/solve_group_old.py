@@ -20,8 +20,8 @@ class SolveMatrix(Model):
     b        size: sum((nx[i] - 1) * (ny[i] - 1))
     M        size: 
         M_row = sum((nx[i] - 1) * (ny[i] - 1))
-        M_col = sum((nt - 1) * (ny[i] - 1))
-    \gamma_w size: sum((nt - 1) * (ny[i] - 1))
+        M_col = sum((n_wake_pts_chord - 1) * (ny[i] - 1))
+    \gamma_w size: sum((n_wake_pts_chord - 1) * (ny[i] - 1))
     Parameters
     ----------
     mtx[system_size, system_size] : numpy array
@@ -39,7 +39,7 @@ class SolveMatrix(Model):
         self.parameters.declare('method',
                                 values=['fw_euler', 'bk_euler'],
                                 default='bk_euler')
-        self.parameters.declare('nt', types=int)
+        self.parameters.declare('n_wake_pts_chord', types=int)
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('bd_vortex_shapes', types=list)
         self.parameters.declare('n', default=1)
@@ -50,7 +50,7 @@ class SolveMatrix(Model):
         surface_names = self.parameters['surface_names']
         bd_vortex_shapes = self.parameters['bd_vortex_shapes']
         method = self.parameters['method']
-        nt = self.parameters['nt']
+        n_wake_pts_chord = self.parameters['n_wake_pts_chord']
         n = self.parameters['n']
         delta_t = self.parameters['delta_t']
 
@@ -67,7 +67,8 @@ class SolveMatrix(Model):
         bd_vtx_normals = [x + '_bd_vtx_normals' for x in surface_names]
         # aic_bd_proj_names = [x + '_aic_bd_proj' for x in surface_names]
         wake_vortex_pts_shapes = [
-            tuple((nt, item[1], item[2])) for item in bd_vortex_shapes
+            tuple((n_wake_pts_chord, item[1], item[2]))
+            for item in bd_vortex_shapes
         ]
         for i in range(len(bd_vortex_shapes)):
             nx = bd_vortex_shapes[i][0]
@@ -77,13 +78,13 @@ class SolveMatrix(Model):
         '''1. add the rhs'''
         model.add(
             RHS(
-                nt=nt,
+                n_wake_pts_chord=n_wake_pts_chord,
                 surface_names=surface_names,
                 bd_vortex_shapes=bd_vortex_shapes,
                 delta_t=delta_t,
             ), 'RHS_group')
 
-        nt = self.parameters['nt']
+        n_wake_pts_chord = self.parameters['n_wake_pts_chord']
         '''2. compute A_mtx'''
         m = AssembleAic(
             bd_coll_pts_names=coll_pts_coords_names,
@@ -135,24 +136,26 @@ class SolveMatrix(Model):
         b = model.declare_variable('b', shape=(gamma_b_shape, ))
 
         if method == 'bk_euler':
-            gamma_w = model.create_output('gamma_w', shape=(n, nt - 1, sum_ny))
+            gamma_w = model.create_output('gamma_w',
+                                          shape=(n, n_wake_pts_chord - 1,
+                                                 sum_ny))
             start = start_b = 0
             for i in range(len(surface_names)):
                 nx = bd_vortex_shapes[i][0]
                 ny = bd_vortex_shapes[i][1]
                 delta = ny - 1
                 delta_b = (nx - 1) * (ny - 1)
-                val = np.zeros((n, nt - 1, ny - 1))
+                val = np.zeros((n, n_wake_pts_chord - 1, ny - 1))
                 surface_name = surface_names[i]
 
                 surface_gamma_b = gamma_b[start:start + delta_b]
                 surface_gamma_w_name = surface_names[i] + '_gamma_w'
                 surface_gamma_w = csdl.expand(
-                    surface_gamma_b[(nx - 2) * (ny - 1):], (nt - 1, ny - 1),
-                    'i->ji')
+                    surface_gamma_b[(nx - 2) * (ny - 1):],
+                    (n_wake_pts_chord - 1, ny - 1), 'i->ji')
                 model.register_output(surface_gamma_w_name, surface_gamma_w)
                 gamma_w[:, :, start:start + delta] = csdl.reshape(
-                    surface_gamma_w, (1, nt - 1, ny - 1))
+                    surface_gamma_w, (1, n_wake_pts_chord - 1, ny - 1))
                 start += delta
                 start_b += delta_b
 
@@ -189,7 +192,8 @@ class SolveMatrix(Model):
 if __name__ == "__main__":
 
     sim = Simulator(
-        SolveMatrix(nt=3, surface_names=['wing'],
+        SolveMatrix(n_wake_pts_chord=3,
+                    surface_names=['wing'],
                     bd_vortex_shapes=[(2, 2, 3)]))
     sim.run()
     sim.visualize_implementation()

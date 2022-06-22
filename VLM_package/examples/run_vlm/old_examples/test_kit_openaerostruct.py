@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 
-from VLM_package.VLM_system.vlm_system import VLMSystemModel
+from VLM_package.VLM_system.vlm_system import VLMSystem
 from VLM_package.VLM_outputs.compute_force.compute_outputs_group import Outputs
 import numpy as np
 
@@ -8,7 +8,7 @@ from openaerostruct_generate_mesh import generate_mesh
 
 from VLM_package.VLM_preprocessing.utils.generate_simple_mesh import *
 
-nt = 2
+n_wake_pts_chord = 2
 
 num_x = 3
 num_y = 19
@@ -55,7 +55,7 @@ frame_vel = model_1.create_input('frame_vel', val=frame_vel_val)
 
 # add the mesh info
 model_1.add(
-    VLMSystemModel(
+    VLMSystem(
         surface_names=surface_names,
         surface_shapes=surface_shapes,
     ), 'ODE_system')
@@ -65,7 +65,7 @@ eval_pts_shapes = [(x[0] - 1, x[1] - 1, 3) for x in surface_shapes]
 # compute lift and drag
 sub = Outputs(surface_names=surface_names,
               surface_shapes=surface_shapes,
-              nt=nt,
+              n_wake_pts_chord=n_wake_pts_chord,
               eval_pts_names=eval_pts_names,
               eval_pts_shapes=eval_pts_shapes)
 model_1.add(sub, name='compute_lift_drag')

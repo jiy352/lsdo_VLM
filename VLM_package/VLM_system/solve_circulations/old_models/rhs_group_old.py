@@ -4,7 +4,7 @@ import csdl
 import numpy as np
 from numpy.core.fromnumeric import size
 
-from VLM_package.VLM_system.solve_circulations.kinematic_velocity_temp import KinematicVelocity
+from VLM_package.VLM_system.solve_circulations.kinematic_velocity_comp import KinematicVelocityComp
 from VLM_package.VLM_system.solve_circulations.assemble_aic import AssembleAic
 from VLM_package.VLM_system.solve_circulations.compute_normal_comp import ComputeNormal
 from VLM_package.VLM_system.solve_circulations.projection_comp import Projection
@@ -35,7 +35,7 @@ class RHS(Model):
         on bound vertices collcation pts induces by the wakes
     """
     def initialize(self):
-        self.parameters.declare('nt', default=5)
+        self.parameters.declare('n_wake_pts_chord', default=5)
         self.parameters.declare('method',
                                 values=['fw_euler', 'bk_euler'],
                                 default='bk_euler')
@@ -44,7 +44,7 @@ class RHS(Model):
         self.parameters.declare('delta_t')
 
     def define(self):
-        nt = self.parameters['nt']
+        n_wake_pts_chord = self.parameters['n_wake_pts_chord']
         delta_t = self.parameters['delta_t']
         bd_vortex_shapes = self.parameters['bd_vortex_shapes']
         surface_names = self.parameters['surface_names']
@@ -59,7 +59,8 @@ class RHS(Model):
         ]
         bd_normal_shape = bd_coll_pts_shapes
         wake_vortex_pts_shapes = [
-            tuple((nt, item[1], item[2])) for item in bd_vortex_shapes
+            tuple((n_wake_pts_chord, item[1], item[2]))
+            for item in bd_vortex_shapes
         ]
 
         for i in range(len(bd_vortex_shapes)):
@@ -73,11 +74,11 @@ class RHS(Model):
         # coll_coords = self.declare_variable('coll_coords',
         #                                     shape=((nx - 1), (ny - 1), 3))
 
-        m = KinematicVelocity(
+        m = KinematicVelocityComp(
             surface_names=surface_names,
             surface_shapes=bd_vortex_shapes,  # (2*3,3)
         )
-        self.add(m, name='KinematicVelocity')
+        self.add(m, name='KinematicVelocityComp')
 
         m = ComputeNormal(
             vortex_coords_names=bd_vtx_coords_names,
@@ -110,8 +111,10 @@ class RHS(Model):
             wake_coords_reshaped_name = wake_coords_reshaped_names[i]
             ny = bd_vortex_shapes[i][1]
             wake_coords = self.declare_variable(wake_coords_names[i],
-                                                shape=(1, nt, ny, 3))
-            wake_coords_reshaped = csdl.reshape(wake_coords, (nt, ny, 3))
+                                                shape=(1, n_wake_pts_chord, ny,
+                                                       3))
+            wake_coords_reshaped = csdl.reshape(wake_coords,
+                                                (n_wake_pts_chord, ny, 3))
             self.register_output(wake_coords_reshaped_name,
                                  wake_coords_reshaped)
 
@@ -148,15 +151,15 @@ class RHS(Model):
 
 if __name__ == "__main__":
 
-    def generate_simple_mesh(nx, ny, nt=None):
-        if nt == None:
+    def generate_simple_mesh(nx, ny, n_wake_pts_chord=None):
+        if n_wake_pts_chord == None:
             mesh = np.zeros((nx, ny, 3))
             mesh[:, :, 0] = np.outer(np.arange(nx), np.ones(ny))
             mesh[:, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T
             mesh[:, :, 2] = 0.
         else:
-            mesh = np.zeros((nt, nx, ny, 3))
-            for i in range(nt):
+            mesh = np.zeros((n_wake_pts_chord, nx, ny, 3))
+            for i in range(n_wake_pts_chord):
                 mesh[i, :, :, 0] = np.outer(np.arange(nx), np.ones(ny))
                 mesh[i, :, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T
                 mesh[i, :, :, 2] = 0.

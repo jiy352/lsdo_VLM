@@ -3,8 +3,8 @@ from csdl import Model
 import csdl
 import numpy as np
 from numpy.core.fromnumeric import size
-# from UVLM_package.VLM_system.solve_circulations.biot_savart_comp_org import BiotSvart
-from VLM_package.VLM_system.solve_circulations.biot_savart_comp_vc_temp import BiotSvart
+# from UVLM_package.VLM_system.solve_circulations.biot_savart_comp_org import BiotSavartComp
+from VLM_package.VLM_system.solve_circulations.biot_savart_vc_comp import BiotSavartComp
 
 
 class AssembleAic(Model):
@@ -87,13 +87,12 @@ class AssembleAic(Model):
         # print('assemble_aic l 87 vortex_coords_shapes', vortex_coords_shapes)
         # print('assemble_aic l 87 output_names', output_names)
 
-        m = BiotSvart(
+        m = BiotSavartComp(
             eval_pt_names=eval_pt_names,
             vortex_coords_names=vortex_coords_names,
             eval_pt_shapes=eval_pt_shapes,
             vortex_coords_shapes=vortex_coords_shapes,
             output_names=output_names,
-            delta_t=delta_t,
         )
         self.add(m, name='aic_bd_w_seperate')
 
@@ -132,15 +131,15 @@ class AssembleAic(Model):
 
 if __name__ == "__main__":
 
-    def generate_simple_mesh(nx, ny, nt=None):
-        if nt == None:
+    def generate_simple_mesh(nx, ny, n_wake_pts_chord=None):
+        if n_wake_pts_chord == None:
             mesh = np.zeros((nx, ny, 3))
             mesh[:, :, 0] = np.outer(np.arange(nx), np.ones(ny))
             mesh[:, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T
             mesh[:, :, 2] = 0.
         else:
-            mesh = np.zeros((nt, nx, ny, 3))
-            for i in range(nt):
+            mesh = np.zeros((n_wake_pts_chord, nx, ny, 3))
+            for i in range(n_wake_pts_chord):
                 mesh[i, :, :, 0] = np.outer(np.arange(nx), np.ones(ny))
                 mesh[i, :, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T
                 mesh[i, :, :, 2] = 0.

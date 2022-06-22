@@ -1,8 +1,8 @@
 from functools import partial
 import unittest
-from VLM_package.VLM_preprocessing.mesh_preprocessing_comp import MeshPreprocessing
+from VLM_package.VLM_preprocessing.mesh_preprocessing_comp import MeshPreprocessingComp
 
-from VLM_package.VLM_system.vlm_system import VLMSystemModel
+from VLM_package.VLM_system.vlm_system import VLMSystem
 from VLM_package.VLM_outputs.compute_force.compute_outputs_group import Outputs
 
 from csdl import Model
@@ -24,7 +24,7 @@ class TestVLMModel(unittest.TestCase):
                                (self.num_nodes, self.nx_1, self.ny_1, 3)]
         self.AcStates = AcStates_vlm
 
-    def make_model_add_mesh(self):
+    def make_model_add_inputs(self):
         TestVLMModel.initialization(self)
 
         self.model_1 = Model()
@@ -52,10 +52,11 @@ class TestMeshPreprocessing(TestVLMModel):
         print('Start TestMeshPreprocessing')
         print('---------------------------------------------')
         TestMeshPreprocessing.initialization(self)
-        TestMeshPreprocessing.make_model_add_mesh(self)
+        TestMeshPreprocessing.make_model_add_inputs(self)
 
-        self.model_1.add(MeshPreprocessing(surface_names=self.surface_names,
-                                           surface_shapes=self.surface_shapes),
+        self.model_1.add(MeshPreprocessingComp(
+            surface_names=self.surface_names,
+            surface_shapes=self.surface_shapes),
                          name='preprocessing_group')
         sim = csdl_om.Simulator(self.model_1)
         sim.run()
@@ -98,9 +99,9 @@ class TestVLMSystem(TestVLMModel):
         print('Start TestVLMSystem')
         print('---------------------------------------------')
         TestVLMSystem.initialization(self)
-        TestVLMSystem.make_model_add_mesh(self)
+        TestVLMSystem.make_model_add_inputs(self)
         self.model_1.add(
-            VLMSystemModel(
+            VLMSystem(
                 surface_names=self.surface_names,
                 surface_shapes=self.surface_shapes,
                 num_nodes=self.num_nodes,
@@ -130,7 +131,7 @@ class TestVLMOutput(TestVLMModel):
         print('Start TestVLMOutput')
         print('---------------------------------------------')
         TestVLMOutput.initialization(self)
-        TestVLMOutput.make_model_add_mesh(self)
+        TestVLMOutput.make_model_add_inputs(self)
         eval_pts_names = [x + '_eval_pts_coords' for x in self.surface_names]
         eval_pts_shapes = [(self.num_nodes, x[1] - 1, x[2] - 1, 3)
                            for x in self.surface_shapes]

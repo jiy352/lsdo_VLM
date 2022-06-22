@@ -19,14 +19,14 @@ S
 
     Returns
     -------
-    kinematic_vel[nt, num_evel_pts_x, num_evel_pts_y, 3] : csdl array
+    kinematic_vel[n_wake_pts_chord, num_evel_pts_x, num_evel_pts_y, 3] : csdl array
         Induced velocities at found along the 3/4 chord.
     """
     def initialize(self):
 
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('surface_shapes', types=list)
-        self.parameters.declare('nt')
+        self.parameters.declare('n_wake_pts_chord')
 
     def define(self):
         surface_names = self.parameters['surface_names']
@@ -34,7 +34,7 @@ S
 
         num_nodes = surface_shapes[0][0]
 
-        nt = self.parameters['nt']
+        n_wake_pts_chord = self.parameters['n_wake_pts_chord']
 
         for i in range(len(surface_shapes)):
             bd_vxt_coords_name = surface_names[i] + '_bd_vtx_coords'
@@ -50,9 +50,10 @@ S
             nx = surface_shapes[i][1]
             ny = surface_shapes[i][2]
 
-            wake_shape = (num_nodes, nt, ny, 3)
+            wake_shape = (num_nodes, n_wake_pts_chord, ny, 3)
             surface_gamma_b_shape = (num_nodes, (nx - 1) * (ny - 1))
-            surface_gamma_w_shape = (num_nodes, (nt - 1), (ny - 1))
+            surface_gamma_w_shape = (num_nodes, (n_wake_pts_chord - 1),
+                                     (ny - 1))
 
             # add_input name and shapes
             bd_vxt_coords = self.declare_variable(bd_vxt_coords_name,
@@ -65,17 +66,17 @@ S
             surface_gamma_w = surface_gamma_b[:,
                                               (nx - 1) * (ny - 1) - (ny - 1):]
             # compute output bd_n_wake_coords
-            bd_n_wake_coords = self.create_output(bd_n_wake_coords_name,
-                                                  shape=(num_nodes,
-                                                         nx + nt - 1, ny, 3))
+            bd_n_wake_coords = self.create_output(
+                bd_n_wake_coords_name,
+                shape=(num_nodes, nx + n_wake_pts_chord - 1, ny, 3))
             bd_n_wake_coords[:, :nx, :, :] = bd_vxt_coords
             bd_n_wake_coords[:, nx:, :, :] = wake_coords[:, 1:, :, :]
 
             # compute output bd_n_wake_gamma
             bd_n_wake_gamma = self.create_output(
                 bd_n_wake_circulation_name,
-                shape=(num_nodes,
-                       surface_gamma_b_shape[1] + (nt - 1) * (ny - 1)))
+                shape=(num_nodes, surface_gamma_b_shape[1] +
+                       (n_wake_pts_chord - 1) * (ny - 1)))
             # print('combine bd wake surface_gamma_b shape',
             #       surface_gamma_b.shape)
             # print('combine bd wake surface_gamma_w shape',
@@ -86,15 +87,15 @@ S
 
 if __name__ == "__main__":
 
-    def generate_simple_mesh(nx, ny, nt=None, delta_y=0):
-        if nt == None:
+    def generate_simple_mesh(nx, ny, n_wake_pts_chord=None, delta_y=0):
+        if n_wake_pts_chord == None:
             mesh = np.zeros((nx, ny, 3))
             mesh[:, :, 0] = np.outer(np.arange(nx), np.ones(ny)) + delta_y
             mesh[:, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T
             mesh[:, :, 2] = 0.
         else:
-            mesh = np.zeros((nt, nx, ny, 3))
-            for i in range(nt):
+            mesh = np.zeros((n_wake_pts_chord, nx, ny, 3))
+            for i in range(n_wake_pts_chord):
                 mesh[i, :, :,
                      0] = np.outer(np.arange(nx), np.ones(ny)) + delta_y
                 mesh[i, :, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T
@@ -103,7 +104,7 @@ if __name__ == "__main__":
 
     surface_names = ['a', 'b']
     surface_shapes = [(3, 2, 3), (2, 4, 3)]
-    nt = 2
+    n_wake_pts_chord = 2
     model_1 = Model()
     frame_vel_val = np.random.random((3, ))
     for i in range(2):
@@ -116,7 +117,7 @@ if __name__ == "__main__":
         ny = surface_shapes[i][1]
 
         surface_gamma_b_shape = ((nx - 1) * (ny - 1))
-        surface_gamma_w_shape = ((nt - 1) * (ny - 1))
+        surface_gamma_w_shape = ((n_wake_pts_chord - 1) * (ny - 1))
 
         bd_vxt_coords = model_1.create_input(bd_vxt_coords_name,
                                              val=generate_simple_mesh(
@@ -124,7 +125,7 @@ if __name__ == "__main__":
                                                  surface_shapes[i][1]))
         wake_coords = model_1.create_input(
             wake_coords_name,
-            val=generate_simple_mesh(nt,
+            val=generate_simple_mesh(n_wake_pts_chord,
                                      surface_shapes[i][1],
                                      delta_y=surface_shapes[i][0] - 1))
 
@@ -137,7 +138,7 @@ if __name__ == "__main__":
     model_1.add(BdnWakeCombine(
         surface_names=surface_names,
         surface_shapes=surface_shapes,
-        nt=nt,
+        n_wake_pts_chord=n_wake_pts_chord,
     ),
                 name='BdnWakeCombine')
     sim = Simulator(model_1)

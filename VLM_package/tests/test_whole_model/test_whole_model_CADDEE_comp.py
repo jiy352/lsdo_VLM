@@ -1,8 +1,8 @@
 from functools import partial
 import unittest
-from VLM_package.VLM_preprocessing.mesh_preprocessing_comp import MeshPreprocessing
+from VLM_package.VLM_preprocessing.mesh_preprocessing_comp import MeshPreprocessingComp
 
-from VLM_package.VLM_system.vlm_system import VLMSystemModel
+from VLM_package.VLM_system.vlm_system import VLMSystem
 from VLM_package.VLM_outputs.compute_force.compute_outputs_group import Outputs
 
 from csdl import Model
@@ -24,7 +24,7 @@ class TestVLMModel(unittest.TestCase):
                                (self.num_nodes, self.nx_1, self.ny_1, 3)]
         self.AcStates = AcStates_vlm
 
-    def make_model_add_mesh(self):
+    def make_model_add_inputs(self):
         TestVLMModel.initialization(self)
 
         self.model_1 = Model()
@@ -76,10 +76,10 @@ class TestVLMModelWhole(TestVLMModel):
         print('Start TestVLMModelWhole')
         print('---------------------------------------------')
         TestVLMModelWhole.initialization(self)
-        TestVLMModelWhole.make_model_add_mesh(self)
+        TestVLMModelWhole.make_model_add_inputs(self)
 
         self.model_1.add(
-            VLMSystemModel(
+            VLMSystem(
                 surface_names=self.surface_names,
                 surface_shapes=self.surface_shapes,
                 num_nodes=self.num_nodes,

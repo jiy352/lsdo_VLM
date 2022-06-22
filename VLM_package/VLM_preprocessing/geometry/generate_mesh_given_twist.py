@@ -51,9 +51,9 @@ class Rotate(csdl.CustomExplicitOperation):
         val = self.parameters["val"]
 
         self.add_input("twist", val=val)
-        self.add_input("in_mesh", shape=mesh_shape, units="m")
+        self.add_input("in_mesh", shape=mesh_shape)
 
-        self.add_output("mesh", shape=mesh_shape, units="m")
+        self.add_output("mesh", shape=mesh_shape)
 
         nx, ny, _ = mesh_shape
         nn = nx * ny * 3

@@ -47,7 +47,7 @@ class Outputs(Model):
         self.parameters.declare('eval_pts_shapes', types=list)
         self.parameters.declare('sprs')
 
-        self.parameters.declare('nt', default=2)
+        self.parameters.declare('n_wake_pts_chord', default=2)
         self.parameters.declare('delta_t', default=100)
 
         self.parameters.declare('coeffs_aoa', default=None)
@@ -55,7 +55,7 @@ class Outputs(Model):
         self.parameters.declare('AcStates', default=None)
 
     def define(self):
-        nt = self.parameters['nt']
+        n_wake_pts_chord = self.parameters['n_wake_pts_chord']
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
 
@@ -82,7 +82,7 @@ class Outputs(Model):
             eval_pts_location=eval_pts_location,
             surface_names=surface_names,
             surface_shapes=surface_shapes,
-            nt=nt,
+            n_wake_pts_chord=n_wake_pts_chord,
             delta_t=delta_t,
         )
         self.add(submodel, name='EvalPtsVel')
@@ -103,15 +103,15 @@ class Outputs(Model):
 
 if __name__ == "__main__":
 
-    def generate_simple_mesh(nx, ny, nt=None):
-        if nt == None:
+    def generate_simple_mesh(nx, ny, n_wake_pts_chord=None):
+        if n_wake_pts_chord == None:
             mesh = np.zeros((nx, ny, 3))
             mesh[:, :, 0] = np.outer(np.arange(nx), np.ones(ny))
             mesh[:, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T
             mesh[:, :, 2] = 0.
         else:
-            mesh = np.zeros((nt, nx, ny, 3))
-            for i in range(nt):
+            mesh = np.zeros((n_wake_pts_chord, nx, ny, 3))
+            for i in range(n_wake_pts_chord):
                 mesh[i, :, :, 0] = np.outer(np.arange(nx), np.ones(ny))
                 mesh[i, :, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T
                 mesh[i, :, :, 2] = 0.
@@ -119,7 +119,7 @@ if __name__ == "__main__":
 
     nx = 3
     ny = 4
-    nt = 5
+    n_wake_pts_chord = 5
     delta_t = 1
     # surface_names = ['wing']
     # surface_shapes = [(nx, ny, 3)]
@@ -136,7 +136,7 @@ if __name__ == "__main__":
     model_1.add(
         Outputs(surface_names=surface_names,
                 surface_shapes=surface_shapes,
-                nt=nt,
+                n_wake_pts_chord=n_wake_pts_chord,
                 eval_pts_names=eval_pts_names,
                 eval_pts_shapes=eval_pts_shapes,
                 delta_t=delta_t))

@@ -4,14 +4,14 @@ from csdl_om import Simulator
 import numpy as np
 from VLM_package.VLM_system.solve_circulations.solve_group import SolveMatrix
 from VLM_package.VLM_system.solve_circulations.compute_residual import ComputeResidual
-from VLM_package.VLM_preprocessing.mesh_preprocessing_comp import MeshPreprocessing
-from VLM_package.VLM_preprocessing.compute_wake_coords import WakeCoords
+from VLM_package.VLM_preprocessing.mesh_preprocessing_comp import MeshPreprocessingComp
+from VLM_package.VLM_preprocessing.wake_coords_comp import WakeCoords
 
 from VLM_package.VLM_system.solve_circulations.seperate_gamma_b import SeperateGammab
 from VLM_package.VLM_preprocessing.adapter_comp import AdapterComp
 
 
-class VLMSystemModel(csdl.Model):
+class VLMSystem(csdl.Model):
     '''
     contains
     1. MeshPreprocessing_comp
@@ -24,22 +24,24 @@ class VLMSystemModel(csdl.Model):
         self.parameters.declare('num_nodes')
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('surface_shapes', types=list)
-        self.parameters.declare('delta_t', default=100)
+        self.parameters.declare('delta_t', default=20)
 
         self.parameters.declare('AcStates', default=None)
 
         # We also passed in parameters to this ODE model in ODEproblem.create_model() in 'run.py' which we can access here.
         # for now, we just make frame_vel an option, bd_vortex_coords, as static parameters
         # self.parameters.declare('frame_vel')
-        self.parameters.declare('nt', default=2)
+        self.parameters.declare('n_wake_pts_chord', default=2)
         self.parameters.declare('free_wake', default=False)
         self.parameters.declare('temp_fix_option', default=False)
-        self.parameters.declare('solve_option', default='direct')
+        self.parameters.declare('solve_option',
+                                default='direct',
+                                values=['direct', 'optimization'])
 
     def define(self):
         # rename parameters
         num_nodes = self.parameters['num_nodes']
-        nt = self.parameters['nt']
+        n_wake_pts_chord = self.parameters['n_wake_pts_chord']
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
         free_wake = self.parameters['free_wake']
@@ -55,12 +57,12 @@ class VLMSystemModel(csdl.Model):
         # frame_vel = self.declare_variable('frame_vel', shape=(3, ))
         v_total_wake_names = [x + '_wake_total_vel' for x in surface_names]
         wake_vortex_pts_shapes = [
-            tuple((nt, item[1], 3)) for item in surface_shapes
+            tuple((n_wake_pts_chord, item[1], 3)) for item in surface_shapes
         ]
         wake_vel_shapes = [(x[0] * x[1], 3) for x in wake_vortex_pts_shapes]
 
-        self.add(MeshPreprocessing(surface_names=surface_names,
-                                   surface_shapes=surface_shapes),
+        self.add(MeshPreprocessingComp(surface_names=surface_names,
+                                       surface_shapes=surface_shapes),
                  name='MeshPreprocessing_comp')
         AcStates = self.parameters["AcStates"]
         if AcStates != None:
@@ -72,7 +74,6 @@ class VLMSystemModel(csdl.Model):
             m = AdapterComp(
                 surface_names=surface_names,
                 surface_shapes=surface_shapes,
-                AcStates=AcStates,
             )
             # m.optimize_ir(False)
             self.add(m, name='adapter_comp')
@@ -80,21 +81,20 @@ class VLMSystemModel(csdl.Model):
         m = WakeCoords(
             surface_names=surface_names,
             surface_shapes=surface_shapes,
-            num_nodes=num_nodes,
-            nt=nt,
+            n_wake_pts_chord=n_wake_pts_chord,
             delta_t=delta_t,
         )
         # m.optimize_ir(False)
         self.add(m, name='WakeCoords_comp')
 
         if self.parameters['solve_option'] == 'direct':
-            self.add(SolveMatrix(nt=nt,
+            self.add(SolveMatrix(n_wake_pts_chord=n_wake_pts_chord,
                                  surface_names=surface_names,
                                  bd_vortex_shapes=bd_vortex_shapes,
                                  delta_t=delta_t),
                      name='solve_gamma_b_group')
         elif self.parameters['solve_option'] == 'optimization':
-            self.add(ComputeResidual(nt=nt,
+            self.add(ComputeResidual(n_wake_pts_chord=n_wake_pts_chord,
                                      surface_names=surface_names,
                                      bd_vortex_shapes=bd_vortex_shapes,
                                      delta_t=delta_t),
@@ -105,55 +105,6 @@ class VLMSystemModel(csdl.Model):
         self.add(SeperateGammab(surface_names=surface_names,
                                 surface_shapes=surface_shapes),
                  name='seperate_gamma_b_comp')
-
-        #!TODO:! further check if I can get rid of extract_gamma_w_comp
-
-        # m = csdl.Model()
-        # sum_ny = sum((i[1] - 1) for i in bd_vortex_shapes)
-        # gamma_w = m.create_output('gamma_w', shape=(num_nodes, nt - 1, sum_ny))
-        # start = 0
-        # for i in range(len(surface_names)):
-        #     nx = bd_vortex_shapes[i][0]
-        #     ny = bd_vortex_shapes[i][1]
-        #     delta = ny - 1
-
-        #     val = np.zeros((num_nodes, nt - 1, ny - 1))
-        #     surface_name = surface_names[i]
-
-        #     surface_gamma_b_name = surface_name + '_gamma_b'
-
-        #     surface_gamma_b = m.declare_variable(surface_gamma_b_name,
-        #                                          shape=((nx - 1) * (ny - 1), ))
-        #     surface_gamma_w_name = surface_names[i] + '_gamma_w'
-        #     surface_gamma_w = csdl.expand(
-        #         surface_gamma_b[(nx - 2) * (ny - 1):], (nt - 1, ny - 1),
-        #         'i->ji')
-        #     m.register_output(surface_gamma_w_name, surface_gamma_w)
-        #     gamma_w[:, :, start:start + delta] = csdl.reshape(
-        #         surface_gamma_w, (num_nodes, nt - 1, ny - 1))
-        #     start += delta
-        # self.add(m, name='extract_gamma_w_comp')
-
-        # gamma_b = self.declare_variable('gamma_b', shape=gamma_b_shape)
-
-        # self.add(SeperateGammab(surface_names=surface_names,
-        #                         surface_shapes=surface_shapes),
-        #          name='seperate_gamma_b')
-        # ODE system with surface gamma's
-        '''TODO: see if I can delete this'''
-        # for i in range(len(surface_names)):
-        #     nx = bd_vortex_shapes[i][1]
-        #     ny = bd_vortex_shapes[i][2]
-        #     val = np.zeros((num_nodes, nt - 1, ny - 1))
-        #     surface_name = surface_names[i]
-
-        #     surface_gamma_b_name = surface_name + '_gamma_b'
-
-        #     surface_gamma_b = self.declare_variable(surface_gamma_b_name,
-        #                                             shape=(
-        #                                                 num_nodes,
-        #                                                 (nx - 1) * (ny - 1),
-        #                                             ))
 
 
 if __name__ == "__main__":

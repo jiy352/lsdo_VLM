@@ -479,7 +479,7 @@ prepossing_before_Solve, <csdl.core.subgraph.Subgraph object at 0x7feeb3b710d0>
 RHS_group, <csdl.core.subgraph.Subgraph object at 0x7feeb3f5c430>
 	DEPENDENTS
 	DEPENDENCIES
-KinematicVelocity, <csdl.core.subgraph.Subgraph object at 0x7feeb3f5ca60>
+KinematicVelocityComp, <csdl.core.subgraph.Subgraph object at 0x7feeb3f5ca60>
 	DEPENDENTS
 	ComputeNormal, <csdl.core.subgraph.Subgraph object at 0x7feeb3f5cfd0>
 	DEPENDENCIES
@@ -606,7 +606,7 @@ ComputeNormal, <csdl.core.subgraph.Subgraph object at 0x7feeb3f5cfd0>
 	DEPENDENTS
 	Projection_k_vel, <csdl.core.subgraph.Subgraph object at 0x7feeb3f71340>
 	DEPENDENCIES
-	KinematicVelocity, <csdl.core.subgraph.Subgraph object at 0x7feeb3f5ca60>
+	KinematicVelocityComp, <csdl.core.subgraph.Subgraph object at 0x7feeb3f5ca60>
 wing_bd_vtx_coords, <csdl.core.declared_variable.DeclaredVariable object at 0x7feeb3f5caf0>
 	DEPENDENTS
 	_001M, <csdl.operations.decompose.decompose object at 0x7feeb3f5cb80>
@@ -8189,7 +8189,7 @@ prepossing_before_Solve, <csdl.core.subgraph.Subgraph object at 0x7feeb3b710d0>
 RHS_group, <csdl.core.subgraph.Subgraph object at 0x7feeb3f5c430>
 	DEPENDENTS
 	DEPENDENCIES
-KinematicVelocity, <csdl.core.subgraph.Subgraph object at 0x7feeb3f5ca60>
+KinematicVelocityComp, <csdl.core.subgraph.Subgraph object at 0x7feeb3f5ca60>
 	DEPENDENTS
 	ComputeNormal, <csdl.core.subgraph.Subgraph object at 0x7feeb3f5cfd0>
 	DEPENDENCIES
@@ -8316,7 +8316,7 @@ ComputeNormal, <csdl.core.subgraph.Subgraph object at 0x7feeb3f5cfd0>
 	DEPENDENTS
 	Projection_k_vel, <csdl.core.subgraph.Subgraph object at 0x7feeb3f71340>
 	DEPENDENCIES
-	KinematicVelocity, <csdl.core.subgraph.Subgraph object at 0x7feeb3f5ca60>
+	KinematicVelocityComp, <csdl.core.subgraph.Subgraph object at 0x7feeb3f5ca60>
 wing_bd_vtx_coords, <csdl.core.declared_variable.DeclaredVariable object at 0x7feeb3f5caf0>
 	DEPENDENTS
 	_001M, <csdl.operations.decompose.decompose object at 0x7feeb3f5cb80>

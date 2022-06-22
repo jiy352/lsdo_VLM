@@ -5,7 +5,6 @@ import csdl
 from matplotlib.pyplot import axis
 import numpy as np
 
-from VLM_package.VLM_preprocessing.compute_bound_vec import BoundVec
 from VLM_package.VLM_outputs.compute_effective_aoa_cd_v import AOA_CD
 
 
@@ -57,26 +56,11 @@ class LiftDrag(Model):
             ny = surface_shapes[i][2]
             system_size += (nx - 1) * (ny - 1)
 
-        if AcStates == None:
-            # rho_val = self.parameters['rho']
-            v_inf = self.declare_variable('v_inf', shape=(num_nodes, 1))
-            # add frame_vel
-
-            alpha = csdl.arctan(frame_vel[:, 2] / frame_vel[:, 0])
-            sinbeta = csdl.reshape(frame_vel[:, 1] / v_inf,
-                                   new_shape=(num_nodes, ))
-
-            beta = csdl.reshape(-csdl.arcsin(sinbeta),
-                                new_shape=(num_nodes, 1))
-            rho = self.declare_variable('rho', shape=(num_nodes, 1))
-            rho_expand = csdl.expand(csdl.reshape(rho, (num_nodes, )),
-                                     (num_nodes, system_size, 3), 'k->kij')
-        else:
-            rho = self.declare_variable('rho', shape=(num_nodes, 1))
-            rho_expand = csdl.expand(csdl.reshape(rho, (num_nodes, )),
-                                     (num_nodes, system_size, 3), 'k->kij')
-            alpha = self.declare_variable('alpha', shape=(num_nodes, 1))
-            beta = self.declare_variable('beta', shape=(num_nodes, 1))
+        rho = self.declare_variable('rho', shape=(num_nodes, 1))
+        rho_expand = csdl.expand(csdl.reshape(rho, (num_nodes, )),
+                                 (num_nodes, system_size, 3), 'k->kij')
+        alpha = self.declare_variable('alpha', shape=(num_nodes, 1))
+        beta = self.declare_variable('beta', shape=(num_nodes, 1))
 
         sprs = self.parameters['sprs']
         eval_pts_option = self.parameters['eval_pts_option']
@@ -86,12 +70,6 @@ class LiftDrag(Model):
         coeffs_cd = self.parameters['coeffs_cd']
 
         v_total_wake_names = [x + '_eval_total_vel' for x in surface_names]
-
-        submodel = BoundVec(
-            surface_names=surface_names,
-            surface_shapes=surface_shapes,
-        )
-        self.add(submodel, name='BoundVec')
 
         bd_vec = self.declare_variable('bd_vec',
                                        shape=((num_nodes, system_size, 3)))
@@ -320,8 +298,8 @@ class LiftDrag(Model):
             #       csdl.cross(panel_forces, eval_pts_all, axis=(2, )))
             total_forces = csdl.sum(panel_forces, axes=(1, ))
 
-            total_moment = csdl.sum(csdl.cross(panel_forces,
-                                               eval_pts_all,
+            total_moment = csdl.sum(csdl.cross(eval_pts_all,
+                                               panel_forces,
                                                axis=2),
                                     axes=(1, ))
             self.register_output('F', total_forces)

@@ -5,7 +5,7 @@ import csdl
 import numpy as np
 
 
-class BiotSvart(Model):
+class BiotSavartComp(Model):
     """
     Compute AIC.
 
@@ -21,7 +21,7 @@ class BiotSvart(Model):
     AIC[nx-1, ny, 3] : numpy array
         Aerodynamic influence coeffients (can be interprete as induced
         velocities given circulations=1)
-    note: there should not be nt-th dimension in BiotSvart as for now
+    note: there should not be n_wake_pts_chord-th dimension in BiotSavartComp as for now
     """
     def initialize(self):
         self.parameters.declare('eval_pt_names', types=list)
@@ -33,7 +33,7 @@ class BiotSvart(Model):
         self.parameters.declare('output_names', types=list)
 
         self.parameters.declare('vc', default=False)
-        self.parameters.declare('nt', default=1)
+        self.parameters.declare('n_wake_pts_chord', default=1)
         self.parameters.declare('delta_t')
         self.parameters.declare('eps', default=1e-10)
 
@@ -109,7 +109,7 @@ class BiotSvart(Model):
                           circulation_name):
 
         vc = self.parameters['vc']
-        nt = self.parameters['nt']
+        n_wake_pts_chord = self.parameters['n_wake_pts_chord']
         delta_t = self.parameters['delta_t']
         num_nodes = eval_pts.shape[0]
 
@@ -212,7 +212,8 @@ class BiotSvart(Model):
                                          (ny - 1))) / kinematic_viscocity
 
             r_c = (4 * a_l * kinematic_viscocity * sigma * time_current +
-                   self.parameters['eps'])**0.5  # size = (nt-1, ny-1)
+                   self.parameters['eps']
+                   )**0.5  # size = (n_wake_pts_chord-1, ny-1)
 
             # r2_r1_norm_sq = csdl.sum((r2 - r1)**2, axes=(1, ))
 
@@ -290,21 +291,21 @@ class BiotSvart(Model):
 
 if __name__ == "__main__":
 
-    def generate_simple_mesh(nx, ny, nt=None):
-        if nt == None:
+    def generate_simple_mesh(nx, ny, n_wake_pts_chord=None):
+        if n_wake_pts_chord == None:
             mesh = np.zeros((nx, ny, 3))
             mesh[:, :, 0] = np.outer(np.arange(nx), np.ones(ny))
             mesh[:, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T
             mesh[:, :, 2] = 0.
         else:
-            mesh = np.zeros((nt, nx, ny, 3))
-            for i in range(nt):
+            mesh = np.zeros((n_wake_pts_chord, nx, ny, 3))
+            for i in range(n_wake_pts_chord):
                 mesh[i, :, :, 0] = np.outer(np.arange(nx), np.ones(ny))
                 mesh[i, :, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T
                 mesh[i, :, :, 2] = 0.
         return mesh
 
-    nt = 6
+    n_wake_pts_chord = 6
     nx = 3
     ny = 4
 
@@ -336,14 +337,14 @@ if __name__ == "__main__":
                                         val=circulations_val.reshape(
                                             1, nx - 1, ny - 1))
 
-    model_1.add(BiotSvart(eval_pt_names=eval_pt_names,
-                          vortex_coords_names=vortex_coords_names,
-                          eval_pt_shapes=eval_pt_shapes,
-                          vortex_coords_shapes=vortex_coords_shapes,
-                          output_names=output_names,
-                          vc=True,
-                          nt=nt,
-                          circulation_names=['circulations']),
+    model_1.add(BiotSavartComp(eval_pt_names=eval_pt_names,
+                               vortex_coords_names=vortex_coords_names,
+                               eval_pt_shapes=eval_pt_shapes,
+                               vortex_coords_shapes=vortex_coords_shapes,
+                               output_names=output_names,
+                               vc=True,
+                               n_wake_pts_chord=n_wake_pts_chord,
+                               circulation_names=['circulations']),
                 name='BiotSvart_group')
     sim = Simulator(model_1)
 

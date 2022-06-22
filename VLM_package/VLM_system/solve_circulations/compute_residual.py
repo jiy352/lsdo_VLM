@@ -20,8 +20,8 @@ class ComputeResidual(Model):
     b        size: sum((nx[i] - 1) * (ny[i] - 1))
     M        size: 
         M_row = sum((nx[i] - 1) * (ny[i] - 1))
-        M_col = sum((nt - 1) * (ny[i] - 1))
-    \gamma_w size: sum((nt - 1) * (ny[i] - 1))
+        M_col = sum((n_wake_pts_chord - 1) * (ny[i] - 1))
+    \gamma_w size: sum((n_wake_pts_chord - 1) * (ny[i] - 1))
     Parameters
     ----------
     mtx[system_size, system_size] : numpy array
@@ -39,7 +39,7 @@ class ComputeResidual(Model):
         self.parameters.declare('method',
                                 values=['fw_euler', 'bk_euler'],
                                 default='bk_euler')
-        self.parameters.declare('nt', types=int)
+        self.parameters.declare('n_wake_pts_chord', types=int)
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('bd_vortex_shapes', types=list)
         self.parameters.declare('n', default=1)
@@ -52,7 +52,7 @@ class ComputeResidual(Model):
         num_nodes = bd_vortex_shapes[0][0]
 
         method = self.parameters['method']
-        nt = self.parameters['nt']
+        n_wake_pts_chord = self.parameters['n_wake_pts_chord']
         n = self.parameters['n']
         delta_t = self.parameters['delta_t']
 
@@ -69,20 +69,21 @@ class ComputeResidual(Model):
         bd_vtx_normals = [x + '_bd_vtx_normals' for x in surface_names]
         # aic_bd_proj_names = [x + '_aic_bd_proj' for x in surface_names]
         wake_vortex_pts_shapes = [
-            tuple((nt, item[1], item[2])) for item in bd_vortex_shapes
+            tuple((n_wake_pts_chord, item[1], item[2]))
+            for item in bd_vortex_shapes
         ]
 
         model = Model()
         '''1. add the rhs'''
         model.add(
             RHS(
-                nt=nt,
+                n_wake_pts_chord=n_wake_pts_chord,
                 surface_names=surface_names,
                 bd_vortex_shapes=bd_vortex_shapes,
                 delta_t=delta_t,
             ), 'RHS_group')
 
-        nt = self.parameters['nt']
+        n_wake_pts_chord = self.parameters['n_wake_pts_chord']
         self.add(model, 'prepossing_before_Solve')
         '''3. solve'''
         model = Model()
@@ -145,7 +146,7 @@ class ComputeResidual(Model):
 if __name__ == "__main__":
 
     sim = Simulator(
-        ComputeResidual(nt=2,
+        ComputeResidual(n_wake_pts_chord=2,
                         surface_names=['wing'],
                         bd_vortex_shapes=[(2, 2, 2, 3)],
                         delta_t=10))

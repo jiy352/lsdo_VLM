@@ -1,4 +1,3 @@
-from random import randint
 from csdl_om import Simulator
 from csdl import Model
 import csdl
@@ -6,15 +5,15 @@ import numpy as np
 from VLM_package.VLM_system.solve_circulations.utils.einsum_kij_kij_ki import EinsumKijKijKi
 
 
-class BiotSvart(Model):
+class BiotSavartComp(Model):
     """
     Compute AIC.
 
     parameters
     ----------
-    eval_pts[nx, ny, 3] : numpy array
+    eval_pts[num_nodes,nx, ny, 3] : numpy array
         Array defining the nodal coordinates of the lifting surface.
-    vortex_coords[nx, ny, 3] : numpy array
+    vortex_coords[num_nodes,nx, ny, 3] : numpy array
         Array defining the nodal coordinates of the lifting surface.
 
     Returns
@@ -22,21 +21,23 @@ class BiotSvart(Model):
     AIC[nx-1, ny, 3] : numpy array
         Aerodynamic influence coeffients (can be interprete as induced
         velocities given circulations=1)
-    note: there should not be nt-th dimension in BiotSvart as for now
+    note: there should not be n_wake_pts_chord-th dimension in BiotSavartComp as for now
     """
     def initialize(self):
+        # evaluation points names and shapes
         self.parameters.declare('eval_pt_names', types=list)
-        self.parameters.declare('vortex_coords_names', types=list)
-
         self.parameters.declare('eval_pt_shapes', types=list)
+
+        # induced background mesh names and shapes
+        self.parameters.declare('vortex_coords_names', types=list)
         self.parameters.declare('vortex_coords_shapes', types=list)
 
+        # output aic names
         self.parameters.declare('output_names', types=list)
 
+        # whether to enable the fixed vortex core model
         self.parameters.declare('vc', default=False)
-        self.parameters.declare('nt', default=1)
-        self.parameters.declare('delta_t')
-        self.parameters.declare('eps', default=1e-10)
+        self.parameters.declare('eps', default=5e-4)
 
         self.parameters.declare('circulation_names', default=None)
 
@@ -63,7 +64,6 @@ class BiotSvart(Model):
 
             # output_name
             output_name = output_names[i]
-
             # input_shapes
             eval_pt_shape = eval_pt_shapes[i]
             vortex_coords_shape = vortex_coords_shapes[i]
@@ -96,23 +96,31 @@ class BiotSvart(Model):
             # print('BScomp l94 D shape', D.shape)
 
             v_ab = self._induced_vel_line(eval_pts, A, B, vortex_coords_shape,
-                                          circulation_name)
+                                          circulation_name, eval_pt_name,
+                                          vortex_coords_name, output_name,
+                                          'AB')
             v_bc = self._induced_vel_line(eval_pts, B, C, vortex_coords_shape,
-                                          circulation_name)
+                                          circulation_name, eval_pt_name,
+                                          vortex_coords_name, output_name,
+                                          'BC')
             v_cd = self._induced_vel_line(eval_pts, C, D, vortex_coords_shape,
-                                          circulation_name)
+                                          circulation_name, eval_pt_name,
+                                          vortex_coords_name, output_name,
+                                          'CD')
             v_da = self._induced_vel_line(eval_pts, D, A, vortex_coords_shape,
-                                          circulation_name)
+                                          circulation_name, eval_pt_name,
+                                          vortex_coords_name, output_name,
+                                          'DA')
             AIC = v_ab + v_bc + v_cd + v_da
             self.register_output(output_name, AIC)
 
     def _induced_vel_line(self, eval_pts, p_1, p_2, vortex_coords_shape,
-                          circulation_name):
+                          circulation_name, eval_pt_name, vortex_coords_name,
+                          output_name, line_name):
 
         vc = self.parameters['vc']
-        nt = self.parameters['nt']
-        delta_t = self.parameters['delta_t']
         num_nodes = eval_pts.shape[0]
+        name = eval_pt_name + vortex_coords_name + output_name + line_name
 
         # 1 -> 2 eval_pts(num_pts_x,num_pts_y, 3)
         # v_induced_line shape=(num_panel_x*num_panel_y, num_panel_x, num_panel_y, 3)
@@ -131,11 +139,7 @@ class BiotSvart(Model):
             new_shape=(num_nodes,
                        eval_pts.shape[1] * eval_pts.shape[2] * num_repeat_eval,
                        3))
-        # self.register_output('eval_pts_expand' + str(randint(0, 1000)),
-        #                      eval_pts_expand)
 
-        # print('num_nodes', num_nodes)
-        # print('(p_1.shape[1] * p_1.shape[2]', (p_1.shape[1] * p_1.shape[2]))
 
 
         p_1_expand = csdl.reshape(\
@@ -216,58 +220,27 @@ class BiotSvart(Model):
                                          (ny - 1))) / kinematic_viscocity
 
             r_c = (4 * a_l * kinematic_viscocity * sigma * time_current +
-                   self.parameters['eps'])**0.5  # size = (nt-1, ny-1)
+                   self.parameters['eps']
+                   )**0.5  # size = (n_wake_pts_chord-1, ny-1)
 
             # r2_r1_norm_sq = csdl.sum((r2 - r1)**2, axes=(1, ))
 
             rc_sq = r_c**2
+            # print('rc_sq name-----------', rc_sq.name, rc_sq.shape)
 
             rc_sq_reshaped = csdl.reshape(rc_sq,
                                           new_shape=(
                                               num_nodes,
                                               rc_sq.shape[1] * rc_sq.shape[2],
                                           ))
-            # rc_sq_expand = csdl.reshape(
-            #     csdl.expand(rc_sq_reshaped,
-            #                 (num_repeat_p, rc_sq_reshaped.shape[0]), 'i->ji'),
-            #     new_shape=(rc_sq.shape[0] * rc_sq.shape[1] * num_repeat_p))
-
-            # print('print shapes')
-            # print('num_repeat_eval', num_repeat_eval)
-            # print('num_repeat_p', num_repeat_p)
-            # print('circulations', circulations.shape)
-            # print('r1_x_r2_norm_sq', r1_x_r2_norm_sq.shape)
-            # print('r1_norm', r1_norm.shape)
-            # print('r2_r1_norm_sq', r2_r1_norm_sq.shape)
-            # print('rc_sq', rc_sq.shape)
-            # print('array1', array1.shape)
-            # pertubation = csdl.expand(r2_r1_norm_sq * rc_sq_expand,
-            #                           array1.shape, 'i->ik')
-            # print('pertubation', pertubation.shape)
             mesh_resolution = 1
-
-            # array2 = ((csdl.einsum(
-            #     (r1 * r2_norm - r2 * r1_norm) /
-            #     (r1_norm * r2_norm +
-            #      (r1_norm**2 + r2_norm**2) * self.parameters['eps']),
-            #     r0,
-            #     subscripts='ij,ij->i',
-            # )))
-
-            # array2 = ((csdl.einsum(
-            #     (r1 * r2_norm - r2 * r1_norm) /
-            #     (r1_norm * r2_norm + mesh_resolution * self.parameters['eps']),
-            #     r0,
-            #     subscripts='kij,kij->ki',
-            #     partial_format='sparse',
-            # )))
 
             in_1 = (r1 * r2_norm - r2 * r1_norm) / (
                 r1_norm * r2_norm + mesh_resolution * self.parameters['eps'])
 
             in_2 = r0
-            in_1_name = 'in_1' + str(randint(0, 1000))
-            in_2_name = 'in_2' + str(randint(10000, 20000))
+            in_1_name = 'in_1_' + name
+            in_2_name = 'in_2_' + name
             self.register_output(in_1_name, in_1)
             self.register_output(in_2_name, in_2)
             array2 = csdl.custom(in_1,
@@ -275,10 +248,10 @@ class BiotSvart(Model):
                                  op=EinsumKijKijKi(in_name_1=in_1_name,
                                                    in_name_2=in_2_name,
                                                    in_shape=in_1.shape,
-                                                   out_name='out_array2' +
-                                                   str(randint(0, 100000))))
-            del in_1
-            del in_2
+                                                   out_name=('out_array2' +
+                                                             name)))
+            # del in_1
+            # del in_2
 
             # pertubation = 0.01219
             # v_induced_line = array1 * csdl.expand(
@@ -291,27 +264,17 @@ class BiotSvart(Model):
                     r1_x_r2_norm_sq + 1 * self.parameters['eps']
                 )  # TODO: fix this later
 
-            # r1_dot_r2 = csdl.dot(r1, r2, axis=1)
-            # r1_dot_r2_expand = csdl.expand(r1_dot_r2,
-            #                                (r1_dot_r2.shape) + (3, ), 'i->ik')
-            # v_induced_line = 1 / (np.pi * 4) * r1_x_r2 * (
-            #     (r1_norm + r2_norm) * (r1_norm * r2_norm - r1_dot_r2_expand) /
-            #     (r1_norm * r2_norm * (r1_x_r2_norm_sq + pertubation * 1e-3))
-            # )
+            # print('in_1 name-----------', in_1.name, in_1.shape)
+            # print('v_induced_line name-----------', v_induced_line.name,
+            #       v_induced_line.shape)
         else:
-            # array2 = ((csdl.einsum(
-            #     (r1 * r2_norm - r2 * r1_norm) / (r1_norm * r2_norm),
-            #     r0,
-            #     subscripts='kij,kij->ki',
-            #     partial_format='sparse',
-            # )))
 
             in_3 = (r1 * r2_norm - r2 * r1_norm) / (r1_norm * r2_norm)
 
             in_4 = r0
 
-            in_3_name = 'in_3' + str(randint(0, 1000))
-            in_4_name = 'in_4' + str(randint(0, 1000))
+            in_3_name = 'in_3_' + name
+            in_4_name = 'in_4_' + name
             self.register_output(in_3_name, in_3)
             self.register_output(in_4_name, in_4)
 
@@ -320,8 +283,8 @@ class BiotSvart(Model):
                                  op=EinsumKijKijKi(in_name_1=in_3_name,
                                                    in_name_2=in_4_name,
                                                    in_shape=in_3.shape,
-                                                   out_name='out1_array2' +
-                                                   str(randint(0, 10000))))
+                                                   out_name=('out1_array2' +
+                                                             name)))
 
             v_induced_line = array1 * csdl.expand(
                 array2, array1.shape, 'ki->kij') / (r1_x_r2_norm_sq)
@@ -332,30 +295,31 @@ class BiotSvart(Model):
 
 if __name__ == "__main__":
 
-    def generate_simple_mesh(nx, ny, nt=None):
-        if nt == None:
+    def generate_simple_mesh(nx, ny, n_wake_pts_chord=None):
+        if n_wake_pts_chord == None:
             mesh = np.zeros((nx, ny, 3))
             mesh[:, :, 0] = np.outer(np.arange(nx), np.ones(ny))
             mesh[:, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T
             mesh[:, :, 2] = 0.
         else:
-            mesh = np.zeros((nt, nx, ny, 3))
-            for i in range(nt):
+            mesh = np.zeros((n_wake_pts_chord, nx, ny, 3))
+            for i in range(n_wake_pts_chord):
                 mesh[i, :, :, 0] = np.outer(np.arange(nx), np.ones(ny))
                 mesh[i, :, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T
                 mesh[i, :, :, 2] = 0.
         return mesh
 
-    nt = 6
+    n_wake_pts_chord = 6
     nx = 3
     ny = 4
-
+    nx_1 = 3
+    ny_1 = 5
     eval_pt_names = ['col']
     vortex_coords_names = ['vor']
     # eval_pt_shapes = [(nx, ny, 3)]
     # vortex_coords_shapes = [(nx, ny, 3)]
 
-    eval_pt_shapes = [(2, 3, 3)]
+    eval_pt_shapes = [(2, 3, 3), (2, 3, 3)]
     vortex_coords_shapes = [(nx, ny, 3)]
 
     output_names = ['aic']
@@ -378,14 +342,14 @@ if __name__ == "__main__":
                                         val=circulations_val.reshape(
                                             1, nx - 1, ny - 1))
 
-    model_1.add(BiotSvart(eval_pt_names=eval_pt_names,
-                          vortex_coords_names=vortex_coords_names,
-                          eval_pt_shapes=eval_pt_shapes,
-                          vortex_coords_shapes=vortex_coords_shapes,
-                          output_names=output_names,
-                          vc=True,
-                          nt=nt,
-                          circulation_names=['circulations']),
+    model_1.add(BiotSavartComp(eval_pt_names=eval_pt_names,
+                               vortex_coords_names=vortex_coords_names,
+                               eval_pt_shapes=eval_pt_shapes,
+                               vortex_coords_shapes=vortex_coords_shapes,
+                               output_names=output_names,
+                               vc=True,
+                               n_wake_pts_chord=n_wake_pts_chord,
+                               circulation_names=['circulations']),
                 name='BiotSvart_group')
     sim = Simulator(model_1)
 
@@ -400,4 +364,3 @@ if __name__ == "__main__":
     time_current = 2
     sigma = 1 + a_1 * csdl.reshape(
         circulations, new_shape=(circulations.shape[1:])) / kinematic_viscocity
-    r_c = (4 * a_l * kinematic_viscocity * sigma.val * time_current)**0.5

@@ -3,8 +3,6 @@ from csdl import Model
 import csdl
 import numpy as np
 
-from VLM_package.VLM_preprocessing.compute_bound_vec import BoundVec
-
 
 class AOA_CD(Model):
     """
@@ -31,6 +29,7 @@ class AOA_CD(Model):
         cd_v_names = [x + '_cd_v' for x in surface_names]
         cd_span_names = [x + '_cd_i_span' for x in surface_names]
         CD_total_names = [x + '_C_D' for x in surface_names]
+        D_total_names = [x + 'D_total' for x in surface_names]
         num_nodes = surface_shapes[0][0]
 
         # TODO: fix this rho name
@@ -106,6 +105,9 @@ class AOA_CD(Model):
                     0.5 * rho * b * csdl.sum(surface_span, axes=(1, )))
             # C_D = cd_v + self.declare_variable(CD_name, shape=(num_nodes, ))
             self.register_output(CD_total_names[i], C_D_total)
+            self.register_output(
+                D_total_names[i],
+                csdl.sum(cd * (0.5 * rho_b_exp * surface_span), axes=(1, )))
 
 
 if __name__ == "__main__":

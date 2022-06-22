@@ -44,7 +44,7 @@ for data in AcStates_vlm:
 ####################################################################
 # single lifting surface
 nx = 3  # number of points in streamwise direction
-ny = 15  # number of points in spanwise direction
+ny = 5  # number of points in spanwise direction
 
 # surface_names = ['wing', 'wing_1']
 # surface_shapes = [(num_nodes, nx, ny, 3), (num_nodes, nx, ny, 3)]
@@ -144,7 +144,7 @@ rot_vel = model_1.create_input(surface_names[0] + '_rot_vel',
 # The user can also define the eval_pts_coords inputs (line 97-146)
 # ###################################################################
 
-rho = model_1.create_input('rho', val=0.96 * np.ones((num_nodes, 1)))
+# rho = model_1.create_input('rho', val=0.96 * np.ones((num_nodes, 1)))
 
 eval_pts_shapes = [(num_nodes, x[1] - 1, x[2] - 1, 3) for x in surface_shapes]
 
@@ -162,8 +162,8 @@ submodel = VLMSolverModel(
 
 model_1.add(submodel, 'VLMSolverModel')
 
-sim = Simulator(model_1)
-# sim = csdl_lite.Simulator(model_1)
+# sim = Simulator(model_1)
+sim = csdl_lite.Simulator(model_1)
 
 sim.run()
 
@@ -211,21 +211,24 @@ sim.run()
 # sim.visualize_implementation()
 # res = np.einsum('ijk,ik->ij', sim['MTX'], sim['gamma_b']) + sim['b']
 # norm = np.linalg.norm(res)
-print('running check_partials\n=========================')
+print(
+    '=========================\n running check_partials\n========================='
+)
 
-b = sim.check_partials(compact_print=True)
-# sim.assert_check_partials(b, 5e-3, 1e-5)
-c = np.zeros(1220)
+b = sim.check_partials(compact_print=True, out_stream=None)
+sim.assert_check_partials(b, 5e-3, 1e-5)
+c = np.zeros(len(b.keys()))
 i = 0
 keys = []
 for key in b.keys():
     c[i] = b[key]['relative_error_norm']
     keys.append(key)
     i = i + 1
+
 sorted_array = np.sort(c)[::-1]
 indices = np.argsort(c)[::-1]
 for i in range(c.size):
-    if (sorted_array[i] > 1e-4) & (sorted_array[i] != np.inf):
+    if (sorted_array[i] > 1e-3) & (sorted_array[i] != np.inf):
         print(keys[i])
         print(sorted_array[i])
 
@@ -233,3 +236,38 @@ for i in range(c.size):
 
 # b = sim.check_partials(compact_print=True, out_stream=None)
 # sim.assert_check_partials(b, 5e-3, 1e-5)
+
+import pyvista as pv
+############################################
+# Plot the lifting surfaces
+############################################
+pv.global_theme.axes.show = True
+pv.global_theme.font.label_size = 1
+x = mesh[:, :, 0]
+y = mesh[:, :, 1]
+z = mesh[:, :, 2]
+# x_1 = wing_2_mesh[0, :, :, 0]
+# y_1 = wing_2_mesh[0, :, :, 1]
+# z_1 = wing_2_mesh[0, :, :, 2]
+
+# xw = sim['wing_1_wake_coords'][0, :, :, 0]
+# yw = sim['wing_1_wake_coords'][0, :, :, 1]
+# zw = sim['wing_1_wake_coords'][0, :, :, 2]
+
+# xw_1 = sim['wing_2_wake_coords'][0, :, :, 0]
+# yw_1 = sim['wing_2_wake_coords'][0, :, :, 1]
+# zw_1 = sim['wing_2_wake_coords'][0, :, :, 2]
+
+grid = pv.StructuredGrid(x, y, z)
+# grid_1 = pv.StructuredGrid(x_1, y_1, z_1)
+# gridw = pv.StructuredGrid(xw, yw, zw)
+# gridw_1 = pv.StructuredGrid(xw_1, yw_1, zw_1)
+p = pv.Plotter()
+p.add_mesh(grid, color="blue", show_edges=True, opacity=.5)
+# p.add_mesh(gridw, color="blue", show_edges=True, opacity=.5)
+# p.add_mesh(grid_1, color="red", show_edges=True, opacity=.5)
+# p.add_mesh(gridw_1, color="red", show_edges=True, opacity=.5)
+p.camera.view_angle = 60.0
+p.add_axes_at_origin(labels_off=True, line_width=5)
+
+p.show()

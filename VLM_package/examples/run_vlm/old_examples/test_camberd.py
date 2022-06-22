@@ -1,12 +1,12 @@
-from VLM_package.VLM_system.vlm_system import VLMSystemModel
+from VLM_package.VLM_system.vlm_system import VLMSystem
 from VLM_package.VLM_outputs.compute_force.compute_outputs_group import Outputs
 import numpy as np
 
 from VLM_package.VLM_preprocessing.utils.generate_simple_mesh import *
 
 from vedo import *
-# here nt is just a dummy variable that always equal to 2. since we are using a long wake panel,
-# we can just make nt=2, delta_t=a large number.
+# here n_wake_pts_chord is just a dummy variable that always equal to 2. since we are using a long wake panel,
+# we can just make n_wake_pts_chord=2, delta_t=a large number.
 
 nx = 3
 ny = 20
@@ -29,7 +29,7 @@ wing = model_1.create_input('wing', val=mesh_val.reshape(1, nx, ny, 3))
 
 # add the mesh info
 model_1.add(
-    VLMSystemModel(
+    VLMSystem(
         surface_names=surface_names,
         surface_shapes=surface_shapes,
         frame_vel=frame_vel_val,

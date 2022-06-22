@@ -37,7 +37,7 @@ def compute_spars(surface_shapes):
         ))
         start += delta
     '''this only works when there is only one row of wake panel streamwise
-        can be generlized by given nt (num_wake_panel streamwise) as inputs'''
+        can be generlized by given n_wake_pts_chord (num_wake_panel streamwise) as inputs'''
     num_wake_panel = num_bd_panel_array.size
 
     row = np.arange(num_wake_panel)

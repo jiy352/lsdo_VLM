@@ -7,7 +7,7 @@ from numpy.core.fromnumeric import size
 
 from scipy.sparse import csc_matrix
 from VLM_package.VLM_system.solve_circulations.combine_bd_wake_comp import BdnWakeCombine
-from VLM_package.VLM_system.solve_circulations.biot_savart_comp_vc_temp import BiotSvart
+from VLM_package.VLM_system.solve_circulations.biot_savart_vc_comp import BiotSavartComp
 from VLM_package.VLM_system.solve_circulations.induced_velocity_comp import InducedVelocity
 
 
@@ -44,7 +44,7 @@ class EvalPtsVel(Model):
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('surface_shapes', types=list)
         # stands for quarter-chord
-        self.parameters.declare('nt')
+        self.parameters.declare('n_wake_pts_chord')
         self.parameters.declare('delta_t')
 
     def define(self):
@@ -56,7 +56,7 @@ class EvalPtsVel(Model):
 
         num_nodes = surface_shapes[0][0]
 
-        nt = self.parameters['nt']
+        n_wake_pts_chord = self.parameters['n_wake_pts_chord']
         delta_t = self.parameters['delta_t']
 
         bdnwake_coords_names = [x + '_bdnwake_coords' for x in surface_names]
@@ -67,7 +67,8 @@ class EvalPtsVel(Model):
         ]
 
         wake_vortex_pts_shapes = [
-            tuple((num_nodes, nt, item[2], 3)) for item in surface_shapes
+            tuple((num_nodes, n_wake_pts_chord, item[2], 3))
+            for item in surface_shapes
         ]
 
         bdnwake_shapes = [
@@ -123,16 +124,16 @@ class EvalPtsVel(Model):
         self.add(BdnWakeCombine(
             surface_names=surface_names,
             surface_shapes=surface_shapes,
-            nt=nt,
+            n_wake_pts_chord=n_wake_pts_chord,
         ),
                  name='BdnWakeCombine')
 
         for i in range(len(surface_shapes)):
             nx = surface_shapes[i][1]
             ny = surface_shapes[i][2]
-            bdnwake_coords = self.declare_variable(bdnwake_coords_names[i],
-                                                   shape=(num_nodes,
-                                                          nt + nx - 1, ny, 3))
+            bdnwake_coords = self.declare_variable(
+                bdnwake_coords_names[i],
+                shape=(num_nodes, n_wake_pts_chord + nx - 1, ny, 3))
         #!TODO:fix this for mls
         # !fixed!: this part is a temp fix-since we don't have +=in csdl, I just made a large velocity matrix contining
         # the induced velocity induced by each bdnwake_coords_names for mls, and sum this matrix by axis to get the
@@ -155,7 +156,7 @@ class EvalPtsVel(Model):
                 eval_pts_names[i] + x + '_induced_vel'
                 for x in bdnwake_coords_names
             ]
-            self.add(BiotSvart(
+            self.add(BiotSavartComp(
                 eval_pt_names=eval_pts_name_repeat,
                 vortex_coords_names=bdnwake_coords_names,
                 eval_pt_shapes=[eval_pts_shapes[i]] *
@@ -163,7 +164,6 @@ class EvalPtsVel(Model):
                 vortex_coords_shapes=bdnwake_shapes,
                 output_names=output_names,
                 circulation_names=circulation_names,
-                delta_t=delta_t,
                 vc=True,
             ),
                      name='eval_pts_aics' + str(i))
