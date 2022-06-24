@@ -295,14 +295,27 @@ class LiftDrag(Model):
             #       csdl.cross(panel_forces, eval_pts_all, axis=(2, )))
 
             #TODO: discuss about the drag computation
-            D_0 = self.declare_variable('Wing_D_0', shape=(num_nodes, 1))
+            # D_0 = self.declare_variable('Wing_D_0', shape=(num_nodes, 1))
 
             total_forces_temp = csdl.sum(panel_forces, axes=(1, ))
-            F = self.create_output('F', shape=(num_nodes, 3))
-            F[:, 0] = total_forces_temp[:, 0] - D_0 * csdl.cos(alpha)
-            F[:, 1] = total_forces_temp[:, 1]
-            F[:, 2] = total_forces_temp[:, 2] - D_0 * csdl.sin(alpha)
+            # F = self.create_output('F', shape=(num_nodes, 3))
+            # F[:, 0] = total_forces_temp[:, 0] - D_0 * csdl.cos(alpha)
+            # F[:, 1] = total_forces_temp[:, 1]
+            # F[:, 2] = total_forces_temp[:, 2] - D_0 * csdl.sin(alpha)
 
+            # F = self.create_output('F', shape=(num_nodes, 3))
+            # F[:, 0] = total_forces_temp[:, 0] - 0.
+            # F[:, 1] = total_forces_temp[:, 1] - 0.
+            # F[:, 2] = total_forces_temp[:, 2] - 0.
+            self.register_output('F', total_forces_temp)
+            evaluation_pt = self.declare_variable('evaluation_pt',
+                                                  val=np.zeros(3, ))
+            evaluation_pt_exp = csdl.expand(
+                evaluation_pt,
+                (1, 8, 3),
+                'i->jki',
+            )
+            r_M = eval_pts_all - evaluation_pt_exp
             total_moment = csdl.sum(csdl.cross(eval_pts_all,
                                                panel_forces,
                                                axis=2),

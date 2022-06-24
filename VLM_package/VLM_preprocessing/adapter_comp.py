@@ -113,7 +113,7 @@ class AdapterComp(Model):
         ################################################################################
         # compute the output: 4. beta (num_nodes,1)
         ################################################################################
-        beta = psi + phiw
+        beta = psi + psiw
         # we always assume v_inf > 0 here
         self.register_output('beta', beta)
 
