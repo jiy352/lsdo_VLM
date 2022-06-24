@@ -22,7 +22,6 @@ class TestVLMModel(unittest.TestCase):
         self.surface_names = ['wing_0', 'wing_1']
         self.surface_shapes = [(self.num_nodes, self.nx, self.ny, 3),
                                (self.num_nodes, self.nx_1, self.ny_1, 3)]
-        self.AcStates = AcStates_vlm
 
     def make_model_add_inputs(self):
         TestVLMModel.initialization(self)
@@ -105,7 +104,7 @@ class TestVLMSystem(TestVLMModel):
                 surface_names=self.surface_names,
                 surface_shapes=self.surface_shapes,
                 num_nodes=self.num_nodes,
-                AcStates=self.AcStates,
+                AcStates='dummy',
             ), 'VLM_system')
         sim = csdl_om.Simulator(self.model_1)
         sim.run()
@@ -151,7 +150,6 @@ class TestVLMOutput(TestVLMModel):
             sprs=None,
             coeffs_aoa=coeffs_aoa,
             coeffs_cd=coeffs_cd,
-            AcStates=self.AcStates,
         )
         self.model_1.add(sub, name='VLM_outputs')
 
