@@ -242,7 +242,7 @@ class LiftDrag(Model):
                                  axes=(1, )),
                         (num_nodes, ny - 1, 1)) / (0.5 * rho_b_exp *
                                                    surface_span)
-                    print()
+                    # print()
                     cd_span = csdl.reshape(
                         csdl.sum(csdl.reshape(
                             D_panel[:, start:start + delta, :],
@@ -312,7 +312,7 @@ class LiftDrag(Model):
                                                   val=np.zeros(3, ))
             evaluation_pt_exp = csdl.expand(
                 evaluation_pt,
-                (1, 8, 3),
+                (eval_pts_all.shape),
                 'i->jki',
             )
             r_M = eval_pts_all - evaluation_pt_exp
