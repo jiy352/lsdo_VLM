@@ -162,8 +162,8 @@ submodel = VLMSolverModel(
 
 model_1.add(submodel, 'VLMSolverModel')
 
-# sim = Simulator(model_1)
-sim = csdl_lite.Simulator(model_1)
+sim = Simulator(model_1)
+# sim = csdl_lite.Simulator(model_1)
 
 sim.run()
 

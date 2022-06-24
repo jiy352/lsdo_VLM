@@ -37,6 +37,7 @@ class VLMSystem(csdl.Model):
         self.parameters.declare('solve_option',
                                 default='direct',
                                 values=['direct', 'optimization'])
+        self.parameters.declare('TE_idx', default='last')
 
     def define(self):
         # rename parameters
@@ -78,12 +79,11 @@ class VLMSystem(csdl.Model):
             # m.optimize_ir(False)
             self.add(m, name='adapter_comp')
 
-        m = WakeCoords(
-            surface_names=surface_names,
-            surface_shapes=surface_shapes,
-            n_wake_pts_chord=n_wake_pts_chord,
-            delta_t=delta_t,
-        )
+        m = WakeCoords(surface_names=surface_names,
+                       surface_shapes=surface_shapes,
+                       n_wake_pts_chord=n_wake_pts_chord,
+                       delta_t=delta_t,
+                       TE_idx=self.parameters['TE_idx'])
         # m.optimize_ir(False)
         self.add(m, name='WakeCoords_comp')
 

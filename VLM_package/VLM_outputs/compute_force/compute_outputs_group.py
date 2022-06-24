@@ -52,7 +52,6 @@ class Outputs(Model):
 
         self.parameters.declare('coeffs_aoa', default=None)
         self.parameters.declare('coeffs_cd', default=None)
-        self.parameters.declare('AcStates', default=None)
 
     def define(self):
         n_wake_pts_chord = self.parameters['n_wake_pts_chord']
@@ -96,7 +95,6 @@ class Outputs(Model):
             sprs=sprs,
             coeffs_aoa=coeffs_aoa,
             coeffs_cd=coeffs_cd,
-            AcStates=self.parameters['AcStates'],
         )
         self.add(submodel, name='LiftDrag')
 

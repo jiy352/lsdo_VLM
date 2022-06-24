@@ -40,7 +40,7 @@ if num_nodes == 1:
     v_inf = np.array([50])
     alpha_deg = np.array([4])
     alpha = alpha_deg / 180 * np.pi
-    vx = np.array([-49.87820251])
+    vx = np.array([49.87820251])
     vz = np.array([-3.48782369])
 
     # vx = np.array([50])
@@ -91,9 +91,13 @@ class TestVLMModel(unittest.TestCase):
         }
 
         mesh = generate_mesh(mesh_dict)
+        mesh_temp = mesh.copy()
+        mesh_temp[:, :, 0] = -mesh.copy()[:, :, 0]
+        # print('mesh', mesh)
+        # print('mesh_temp', mesh_temp)
 
         wing_1_inputs = self.model_1.create_input(self.surface_names[0],
-                                                  val=mesh.reshape(
+                                                  val=mesh_temp.reshape(
                                                       1, self.nx, self.ny, 3))
         wing_2_inputs = self.model_1.create_input('wing_0_rot_vel',
                                                   val=np.zeros(
@@ -119,11 +123,11 @@ class TestVLMModel(unittest.TestCase):
 
 
 ##############################################################################
-# test positive aoa, T.E = mesh[:,-1,:,0]
+# test positive aoa, T.E = mesh[:,0,:,0]
 ##############################################################################
 
 
-class TestVLMModelWholeFirst(TestVLMModel):
+class TestVLMModelWholeSec(TestVLMModel):
     def test_vlm_model_whole(self):
         print()
         print()
@@ -134,8 +138,8 @@ class TestVLMModelWholeFirst(TestVLMModel):
         )
         print('Start TestVLMModelWhole')
         print('---------------------------------------------')
-        TestVLMModelWholeFirst.initialization(self)
-        TestVLMModelWholeFirst.make_model_add_inputs(self)
+        TestVLMModelWholeSec.initialization(self)
+        TestVLMModelWholeSec.make_model_add_inputs(self)
 
         self.model_1.add(
             VLMSystem(
@@ -143,7 +147,9 @@ class TestVLMModelWholeFirst(TestVLMModel):
                 surface_shapes=self.surface_shapes,
                 num_nodes=self.num_nodes,
                 AcStates='dummy',
-            ), 'VLM_system')
+                # TE_idx='first',
+            ),
+            'VLM_system')
 
         eval_pts_names = [x + '_eval_pts_coords' for x in self.surface_names]
         eval_pts_shapes = [(self.num_nodes, x[1] - 1, x[2] - 1, 3)
@@ -188,11 +194,11 @@ class TestVLMModelWholeFirst(TestVLMModel):
         print('The lift is', sim['wing_L'])
         print('The drag is', sim['wing_D'])
         # print('The total drag is', sim['wing_D_total'])
-        # print('The lift coeff is', sim['wing_C_L'])
+        print('The lift coeff is', sim['wing_C_L'])
         # print('The induced drag coeff is', sim['wing_C_D_i'])
         # print('The total drag coeff is', sim['wing_C_D'])
         print('The F is', sim['F'])
-        # print('The M is', sim['M'])
+        print('The M is', sim['M'])
         F_oas = np.array([-196.39732124, 0.,
                           3583.875389]).reshape(num_nodes, 3)
         M_oas = np.array([6.82121026e-13, 1.83978311e+03,
@@ -209,18 +215,10 @@ class TestVLMModelWholeFirst(TestVLMModel):
                                                  decimal=2))
         # partials = sim.check_partials(out_stream=None)
         # sim.assert_check_partials(partials, atol=5e-1, rtol=5.e-3)
-        sim.prob.check_config(checks=['unconnected_inputs'], out_file=None)
+        # sim.prob.check_config(checks=['unconnected_inputs'], out_file=None)
         del self.model_1
         print('---------------------------------------------')
         print('Finish TestVLMModelWhole')
         print(
             '==============================================================================================='
         )
-
-
-# Fx = -3765.18404307 * np.sin(np.deg2rad(4)) + 53.26393036 * np.cos(
-#     np.deg2rad(4))
-# Fx = -3765.18404307 * np.sin(np.deg2rad(4)) + 137.73366131 * np.cos(
-#     np.deg2rad(4))
-# Fy = 3765.18404307 * np.cos(np.deg2rad(4)) + 53.26393036 * np.sin(
-#     np.deg2rad(4))

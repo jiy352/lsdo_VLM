@@ -98,34 +98,34 @@ class AdapterComp(Model):
         psiw = self.declare_variable('psiw', shape=(num_nodes, 1))
 
         ################################################################################
-        # compute the output: 3. v_inf_sq (num_nodes,1)
-        ################################################################################
-        v_inf_sq = (u**2 + v**2 + w**2)
-        v_inf = (u**2 + v**2 + w**2)**0.5
-        self.register_output('v_inf_sq', v_inf_sq)
-
-        ################################################################################
-        # compute the output: 3. alpha (num_nodes,1)
-        ################################################################################
-        alpha = theta - gamma
-        self.register_output('alpha', alpha)
-
-        ################################################################################
-        # compute the output: 4. beta (num_nodes,1)
-        ################################################################################
-        beta = psi + phiw
-        # we always assume v_inf > 0 here
-        self.register_output('beta', beta)
-
-        ################################################################################
         # create the output: 1. frame_vel (num_nodes,3)
         ################################################################################
 
         frame_vel = self.create_output('frame_vel', shape=(num_nodes, 3))
 
-        frame_vel[:, 0] = v_inf * csdl.cos(beta) * csdl.cos(alpha)
-        frame_vel[:, 1] = v_inf * csdl.sin(beta)
-        frame_vel[:, 2] = v_inf * csdl.cos(beta) * csdl.sin(alpha)
+        frame_vel[:, 0] = u
+        frame_vel[:, 1] = v
+        frame_vel[:, 2] = w
+
+        ################################################################################
+        # create the output: 2. alpha (num_nodes,1)
+        ################################################################################
+        alpha = csdl.arctan(w / u)
+        self.register_output('alpha', alpha)
+
+        ################################################################################
+        # compute the output: 3. v_inf_sq (num_nodes,1)
+        ################################################################################
+        v_inf_sq = (u**2 + v**2 + w**2)
+        self.register_output('v_inf_sq', v_inf_sq)
+
+        ################################################################################
+        # compute the output: 4. beta (num_nodes,1)
+        ################################################################################
+        v_inf = v_inf_sq**0.5
+        beta = csdl.arcsin(v / v_inf)
+        # we always assume v_inf > 0 here
+        self.register_output('beta', beta)
 
         ################################################################################
         # compute the output: 5. rho

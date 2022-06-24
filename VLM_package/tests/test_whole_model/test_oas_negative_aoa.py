@@ -7,21 +7,71 @@ from VLM_package.VLM_outputs.compute_force.compute_outputs_group import Outputs
 
 from csdl import Model
 from VLM_package.VLM_preprocessing.utils.generate_simple_mesh import generate_simple_mesh
-from VLM_package.examples.run_vlm.AcStates_enum_vlm import *
+import enum
+from openaerostruct.geometry.utils import generate_mesh
 
 import csdl
 import csdl_om
 import numpy as np
 
 
+class AcStates_vlm(enum.Enum):
+    u = 'u'
+    v = 'v'
+    w = 'w'
+    p = 'p'
+    q = 'q'
+    r = 'r'
+    phi = 'phi'
+    theta = 'theta'
+    psi = 'psi'
+    x = 'x'
+    y = 'y'
+    z = 'z'
+    phiw = 'phiw'
+    gamma = 'gamma'
+    psiw = 'psiw'
+    # rho = 'rho'
+
+
+num_nodes = 1
+
+if num_nodes == 1:
+    v_inf = np.array([50])
+    alpha_deg = np.array([4])
+    alpha = alpha_deg / 180 * np.pi
+    vx = np.array([-49.87820251])
+    vz = np.array([3.48782369])
+
+    # vx = np.array([50])
+    # vz = np.array([1])
+
+    AcStates_val_dict = {
+        AcStates_vlm.u.value: vx.reshape(num_nodes, 1),
+        AcStates_vlm.v.value: np.zeros((num_nodes, 1)),
+        AcStates_vlm.w.value: vz.reshape(num_nodes, 1),
+        AcStates_vlm.p.value: np.zeros((num_nodes, 1)),
+        AcStates_vlm.q.value: np.zeros((num_nodes, 1)),
+        AcStates_vlm.r.value: np.zeros((num_nodes, 1)),
+        AcStates_vlm.phi.value: np.zeros((num_nodes, 1)),
+        AcStates_vlm.theta.value: np.zeros((num_nodes, 1)),
+        AcStates_vlm.psi.value: np.zeros((num_nodes, 1)),
+        AcStates_vlm.x.value: np.zeros((num_nodes, 1)),
+        AcStates_vlm.y.value: np.zeros((num_nodes, 1)),
+        AcStates_vlm.z.value: np.zeros((num_nodes, 1)),
+        AcStates_vlm.phiw.value: np.ones((num_nodes, 1)),
+        AcStates_vlm.gamma.value: np.ones((num_nodes, 1)),
+        AcStates_vlm.psiw.value: np.ones((num_nodes, 1)),
+        # AcStates_vlm.rho.value: np.ones((num_nodes, 1)) * 0.96,
+    }
+
+
 class TestVLMModel(unittest.TestCase):
     def initialization(self):
-        self.nx, self.ny = 2, 3
-        self.nx_1, self.ny_1 = 2, 4
-        self.num_nodes = 2
-        self.surface_names = ['wing_0', 'wing_1']
-        self.surface_shapes = [(self.num_nodes, self.nx, self.ny, 3),
-                               (self.num_nodes, self.nx_1, self.ny_1, 3)]
+        self.nx, self.ny = 3, 9
+        self.num_nodes = 1
+        self.surface_names = ['wing']
+        self.surface_shapes = [(self.num_nodes, self.nx, self.ny, 3)]
         self.AcStates = AcStates_vlm
 
     def make_model_add_inputs(self):
@@ -29,26 +79,30 @@ class TestVLMModel(unittest.TestCase):
 
         self.model_1 = Model()
 
-        wing_1_mesh = generate_simple_mesh(self.nx, self.ny, self.num_nodes)
+        mesh_dict = {
+            "num_y": self.ny,
+            "num_x": self.nx,
+            "wing_type": "rect",
+            "symmetry": False,
+            "span": 12,
+            "root_chord": 2,
+            "span_cos_spacing": False,
+            "chord_cos_spacing": False,
+        }
 
-        wing_2_mesh = generate_simple_mesh(self.nx_1,
-                                           self.ny_1,
-                                           self.num_nodes,
-                                           offset=5)
+        mesh = generate_mesh(mesh_dict)
 
-        wing_1_inputs = self.model_1.create_input('wing_0', val=wing_1_mesh)
-        wing_2_inputs = self.model_1.create_input('wing_1', val=wing_2_mesh)
+        wing_1_inputs = self.model_1.create_input(self.surface_names[0],
+                                                  val=mesh.reshape(
+                                                      1, self.nx, self.ny, 3))
         wing_2_inputs = self.model_1.create_input('wing_0_rot_vel',
                                                   val=np.zeros(
                                                       (num_nodes, self.nx,
                                                        self.ny, 3)))
-        wing_2_inputs = self.model_1.create_input('wing_1_rot_vel',
-                                                  val=np.zeros(
-                                                      (num_nodes, self.nx_1,
-                                                       self.ny_1, 3)))
+
         wing_2_inputs = self.model_1.create_input('rho',
                                                   val=np.ones(
-                                                      (num_nodes, 1)) * 0.96)
+                                                      (num_nodes, 1)) * 0.38)
 
         for data in AcStates_vlm:
             print('{:15} = {}'.format(data.name, data.value))
@@ -64,7 +118,7 @@ class TestVLMModel(unittest.TestCase):
                     string_name, val=AcStates_val_dict[string_name])
 
 
-class TestVLMModelWhole(TestVLMModel):
+class TestVLMModelWholeFirst(TestVLMModel):
     def test_vlm_model_whole(self):
         print()
         print()
@@ -75,15 +129,15 @@ class TestVLMModelWhole(TestVLMModel):
         )
         print('Start TestVLMModelWhole')
         print('---------------------------------------------')
-        TestVLMModelWhole.initialization(self)
-        TestVLMModelWhole.make_model_add_inputs(self)
+        TestVLMModelWholeFirst.initialization(self)
+        TestVLMModelWholeFirst.make_model_add_inputs(self)
 
         self.model_1.add(
             VLMSystem(
                 surface_names=self.surface_names,
                 surface_shapes=self.surface_shapes,
                 num_nodes=self.num_nodes,
-                AcStates=self.AcStates,
+                AcStates='dummy',
             ), 'VLM_system')
 
         eval_pts_names = [x + '_eval_pts_coords' for x in self.surface_names]
@@ -105,7 +159,6 @@ class TestVLMModelWhole(TestVLMModel):
             sprs=None,
             coeffs_aoa=coeffs_aoa,
             coeffs_cd=coeffs_cd,
-            AcStates=self.AcStates,
         )
         self.model_1.add(sub, name='VLM_outputs')
 
@@ -127,13 +180,42 @@ class TestVLMModelWhole(TestVLMModel):
                                         bd_vtx_coords))
         '''
 
+        # print('The lift is', sim['wing_L'])
+        # print('The drag is', sim['wing_D'])
+        # print('The total drag is', sim['wing_D_total'])
+        # print('The lift coeff is', sim['wing_C_L'])
+        # print('The induced drag coeff is', sim['wing_C_D_i'])
+        # print('The total drag coeff is', sim['wing_C_D'])
+        # print('The F is', sim['F'])
+        # print('The M is', sim['M'])
+        F_oas = np.array([-196.39732124, 0.,
+                          -3583.875389]).reshape(num_nodes, 3)
+        M_oas = np.array([-6.82121026e-13, -1.83978311e+03,
+                          5.68434189e-14]).reshape(num_nodes, 3)
+        self.assertIsNone(
+            np.testing.assert_array_almost_equal(np.linalg.norm(
+                (F_oas - sim['F'])) / np.linalg.norm(F_oas),
+                                                 0,
+                                                 decimal=2))
+        self.assertIsNone(
+            np.testing.assert_array_almost_equal(np.linalg.norm(
+                (M_oas - sim['M'])) / np.linalg.norm(M_oas),
+                                                 0,
+                                                 decimal=2))
         partials = sim.check_partials(out_stream=None)
-        sim.prob.check_config(checks=['unconnected_inputs'], out_file=None)
-
         sim.assert_check_partials(partials, atol=5e-1, rtol=5.e-3)
+        sim.prob.check_config(checks=['unconnected_inputs'], out_file=None)
         del self.model_1
         print('---------------------------------------------')
         print('Finish TestVLMModelWhole')
         print(
             '==============================================================================================='
         )
+
+
+# Fx = -3765.18404307 * np.sin(np.deg2rad(4)) + 53.26393036 * np.cos(
+#     np.deg2rad(4))
+# Fx = -3765.18404307 * np.sin(np.deg2rad(4)) + 137.73366131 * np.cos(
+#     np.deg2rad(4))
+# Fy = 3765.18404307 * np.cos(np.deg2rad(4)) + 53.26393036 * np.sin(
+#     np.deg2rad(4))

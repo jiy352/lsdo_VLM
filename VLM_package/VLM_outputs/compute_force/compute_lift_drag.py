@@ -39,13 +39,11 @@ class LiftDrag(Model):
 
         self.parameters.declare('coeffs_aoa', default=None)
         self.parameters.declare('coeffs_cd', default=None)
-        self.parameters.declare('AcStates', default=None)
 
     def define(self):
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
         num_nodes = surface_shapes[0][0]
-        AcStates = self.parameters['AcStates']
         frame_vel = self.declare_variable('frame_vel', shape=(num_nodes, 3))
 
         cl_span_names = [x + '_cl_span' for x in surface_names]
@@ -261,7 +259,6 @@ class LiftDrag(Model):
                     surface_shapes=surface_shapes,
                     coeffs_aoa=coeffs_aoa,
                     coeffs_cd=coeffs_cd,
-                    # AcStates=self.parameters['AcStates'],
                 )
                 self.add(sub, name='AOA_CD')
 
@@ -274,13 +271,13 @@ class LiftDrag(Model):
                 #                                      shape=(num_nodes, 1))
                 #         c_d_total = cd_v + c_d
                 CD_total_names = [x + '_C_D' for x in surface_names]
-                for i in range(len(surface_names)):
+                # for i in range(len(surface_names)):
 
-                    c_d_total = self.declare_variable(CD_total_names[i],
-                                                      shape=(num_nodes, 1))
+                #     c_d_total = self.declare_variable(CD_total_names[i],
+                #                                       shape=(num_nodes, 1))
 
-                    D_total = c_d_total * (0.5 * rho * s_panels_sum * b)
-                self.register_output(D_total_name, D_total)
+                #     D_total = c_d_total * (0.5 * rho * s_panels_sum * b)
+                # self.register_output(D_total_name, D_total)
 
             ##########################################################
             # temp fix total_forces = csdl.sum(panel_forces, axes=(1, ))
@@ -296,13 +293,21 @@ class LiftDrag(Model):
             # print('shapes eval_pts_all', eval_pts_all.shape)
             # print('shapes eval_pts_all',
             #       csdl.cross(panel_forces, eval_pts_all, axis=(2, )))
-            total_forces = csdl.sum(panel_forces, axes=(1, ))
+
+            #TODO: discuss about the drag computation
+            D_0 = self.declare_variable('Wing_D_0', shape=(num_nodes, 1))
+
+            total_forces_temp = csdl.sum(panel_forces, axes=(1, ))
+            F = self.create_output('F', shape=(num_nodes, 3))
+            F[:, 0] = total_forces_temp[:, 0] - D_0 * csdl.cos(alpha)
+            F[:, 1] = total_forces_temp[:, 1]
+            F[:, 2] = total_forces_temp[:, 2] - D_0 * csdl.sin(alpha)
 
             total_moment = csdl.sum(csdl.cross(eval_pts_all,
                                                panel_forces,
                                                axis=2),
                                     axes=(1, ))
-            self.register_output('F', total_forces)
+            # self.register_output('F', total_forces)
             self.register_output('M', total_moment)
             # else:
             #     for i in range(len(surface_names)):

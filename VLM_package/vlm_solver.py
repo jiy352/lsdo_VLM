@@ -26,6 +26,7 @@ class VLMSolverModel(csdl.Model):
         self.parameters.declare('coeffs_aoa', default=None)
         self.parameters.declare('coeffs_cd', default=None)
         self.parameters.declare('solve_option', default='direct')
+        self.parameters.declare('TE_idx', default='last')
 
     def define(self):
         # add the mesh info
@@ -55,6 +56,7 @@ class VLMSolverModel(csdl.Model):
                 num_nodes=num_nodes,
                 AcStates=self.parameters['AcStates'],
                 solve_option=self.parameters['solve_option'],
+                TE_idx=self.parameters['TE_idx'],
             ), 'VLM_system')
 
         eval_pts_names = [x + '_eval_pts_coords' for x in surface_names]
@@ -70,7 +72,6 @@ class VLMSolverModel(csdl.Model):
             sprs=sprs,
             coeffs_aoa=coeffs_aoa,
             coeffs_cd=coeffs_cd,
-            AcStates=self.parameters['AcStates'],
         )
         self.add(sub, name='VLM_outputs')
 

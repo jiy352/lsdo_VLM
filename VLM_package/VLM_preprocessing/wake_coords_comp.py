@@ -26,6 +26,7 @@ class WakeCoords(Model):
         self.parameters.declare('surface_shapes', types=list)
         self.parameters.declare('n_wake_pts_chord')
         self.parameters.declare('delta_t')
+        self.parameters.declare('TE_idx', default='last')
 
     def define(self):
         # add_input
@@ -35,6 +36,7 @@ class WakeCoords(Model):
         n_wake_pts_chord = self.parameters[
             'n_wake_pts_chord']  # number of wake nodes in streamwise direction
         delta_t = self.parameters['delta_t']
+        TE_idx = self.parameters['TE_idx']
 
         wake_coords_names = [x + '_wake_coords' for x in surface_names]
 
@@ -51,10 +53,9 @@ class WakeCoords(Model):
 
             bd_vtx_coords = self.declare_variable(bd_vtx_coords_name,
                                                   shape=bd_vtx_coords_shape)
-            TE_pos = 'last'
-            if TE_pos == 'first':
+            if TE_idx == 'first':
                 TE = bd_vtx_coords[:, 0, :, :]
-            else:
+            elif TE_idx == 'last':
                 TE = bd_vtx_coords[:, num_pts_chord - 1, :, :]
 
             TE_reshaped = csdl.reshape(TE, (num_nodes, num_pts_span, 3))
