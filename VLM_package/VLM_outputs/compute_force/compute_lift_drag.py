@@ -316,7 +316,7 @@ class LiftDrag(Model):
                 'i->jki',
             )
             r_M = eval_pts_all - evaluation_pt_exp
-            total_moment = csdl.sum(csdl.cross(eval_pts_all,
+            total_moment = csdl.sum(csdl.cross(r_M,
                                                panel_forces,
                                                axis=2),
                                     axes=(1, ))
