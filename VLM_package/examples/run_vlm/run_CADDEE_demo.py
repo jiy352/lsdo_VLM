@@ -162,8 +162,8 @@ submodel = VLMSolverModel(
 
 model_1.add(submodel, 'VLMSolverModel')
 
-sim = Simulator(model_1)
-# sim = csdl_lite.Simulator(model_1)
+# sim = Simulator(model_1)
+sim = csdl_lite.Simulator(model_1)
 
 sim.run()
 
@@ -215,22 +215,23 @@ print(
     '=========================\n running check_partials\n========================='
 )
 
-b = sim.check_partials(compact_print=True, out_stream=None)
-sim.assert_check_partials(b, 5e-3, 1e-5)
-c = np.zeros(len(b.keys()))
-i = 0
-keys = []
-for key in b.keys():
-    c[i] = b[key]['relative_error_norm']
-    keys.append(key)
-    i = i + 1
+# b = sim.check_partials(compact_print=True, out_stream=None)
+b = sim.check_partials(compact_print=True)
+# sim.assert_check_partials(b, 5e-3, 1e-5)
+# c = np.zeros(len(b.keys()))
+# i = 0
+# keys = []
+# for key in b.keys():
+#     c[i] = b[key]['relative_error_norm']
+#     keys.append(key)
+#     i = i + 1
 
-sorted_array = np.sort(c)[::-1]
-indices = np.argsort(c)[::-1]
-for i in range(c.size):
-    if (sorted_array[i] > 1e-3) & (sorted_array[i] != np.inf):
-        print(keys[i])
-        print(sorted_array[i])
+# sorted_array = np.sort(c)[::-1]
+# indices = np.argsort(c)[::-1]
+# for i in range(c.size):
+#     if (sorted_array[i] > 1e-3) & (sorted_array[i] != np.inf):
+#         print(keys[i])
+#         print(sorted_array[i])
 
 # {k: v for k, v in sorted(b[b.keys].items(), key=lambda item: item[1])}
 

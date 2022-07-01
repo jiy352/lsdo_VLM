@@ -98,8 +98,8 @@ class AssembleAic(Model):
 
         aic_shape = (num_nodes, aic_shape_row, aic_shape_col, 3)
 
-        m1 = Model()
-        aic_col_w = m1.create_output(full_aic_name, shape=aic_shape)
+        # m1 = Model()
+        aic_col_w = self.create_output(full_aic_name, shape=aic_shape)
         row = 0
         col = 0
         for i in range(len(bd_coll_pts_shapes)):
@@ -111,7 +111,7 @@ class AssembleAic(Model):
                     (wake_vortex_pts_shapes[j][2] - 1),
                     3,
                 )
-                aic_i = m1.declare_variable(
+                aic_i = self.declare_variable(
                     output_names[i * (len(wake_vortex_pts_shapes)) + j],
                     shape=aic_i_shape)
 
@@ -126,7 +126,6 @@ class AssembleAic(Model):
                 col = col + delta_col
             col = 0
             row = row + delta_row
-        self.register_output(full_aic_name, aic_col_w)
 
 
 if __name__ == "__main__":
