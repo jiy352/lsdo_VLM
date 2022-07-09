@@ -92,8 +92,7 @@ class TestVLMModel(unittest.TestCase):
         }
 
         mesh = generate_mesh(mesh_dict)
-        mesh_val = mesh.copy()
-        mesh_val[:, :, 0] = -mesh[:, :, 0].copy()
+        mesh_val = mesh
 
         wing_1_inputs = self.model_1.create_input(self.surface_names[0],
                                                   val=mesh_val.reshape(
@@ -197,8 +196,9 @@ class TestVLMModelWholeFirst(TestVLMModel):
         print('The F is', sim['F'])
         print('The frame velocity is', sim['frame_vel'])
         print('The M is', sim['M'])
-        F_oas = np.array([196.39732124, 0., 3583.875389]).reshape(num_nodes, 3)
-        M_oas = np.array([6.82121026e-13, -1.83978311e+03,
+        F_oas = np.array([-196.39732124, 0.,
+                          -3583.875389]).reshape(num_nodes, 3)
+        M_oas = np.array([-6.82121026e-13, -1.83978311e+03,
                           5.68434189e-14]).reshape(num_nodes, 3)
         self.assertIsNone(
             np.testing.assert_array_almost_equal(np.linalg.norm(

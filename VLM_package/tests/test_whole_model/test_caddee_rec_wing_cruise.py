@@ -37,11 +37,10 @@ class AcStates_vlm(enum.Enum):
 num_nodes = 1
 
 if num_nodes == 1:
-    v_inf = np.array([50])
-    alpha_deg = np.array([4])
+    alpha_deg = np.array([3.125382526501336])
     alpha = alpha_deg / 180 * np.pi
-    vx = np.array([-50])
-    vz = np.array([-1e-6])
+    vx = np.array([50.39014388])
+    vz = np.array([2.75142193])
 
     # vx = np.array([50])
     # vz = np.array([1])
@@ -69,7 +68,7 @@ if num_nodes == 1:
 
 class TestVLMModel(unittest.TestCase):
     def initialization(self):
-        self.nx, self.ny = 3, 9
+        self.nx, self.ny = 3, 3
         self.num_nodes = 1
         self.surface_names = ['wing']
         self.surface_shapes = [(self.num_nodes, self.nx, self.ny, 3)]
@@ -81,8 +80,8 @@ class TestVLMModel(unittest.TestCase):
         self.model_1 = Model()
 
         mesh_dict = {
-            "num_y": self.ny,
-            "num_x": self.nx,
+            "num_y": 3,
+            "num_x": 3,
             "wing_type": "rect",
             "symmetry": False,
             "span": 12,
@@ -94,6 +93,9 @@ class TestVLMModel(unittest.TestCase):
         mesh = generate_mesh(mesh_dict)
         mesh_val = mesh
 
+        mesh_val = np.loadtxt('vlm_mesh_2.txt')
+        # np.savetxt('oas_mesh.txt', mesh.reshape(-1, 3))
+
         wing_1_inputs = self.model_1.create_input(self.surface_names[0],
                                                   val=mesh_val.reshape(
                                                       1, self.nx, self.ny, 3))
@@ -104,7 +106,7 @@ class TestVLMModel(unittest.TestCase):
 
         wing_2_inputs = self.model_1.create_input('rho',
                                                   val=np.ones(
-                                                      (num_nodes, 1)) * 0.38)
+                                                      (num_nodes, 1)) * 1.1)
 
         for data in AcStates_vlm:
             print('{:15} = {}'.format(data.name, data.value))
@@ -164,28 +166,13 @@ class TestVLMModelWholeFirst(TestVLMModel):
             eval_pts_option='auto',
             eval_pts_location=0.25,
             sprs=None,
-            coeffs_aoa=coeffs_aoa,
-            coeffs_cd=coeffs_cd,
+            coeffs_aoa=None,
+            coeffs_cd=None,
         )
         self.model_1.add(sub, name='VLM_outputs')
 
         sim = csdl_om.Simulator(self.model_1)
         sim.run()
-        '''
-
-        def_mesh = wing_1_mesh
-        bd_vtx_coords = np.zeros(def_mesh.shape)
-
-        bd_vtx_coords[:, 0:nx -
-                    1, :, :] = def_mesh[:, 0:nx -
-                                        1, :, :] * .75 + def_mesh[:, 1:
-                                                                    nx, :, :] * 0.25
-        bd_vtx_coords[:, nx - 1, :, :] = def_mesh[:, nx - 1, :, :] + 0.25 * (
-            def_mesh[:, nx - 1, :, :] - def_mesh[:, nx - 2, :, :])
-        self.assertIsNone(
-            np.testing.assert_array_equal(sim['wing_0_bd_vtx_coords'],
-                                        bd_vtx_coords))
-        '''
 
         print('The lift is', sim['wing_L'])
         print('The drag is', sim['wing_D'])
@@ -194,11 +181,10 @@ class TestVLMModelWholeFirst(TestVLMModel):
         # print('The induced drag coeff is', sim['wing_C_D_i'])
         # print('The total drag coeff is', sim['wing_C_D'])
         print('The F is', sim['F'])
-        print('The M is', sim['M'])
         print('The frame velocity is', sim['frame_vel'])
         # print('The M is', sim['M'])
-        F_oas = np.array([-196.39732124, 0.,
-                          3583.875389]).reshape(num_nodes, 3)
+        F_oas = np.array([196.39732124, 0.,
+                          -3583.875389]).reshape(num_nodes, 3)
         M_oas = np.array([6.82121026e-13, 1.83978311e+03,
                           5.68434189e-14]).reshape(num_nodes, 3)
         self.assertIsNone(

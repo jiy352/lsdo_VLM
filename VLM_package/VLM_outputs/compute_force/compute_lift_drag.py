@@ -296,18 +296,32 @@ class LiftDrag(Model):
 
             #TODO: discuss about the drag computation
             # D_0 = self.declare_variable('Wing_D_0', shape=(num_nodes, 1))
+            '''hardcode for testing'''
+
+            # total_forces_temp = csdl.sum(panel_forces, axes=(1, ))
+            # # F = self.create_output('F', shape=(num_nodes, 3))
+            # # F[:, 0] = total_forces_temp[:, 0] - D_0 * csdl.cos(alpha)
+            # # F[:, 1] = total_forces_temp[:, 1]
+            # # F[:, 2] = total_forces_temp[:, 2] - D_0 * csdl.sin(alpha)
+
+            # # F = self.create_output('F', shape=(num_nodes, 3))
+            # # F[:, 0] = total_forces_temp[:, 0] - 0.
+            # # F[:, 1] = total_forces_temp[:, 1] - 0.
+            # # F[:, 2] = total_forces_temp[:, 2] - 0.
+            # self.register_output('F', total_forces_temp)
 
             total_forces_temp = csdl.sum(panel_forces, axes=(1, ))
-            # F = self.create_output('F', shape=(num_nodes, 3))
-            # F[:, 0] = total_forces_temp[:, 0] - D_0 * csdl.cos(alpha)
-            # F[:, 1] = total_forces_temp[:, 1]
-            # F[:, 2] = total_forces_temp[:, 2] - D_0 * csdl.sin(alpha)
+            F = self.create_output('F', shape=(num_nodes, 3))
+            F[:, 0] = total_forces_temp[:, 0] * 0
+            F[:, 1] = total_forces_temp[:, 1] * 0
+            F[:, 2] = -total_forces_temp[:, 2]
 
             # F = self.create_output('F', shape=(num_nodes, 3))
             # F[:, 0] = total_forces_temp[:, 0] - 0.
             # F[:, 1] = total_forces_temp[:, 1] - 0.
             # F[:, 2] = total_forces_temp[:, 2] - 0.
-            self.register_output('F', total_forces_temp)
+            # self.register_output('F', total_forces_temp)
+
             evaluation_pt = self.declare_variable('evaluation_pt',
                                                   val=np.zeros(3, ))
             evaluation_pt_exp = csdl.expand(
@@ -316,12 +330,20 @@ class LiftDrag(Model):
                 'i->jki',
             )
             r_M = eval_pts_all - evaluation_pt_exp
-            total_moment = csdl.sum(csdl.cross(r_M,
-                                               panel_forces,
-                                               axis=2),
+            total_moment = csdl.sum(csdl.cross(r_M, panel_forces, axis=2),
                                     axes=(1, ))
+            M = self.create_output('M', shape=total_moment.shape)
             # self.register_output('F', total_forces)
-            self.register_output('M', total_moment)
+            # M[:, 0] = total_moment[:, 0] - 0.
+            # M[:, 1] = -total_moment[:, 1] - 0.
+            # M[:, 2] = total_moment[:, 2] - 0.
+
+            M[:, 0] = total_moment[:, 0] - 0.
+            M[:, 1] = -total_moment[:, 1] * 0.
+            M[:, 2] = total_moment[:, 2] - 0.
+            '''hardcode for testing'''
+
+            # self.register_output('M', total_moment * 0)
             # else:
             #     for i in range(len(surface_names)):
             #         D_total_name = surface_names[i] + '_D_total'

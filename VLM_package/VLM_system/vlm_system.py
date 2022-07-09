@@ -24,7 +24,7 @@ class VLMSystem(csdl.Model):
         self.parameters.declare('num_nodes')
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('surface_shapes', types=list)
-        self.parameters.declare('delta_t', default=20)
+        self.parameters.declare('delta_t', default=100)
 
         self.parameters.declare('AcStates', default=None)
 
