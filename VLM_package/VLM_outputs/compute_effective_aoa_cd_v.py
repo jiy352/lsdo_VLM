@@ -41,6 +41,7 @@ class AOA_CD(Model):
 
         # here aoa are all in degrees
         ###! fix for mls
+        D_0_list = []
 
         for i in range(len(surface_names)):
             surface_name = surface_names[i]
@@ -112,7 +113,14 @@ class AOA_CD(Model):
                 D_total_names[i],
                 csdl.sum(cd * (0.5 * rho_b_exp * surface_span), axes=(1, )))
             self.register_output(D_0_names[i], D_0)
-            print(D_0_names[i])
+            D_0_list.append(D_0)
+        D_0_total = self.create_output('D_0_total',
+                                       shape=(num_nodes, len(surface_names),
+                                              1))
+
+        for i in range(len(surface_names)):
+            D_0_total[:, i, :] = csdl.reshape(D_0_list[i],
+                                              D_0_total[:, i, :].shape)
 
 
 if __name__ == "__main__":

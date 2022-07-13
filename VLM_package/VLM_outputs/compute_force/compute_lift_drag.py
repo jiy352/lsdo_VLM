@@ -295,32 +295,19 @@ class LiftDrag(Model):
             #       csdl.cross(panel_forces, eval_pts_all, axis=(2, )))
 
             #TODO: discuss about the drag computation
-            # D_0 = self.declare_variable('Wing_D_0', shape=(num_nodes, 1))
+            D_0_total = self.declare_variable('D_0_total',
+                                              shape=(num_nodes,
+                                                     len(surface_names), 1))
+            D_0 = csdl.sum(D_0_total, axes=(1, ))
             '''hardcode for testing'''
-
-            # total_forces_temp = csdl.sum(panel_forces, axes=(1, ))
-            # # F = self.create_output('F', shape=(num_nodes, 3))
-            # # F[:, 0] = total_forces_temp[:, 0] - D_0 * csdl.cos(alpha)
-            # # F[:, 1] = total_forces_temp[:, 1]
-            # # F[:, 2] = total_forces_temp[:, 2] - D_0 * csdl.sin(alpha)
-
-            # # F = self.create_output('F', shape=(num_nodes, 3))
-            # # F[:, 0] = total_forces_temp[:, 0] - 0.
-            # # F[:, 1] = total_forces_temp[:, 1] - 0.
-            # # F[:, 2] = total_forces_temp[:, 2] - 0.
-            # self.register_output('F', total_forces_temp)
 
             total_forces_temp = csdl.sum(panel_forces, axes=(1, ))
             F = self.create_output('F', shape=(num_nodes, 3))
-            F[:, 0] = total_forces_temp[:, 0] * 0
-            F[:, 1] = total_forces_temp[:, 1] * 0
-            F[:, 2] = -total_forces_temp[:, 2]
-
-            # F = self.create_output('F', shape=(num_nodes, 3))
-            # F[:, 0] = total_forces_temp[:, 0] - 0.
-            # F[:, 1] = total_forces_temp[:, 1] - 0.
-            # F[:, 2] = total_forces_temp[:, 2] - 0.
-            # self.register_output('F', total_forces_temp)
+            # print('D_0.shape', D_0.shape)
+            # print('cosa.shape', cosa.shape)
+            F[:, 0] = -(total_forces_temp[:, 0] + D_0 * csdl.cos(alpha))
+            F[:, 1] = total_forces_temp[:, 1]
+            F[:, 2] = -(total_forces_temp[:, 2] + D_0 * csdl.sin(alpha))
 
             evaluation_pt = self.declare_variable('evaluation_pt',
                                                   val=np.zeros(3, ))
@@ -333,14 +320,10 @@ class LiftDrag(Model):
             total_moment = csdl.sum(csdl.cross(r_M, panel_forces, axis=2),
                                     axes=(1, ))
             M = self.create_output('M', shape=total_moment.shape)
-            # self.register_output('F', total_forces)
-            # M[:, 0] = total_moment[:, 0] - 0.
-            # M[:, 1] = -total_moment[:, 1] - 0.
-            # M[:, 2] = total_moment[:, 2] - 0.
 
-            M[:, 0] = total_moment[:, 0] - 0.
-            M[:, 1] = -total_moment[:, 1] * 0.
-            M[:, 2] = total_moment[:, 2] - 0.
+            M[:, 0] = total_moment[:, 0]
+            M[:, 1] = -total_moment[:, 1]
+            M[:, 2] = total_moment[:, 2]
             '''hardcode for testing'''
 
             # self.register_output('M', total_moment * 0)

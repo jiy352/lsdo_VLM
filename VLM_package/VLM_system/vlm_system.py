@@ -32,8 +32,7 @@ class VLMSystem(csdl.Model):
         # for now, we just make frame_vel an option, bd_vortex_coords, as static parameters
         # self.parameters.declare('frame_vel')
         self.parameters.declare('n_wake_pts_chord', default=2)
-        self.parameters.declare('free_wake', default=False)
-        self.parameters.declare('temp_fix_option', default=False)
+
         self.parameters.declare('solve_option',
                                 default='direct',
                                 values=['direct', 'optimization'])
@@ -45,9 +44,6 @@ class VLMSystem(csdl.Model):
         n_wake_pts_chord = self.parameters['n_wake_pts_chord']
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
-        free_wake = self.parameters['free_wake']
-
-        temp_fix_option = self.parameters['temp_fix_option']
 
         wake_coords_names = [x + '_wake_coords' for x in surface_names]
 
