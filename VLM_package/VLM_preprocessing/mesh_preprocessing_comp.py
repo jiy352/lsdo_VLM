@@ -31,11 +31,13 @@ class MeshPreprocessingComp(Model):
     def initialize(self):
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('surface_shapes', types=list)
+        self.parameters.declare('mesh_unit', default='m')
 
     def define(self):
         # load options
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
+        mesh_unit = self.parameters['mesh_unit']
         num_nodes = surface_shapes[0][0]
 
         system_size = sum((i[1] - 1) * (i[2] - 1) for i in surface_shapes)
@@ -64,9 +66,13 @@ class MeshPreprocessingComp(Model):
             # declare the input variable lifting surface (deformed) mesh,
             # this should come from CADDEE geometry if connected,
             # or up to the user to create an input if using the solver alone.
-            def_mesh = self.declare_variable(surface_name,
-                                             shape=surface_shapes[i])
-
+            if mesh_unit == 'm':
+                def_mesh = self.declare_variable(surface_name,
+                                                 shape=surface_shapes[i])
+            elif mesh_unit == 'ft':
+                def_mesh_ft = self.declare_variable(surface_name,
+                                                    shape=surface_shapes[i])
+                def_mesh = def_mesh_ft * 0.3048
             ################################################################################
             # create the output: 1. bd_vtx_coords
             ################################################################################

@@ -52,11 +52,13 @@ class Outputs(Model):
 
         self.parameters.declare('coeffs_aoa', default=None)
         self.parameters.declare('coeffs_cd', default=None)
+        self.parameters.declare('mesh_unit', default='m')
 
     def define(self):
         n_wake_pts_chord = self.parameters['n_wake_pts_chord']
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
+        mesh_unit = self.parameters['mesh_unit']
 
         eval_pts_names = self.parameters['eval_pts_names']
         eval_pts_shapes = self.parameters['eval_pts_shapes']
@@ -74,16 +76,15 @@ class Outputs(Model):
         )
         self.add(submodel, name='compute_horseshoe_circulation')
 
-        submodel = EvalPtsVel(
-            eval_pts_names=eval_pts_names,
-            eval_pts_shapes=eval_pts_shapes,
-            eval_pts_option=eval_pts_option,
-            eval_pts_location=eval_pts_location,
-            surface_names=surface_names,
-            surface_shapes=surface_shapes,
-            n_wake_pts_chord=n_wake_pts_chord,
-            delta_t=delta_t,
-        )
+        submodel = EvalPtsVel(eval_pts_names=eval_pts_names,
+                              eval_pts_shapes=eval_pts_shapes,
+                              eval_pts_option=eval_pts_option,
+                              eval_pts_location=eval_pts_location,
+                              surface_names=surface_names,
+                              surface_shapes=surface_shapes,
+                              n_wake_pts_chord=n_wake_pts_chord,
+                              delta_t=delta_t,
+                              mesh_unit=mesh_unit)
         self.add(submodel, name='EvalPtsVel')
 
         submodel = LiftDrag(

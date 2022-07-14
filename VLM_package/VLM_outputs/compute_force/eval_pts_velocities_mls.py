@@ -46,6 +46,7 @@ class EvalPtsVel(Model):
         # stands for quarter-chord
         self.parameters.declare('n_wake_pts_chord')
         self.parameters.declare('delta_t')
+        self.parameters.declare('mesh_unit', default='m')
 
     def define(self):
         eval_pts_names = self.parameters['eval_pts_names']
@@ -53,6 +54,7 @@ class EvalPtsVel(Model):
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
         eval_pts_location = self.parameters['eval_pts_location']
+        mesh_unit = self.parameters['mesh_unit']
 
         num_nodes = surface_shapes[0][0]
 
@@ -103,8 +105,13 @@ class EvalPtsVel(Model):
         #!TODO!: rewrite this comp for mls
         # !fixed!: defining the eval_pts
         for i in range(len(eval_pts_names)):
-            mesh = self.declare_variable(surface_names[i],
-                                         shape=surface_shapes[i])
+            if mesh_unit == 'm':
+                mesh = self.declare_variable(surface_names[i],
+                                             shape=surface_shapes[i])
+            elif mesh_unit == 'ft':
+                mesh_ft = self.declare_variable(surface_names[i],
+                                                shape=surface_shapes[i])
+                mesh = mesh_ft * 0.3048
 
             nx = surface_shapes[i][1]
             ny = surface_shapes[i][2]

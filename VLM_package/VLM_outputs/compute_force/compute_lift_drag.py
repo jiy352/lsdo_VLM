@@ -163,8 +163,8 @@ class LiftDrag(Model):
             start = 0
             for i in range(len(surface_names)):
 
-                mesh = self.declare_variable(surface_names[i],
-                                             shape=surface_shapes[i])
+                # mesh = self.declare_variable(surface_names[i],
+                #                              shape=surface_shapes[i])
                 nx = surface_shapes[i][1]
                 ny = surface_shapes[i][2]
 
@@ -305,6 +305,11 @@ class LiftDrag(Model):
             F = self.create_output('F', shape=(num_nodes, 3))
             # print('D_0.shape', D_0.shape)
             # print('cosa.shape', cosa.shape)
+            print('Fx', total_forces_temp[:, 0])
+            self.print_var(total_forces_temp[:, 0])
+            print('D_0cosa', D_0 * csdl.cos(alpha))
+
+            self.print_var(D_0 * csdl.cos(alpha))
             F[:, 0] = -(total_forces_temp[:, 0] + D_0 * csdl.cos(alpha))
             F[:, 1] = total_forces_temp[:, 1]
             F[:, 2] = -(total_forces_temp[:, 2] + D_0 * csdl.sin(alpha))
@@ -350,8 +355,8 @@ class LiftDrag(Model):
             start = 0
             for i in range(len(surface_names)):
 
-                mesh = self.declare_variable(surface_names[i],
-                                             shape=surface_shapes[i])
+                # mesh = self.declare_variable(surface_names[i],
+                #                              shape=surface_shapes[i])
                 nx = surface_shapes[i][1]
                 ny = surface_shapes[i][2]
 

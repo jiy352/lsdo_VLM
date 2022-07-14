@@ -25,6 +25,7 @@ class VLMSystem(csdl.Model):
         self.parameters.declare('surface_names', types=list)
         self.parameters.declare('surface_shapes', types=list)
         self.parameters.declare('delta_t', default=100)
+        self.parameters.declare('mesh_unit', default='m')
 
         self.parameters.declare('AcStates', default=None)
 
@@ -44,6 +45,7 @@ class VLMSystem(csdl.Model):
         n_wake_pts_chord = self.parameters['n_wake_pts_chord']
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
+        mesh_unit = self.parameters['mesh_unit']
 
         wake_coords_names = [x + '_wake_coords' for x in surface_names]
 
@@ -59,7 +61,8 @@ class VLMSystem(csdl.Model):
         wake_vel_shapes = [(x[0] * x[1], 3) for x in wake_vortex_pts_shapes]
 
         self.add(MeshPreprocessingComp(surface_names=surface_names,
-                                       surface_shapes=surface_shapes),
+                                       surface_shapes=surface_shapes,
+                                       mesh_unit=mesh_unit),
                  name='MeshPreprocessing_comp')
         AcStates = self.parameters["AcStates"]
         if AcStates != None:

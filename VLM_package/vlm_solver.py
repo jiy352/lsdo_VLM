@@ -27,6 +27,7 @@ class VLMSolverModel(csdl.Model):
         self.parameters.declare('coeffs_cd', default=None)
         self.parameters.declare('solve_option', default='direct')
         self.parameters.declare('TE_idx', default='last')
+        self.parameters.declare('mesh_unit', default='m')
 
     def define(self):
         # add the mesh info
@@ -44,6 +45,7 @@ class VLMSolverModel(csdl.Model):
 
         coeffs_aoa = self.parameters['coeffs_aoa']
         coeffs_cd = self.parameters['coeffs_cd']
+        mesh_unit = self.parameters['mesh_unit']
         if self.parameters['AcStates'] == None:
             frame_vel_val = -free_stream_velocities
 
@@ -57,6 +59,7 @@ class VLMSolverModel(csdl.Model):
                 AcStates=self.parameters['AcStates'],
                 solve_option=self.parameters['solve_option'],
                 TE_idx=self.parameters['TE_idx'],
+                mesh_unit=mesh_unit,
             ), 'VLM_system')
 
         eval_pts_names = [x + '_eval_pts_coords' for x in surface_names]
@@ -72,6 +75,7 @@ class VLMSolverModel(csdl.Model):
             sprs=sprs,
             coeffs_aoa=coeffs_aoa,
             coeffs_cd=coeffs_cd,
+            mesh_unit=mesh_unit,
         )
         self.add(sub, name='VLM_outputs')
 
