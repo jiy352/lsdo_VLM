@@ -306,10 +306,10 @@ class LiftDrag(Model):
             # print('D_0.shape', D_0.shape)
             # print('cosa.shape', cosa.shape)
             print('Fx', total_forces_temp[:, 0])
-            self.print_var(total_forces_temp[:, 0])
+            # self.print_var(total_forces_temp[:, 0])
             print('D_0cosa', D_0 * csdl.cos(alpha))
 
-            self.print_var(D_0 * csdl.cos(alpha))
+            # self.print_var(D_0 * csdl.cos(alpha))
             F[:, 0] = -(total_forces_temp[:, 0] + D_0 * csdl.cos(alpha))
             F[:, 1] = total_forces_temp[:, 1]
             F[:, 2] = -(total_forces_temp[:, 2] + D_0 * csdl.sin(alpha))

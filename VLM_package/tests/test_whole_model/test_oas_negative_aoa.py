@@ -8,7 +8,7 @@ from VLM_package.VLM_outputs.compute_force.compute_outputs_group import Outputs
 from csdl import Model
 from VLM_package.VLM_preprocessing.utils.generate_simple_mesh import generate_simple_mesh
 import enum
-from openaerostruct.geometry.utils import generate_mesh
+from VLM_package.examples.run_vlm.utils.generate_mesh import generate_mesh
 
 import csdl
 import csdl_om

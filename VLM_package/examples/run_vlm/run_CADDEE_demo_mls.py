@@ -20,7 +20,7 @@ Please see vlm_scipt_mls.py for how to use user defined evaluation pts
 ####################################################################
 # 1. Define VLM inputs that share the common names within CADDEE
 ####################################################################
-num_nodes = 2
+num_nodes = 1
 create_opt = 'create_inputs'
 model_1 = csdl.Model()
 
