@@ -299,19 +299,16 @@ class LiftDrag(Model):
                                               shape=(num_nodes,
                                                      len(surface_names), 1))
             D_0 = csdl.sum(D_0_total, axes=(1, ))
-            '''hardcode for testing'''
+            self.register_output('viscous_drag',-D_0)
+            self.print_var(D_0)
 
             total_forces_temp = csdl.sum(panel_forces, axes=(1, ))
             F = self.create_output('F', shape=(num_nodes, 3))
             # print('D_0.shape', D_0.shape)
-            # print('cosa.shape', cosa.shape)
-            print('Fx', total_forces_temp[:, 0])
-            # self.print_var(total_forces_temp[:, 0])
-            print('D_0cosa', D_0 * csdl.cos(alpha))
 
             # self.print_var(D_0 * csdl.cos(alpha))
             F[:, 0] = -(total_forces_temp[:, 0] + D_0 * csdl.cos(alpha))
-            F[:, 1] = total_forces_temp[:, 1]
+            F[:, 1] = total_forces_temp[:, 1] * 0
             F[:, 2] = -(total_forces_temp[:, 2] + D_0 * csdl.sin(alpha))
 
             evaluation_pt = self.declare_variable('evaluation_pt',
@@ -326,7 +323,7 @@ class LiftDrag(Model):
                                     axes=(1, ))
             M = self.create_output('M', shape=total_moment.shape)
 
-            M[:, 0] = total_moment[:, 0]
+            M[:, 0] = total_moment[:, 0] * 0
             M[:, 1] = -total_moment[:, 1]
             M[:, 2] = total_moment[:, 2]
             '''hardcode for testing'''
