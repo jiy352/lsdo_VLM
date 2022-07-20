@@ -53,12 +53,14 @@ class Outputs(Model):
         self.parameters.declare('coeffs_aoa', default=None)
         self.parameters.declare('coeffs_cd', default=None)
         self.parameters.declare('mesh_unit', default='m')
+        self.parameters.declare('cl0', types=list)
 
     def define(self):
         n_wake_pts_chord = self.parameters['n_wake_pts_chord']
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
         mesh_unit = self.parameters['mesh_unit']
+        cl0 = self.parameters['cl0']
 
         eval_pts_names = self.parameters['eval_pts_names']
         eval_pts_shapes = self.parameters['eval_pts_shapes']
@@ -84,7 +86,8 @@ class Outputs(Model):
                               surface_shapes=surface_shapes,
                               n_wake_pts_chord=n_wake_pts_chord,
                               delta_t=delta_t,
-                              mesh_unit=mesh_unit)
+                              mesh_unit=mesh_unit,
+                              )
         self.add(submodel, name='EvalPtsVel')
 
         submodel = LiftDrag(
@@ -96,6 +99,7 @@ class Outputs(Model):
             sprs=sprs,
             coeffs_aoa=coeffs_aoa,
             coeffs_cd=coeffs_cd,
+            cl0=cl0,
         )
         self.add(submodel, name='LiftDrag')
 

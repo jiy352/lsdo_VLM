@@ -1,4 +1,4 @@
-import csdl_lite
+# import csdl_lite
 from VLM_package.examples.run_vlm.AcStates_enum_vlm import AcStates_vlm
 from numpy import indices
 import numpy as np
@@ -73,16 +73,16 @@ offset = span / 2
 
 # mesh_val = generate_simple_mesh(nx, ny, num_nodes)
 mesh_val = np.zeros((num_nodes, nx, ny, 3))
-mesh_val_1 = np.zeros((num_nodes, nx, ny, 3))
+# mesh_val_1 = np.zeros((num_nodes, nx, ny, 3))
 
 for i in range(num_nodes):
     mesh_val[i, :, :, :] = mesh
     mesh_val[i, :, :, 0] = mesh.copy()[:, :, 0]
     mesh_val[i, :, :, 1] = mesh.copy()[:, :, 1] + offset
 
-    mesh_val_1[i, :, :, :] = mesh.copy()
-    mesh_val_1[i, :, :, 1] = mesh.copy()[:, :, 1] - offset
-    mesh_val_1[i, :, :, 0] = mesh.copy()[:, :, 0]
+    # mesh_val_1[i, :, :, :] = mesh.copy()
+    # mesh_val_1[i, :, :, 1] = mesh.copy()[:, :, 1] - offset
+    # mesh_val_1[i, :, :, 0] = mesh.copy()[:, :, 0]
 
 wing = model_1.create_input('wing', val=mesh_val)
 # wing_1 = model_1.create_input('wing_1', val=mesh_val_1)
@@ -158,12 +158,13 @@ submodel = VLMSolverModel(
     # if this is not provided, it is defaulted to be 0.25.
     eval_pts_shapes=eval_pts_shapes,
     AcStates=AcStates_vlm,
+    cl0=[0.5]
 )
 
 model_1.add(submodel, 'VLMSolverModel')
 
-# sim = Simulator(model_1)
-sim = csdl_lite.Simulator(model_1)
+sim = Simulator(model_1)
+# sim = csdl_lite.Simulator(model_1)
 
 sim.run()
 
@@ -216,7 +217,7 @@ print(
 )
 
 # b = sim.check_partials(compact_print=True, out_stream=None)
-b = sim.check_partials(compact_print=True)
+# b = sim.check_partials(compact_print=True)
 # sim.assert_check_partials(b, 5e-3, 1e-5)
 # c = np.zeros(len(b.keys()))
 # i = 0
@@ -238,6 +239,13 @@ b = sim.check_partials(compact_print=True)
 # b = sim.check_partials(compact_print=True, out_stream=None)
 # sim.assert_check_partials(b, 5e-3, 1e-5)
 
+print('#'*100)
+print('print outputs\n')
+print('F',sim['F'])
+print('wing_L',sim['wing_L'])
+# print('wing_1_L',sim['wing_1_L'])
+print('wing_D',sim['wing_D'])
+# print('wing_1_D',sim['wing_1_D'])
 import pyvista as pv
 ############################################
 # Plot the lifting surfaces

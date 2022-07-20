@@ -1,4 +1,4 @@
-import csdl_lite
+# import csdl_lite
 from VLM_package.examples.run_vlm.AcStates_enum_vlm import AcStates_vlm
 from numpy import indices
 import numpy as np
@@ -10,7 +10,7 @@ from VLM_package.vlm_solver import VLMSolverModel
 from VLM_package.examples.run_vlm.utils.generate_mesh import generate_mesh
 
 from VLM_package.examples.run_vlm.AcStates_enum_vlm import *
-# import pyvista as pv
+import pyvista as pv
 '''
 This example demonstrates the basic VLM simulation 
 with a single lifting surface with internal function to generate evaluation pts
@@ -46,11 +46,10 @@ for data in AcStates_vlm:
 nx = 3  # number of points in streamwise direction
 ny = 5  # number of points in spanwise direction
 
-# surface_names = ['wing', 'wing_1']
-# surface_shapes = [(num_nodes, nx, ny, 3), (num_nodes, nx, ny, 3)]
-
 surface_names = ['wing', 'wing_1']
 surface_shapes = [(num_nodes, nx, ny, 3), (num_nodes, nx, ny, 3)]
+
+
 
 chord = 1.49352
 span = 16.2 / chord
@@ -67,9 +66,10 @@ mesh_dict = {
     "chord_cos_spacing": False,
 }
 
+
 # Generate mesh of a rectangular wing
 mesh = generate_mesh(mesh_dict)
-offset = span / 2
+offset = 10
 
 # mesh_val = generate_simple_mesh(nx, ny, num_nodes)
 mesh_val = np.zeros((num_nodes, nx, ny, 3))
@@ -85,7 +85,7 @@ for i in range(num_nodes):
     mesh_val_1[i, :, :, 0] = mesh.copy()[:, :, 0]
 
 wing = model_1.create_input('wing', val=mesh_val)
-wing = model_1.create_input('wing_1', val=mesh_val_1)
+wing = model_1.create_input('wing_1', val=mesh_val)
 # wing_1 = model_1.create_input('wing_1', val=mesh_val_1)
 # '''
 ############################################
@@ -160,6 +160,8 @@ submodel = VLMSolverModel(
     # if this is not provided, it is defaulted to be 0.25.
     eval_pts_shapes=eval_pts_shapes,
     AcStates=AcStates_vlm,
+    cl0=[0.5,0.5]
+
 )
 
 model_1.add(submodel, 'VLMSolverModel')
@@ -213,12 +215,20 @@ sim.run()
 # sim.visualize_implementation()
 # res = np.einsum('ijk,ik->ij', sim['MTX'], sim['gamma_b']) + sim['b']
 # norm = np.linalg.norm(res)
-print(
-    '=========================\n running check_partials\n========================='
-)
+# print(
+#     '=========================\n running check_partials\n========================='
+# )
 
-b = sim.check_partials(compact_print=True, out_stream=None)
-sim.assert_check_partials(b, 5e-3, 1e-5)
+print('#'*100)
+print('print outputs\n')
+print('F',sim['F'])
+print('wing_L',sim['wing_L'])
+print('wing_1_L',sim['wing_1_L'])
+print('wing_D',sim['wing_D'])
+print('wing_1_D',sim['wing_1_D'])
+
+# b = sim.check_partials(compact_print=True, out_stream=None)
+# sim.assert_check_partials(b, 5e-3, 1e-5)
 # c = np.zeros(1220)
 # i = 0
 # keys = []
@@ -237,3 +247,19 @@ sim.assert_check_partials(b, 5e-3, 1e-5)
 
 # b = sim.check_partials(compact_print=True, out_stream=None)
 # sim.assert_check_partials(b, 5e-3, 1e-5)
+x = mesh[:, :, 0]
+y = mesh[:, :, 1]
+z = mesh[:, :, 2]
+grid = pv.StructuredGrid(x, y, z)
+# grid_1 = pv.StructuredGrid(x_1, y_1, z_1)
+# gridw = pv.StructuredGrid(xw, yw, zw)
+# gridw_1 = pv.StructuredGrid(xw_1, yw_1, zw_1)
+p = pv.Plotter()
+p.add_mesh(grid, color="blue", show_edges=True, opacity=.5)
+# p.add_mesh(gridw, color="blue", show_edges=True, opacity=.5)
+# p.add_mesh(grid_1, color="red", show_edges=True, opacity=.5)
+# p.add_mesh(gridw_1, color="red", show_edges=True, opacity=.5)
+p.camera.view_angle = 60.0
+p.add_axes_at_origin(labels_off=True, line_width=5)
+
+p.show()

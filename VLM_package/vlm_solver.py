@@ -28,12 +28,14 @@ class VLMSolverModel(csdl.Model):
         self.parameters.declare('solve_option', default='direct')
         self.parameters.declare('TE_idx', default='last')
         self.parameters.declare('mesh_unit', default='m')
+        self.parameters.declare('cl0', default=[0])
 
     def define(self):
         # add the mesh info
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
         num_nodes = self.parameters['num_nodes']
+        cl0 = self.parameters['cl0']
 
         free_stream_velocities = self.parameters['free_stream_velocities']
 
@@ -76,6 +78,7 @@ class VLMSolverModel(csdl.Model):
             coeffs_aoa=coeffs_aoa,
             coeffs_cd=coeffs_cd,
             mesh_unit=mesh_unit,
+            cl0=cl0,
         )
         self.add(sub, name='VLM_outputs')
 

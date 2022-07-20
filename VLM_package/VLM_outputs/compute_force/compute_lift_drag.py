@@ -39,10 +39,12 @@ class LiftDrag(Model):
 
         self.parameters.declare('coeffs_aoa', default=None)
         self.parameters.declare('coeffs_cd', default=None)
+        self.parameters.declare('cl0', types=list)
 
     def define(self):
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
+        cl0 = self.parameters['cl0']
         num_nodes = surface_shapes[0][0]
         frame_vel = self.declare_variable('frame_vel', shape=(num_nodes, 3))
 
@@ -299,17 +301,44 @@ class LiftDrag(Model):
                                               shape=(num_nodes,
                                                      len(surface_names), 1))
             D_0 = csdl.sum(D_0_total, axes=(1, ))
-            self.register_output('viscous_drag',-D_0)
+
+            L_0 = self.create_output('L_0',shape=(num_nodes,len(v_total_wake_names))) 
+            # L_0 is size num_nodes by num_surfaces
+
+            for i in range(len(v_total_wake_names)):
+
+                nx = surface_shapes[i][1]
+                ny = surface_shapes[i][2]
+                delta = (nx - 1) * (ny - 1)
+                C_L_0 = cl0[i]
+                vel_surface = self.declare_variable(v_total_wake_names[i],
+                                                    shape=(num_nodes, delta,
+                                                           3))
+                s_panels = self.declare_variable(surface_names[i] + '_s_panel',
+                                                 shape=(num_nodes, nx - 1,
+                                                        ny - 1))
+                s_panels_sum_surface = csdl.reshape(csdl.sum(s_panels,axes=(1,2,)),(num_nodes,1))
+
+                L_0[:,i] = 0.5 *rho*b*s_panels_sum_surface*C_L_0
+            L_0_total = csdl.reshape((csdl.sum(L_0,axes=(1,))),(num_nodes,1))
+                
+
+            self.register_output('viscous_drag',D_0)
             self.print_var(D_0)
+            self.print_var(L_0)
 
             total_forces_temp = csdl.sum(panel_forces, axes=(1, ))
             F = self.create_output('F', shape=(num_nodes, 3))
             # print('D_0.shape', D_0.shape)
-
+            # print('L_0_total',L_0_total.shape)
+            # print('alpha',alpha.shape)
+            # print('s_panels_sum_surface',s_panels_sum_surface.shape)
+            # print('C_L_0',C_L_0)
             # self.print_var(D_0 * csdl.cos(alpha))
-            F[:, 0] = -(total_forces_temp[:, 0] + D_0 * csdl.cos(alpha))
+            F[:, 0] = -(total_forces_temp[:, 0] + D_0 * csdl.cos(alpha)+L_0_total * csdl.sin(alpha))
+
             F[:, 1] = total_forces_temp[:, 1] * 0
-            F[:, 2] = -(total_forces_temp[:, 2] + D_0 * csdl.sin(alpha))
+            F[:, 2] = -(total_forces_temp[:, 2] + D_0 * csdl.sin(alpha)+ L_0_total * csdl.cos(alpha))
 
             evaluation_pt = self.declare_variable('evaluation_pt',
                                                   val=np.zeros(3, ))
