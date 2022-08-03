@@ -198,6 +198,11 @@ rot_vel = model_1.create_input(surface_names[0] + '_rot_vel',
 # rho = model_1.create_input('rho', val=0.96 * np.ones((num_nodes, 1)))
 
 eval_pts_shapes = [(num_nodes, x[1] - 1, x[2] - 1, 3) for x in surface_shapes]
+eval_pts_names = [x + '_eval_pts_coords' for x in surface_names]
+
+eval_pts = model_1.create_input(eval_pts_names[0],
+                               val=np.random.random((num_nodes, nx-1, ny-1, 3)))
+
 submodel = VLMSolverModel(
     surface_names=surface_names,
     surface_shapes=surface_shapes,
@@ -206,12 +211,14 @@ submodel = VLMSolverModel(
     eval_pts_location=0.25,
     # The location of the evaluation point is on the quarter-chord,
     # if this is not provided, it is defaulted to be 0.25.
+    eval_pts_option='user_defined',
     eval_pts_shapes=eval_pts_shapes,
     AcStates=AcStates_vlm,
     cl0=[0.]
 )
-
 model_1.add(submodel, 'VLMSolverModel')
+
+
 
 sim = Simulator(model_1)
 # sim = csdl_lite.Simulator(model_1)
@@ -291,13 +298,14 @@ print(
 
 print('#'*100)
 print('print outputs\n')
-print('F',sim['F'])
-print('wing_L',sim['wing_L'])
-# print('wing_1_L',sim['wing_1_L'])
-print('wing_D',sim['wing_D'])
-print('wing_C_L',sim['wing_C_L'])
-print('wing_C_D_i',sim['wing_C_D_i'])
-# print('wing_1_D',sim['wing_1_D'])
+print('_dynamic_pressure',sim['wing_dynamic_pressure'])
+# print('F',sim['F'])
+# print('wing_L',sim['wing_L'])
+# # print('wing_1_L',sim['wing_1_L'])
+# print('wing_D',sim['wing_D'])
+# print('wing_C_L',sim['wing_C_L'])
+# print('wing_C_D_i',sim['wing_C_D_i'])
+# # print('wing_1_D',sim['wing_1_D'])
 import pyvista as pv
 ############################################
 # Plot the lifting surfaces

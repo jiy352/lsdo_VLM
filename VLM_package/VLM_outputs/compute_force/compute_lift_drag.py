@@ -365,6 +365,8 @@ class LiftDrag(Model):
 
         # !TODO: need to fix eval_pts for main branch
         if eval_pts_option == 'user_defined':
+            v_total_eval_names = [x + '_eval_total_vel' for x in surface_names]
+            eval_vel_shapes = [(num_nodes, x[1] * x[2], 3) for x in eval_pts_shapes]
             # sina = csdl.expand(csdl.sin(alpha), (system_size, 1), 'i->ji')
             # cosa = csdl.expand(csdl.cos(alpha), (system_size, 1), 'i->ji')
 
@@ -380,69 +382,12 @@ class LiftDrag(Model):
             # D_panel = panel_forces_x * cosa + panel_forces_z * sina
             start = 0
             for i in range(len(surface_names)):
+                v_total_eval = self.declare_variable(v_total_eval_names[i],shape=eval_vel_shapes[i])
+                rho_exp_1 = csdl.expand(csdl.reshape(rho,new_shape=(num_nodes,)), eval_vel_shapes[i],'i->ijk')
+                dynamic_presure = 0.5*rho_exp_1*(v_total_eval**2)
+                self.register_output(surface_names[i]+'_dynamic_pressure',dynamic_presure)
 
-                # mesh = self.declare_variable(surface_names[i],
-                #                              shape=surface_shapes[i])
-                nx = surface_shapes[i][1]
-                ny = surface_shapes[i][2]
 
-                delta = (nx - 1) * (ny - 1)
-
-                nx_eval = eval_pts_shapes[i][1]
-                ny_eval = eval_pts_shapes[i][2]
-                delta_eval = nx_eval * ny_eval
-
-                bd_vec_surface = bd_vec[:, start:start + delta, :]
-                print('bd_vec shape', bd_vec.shape)
-                print('bd_vec_surface shape', bd_vec_surface.shape)
-                print('sprs shape', sprs[i].shape)
-
-                bd_vec_eval = csdl.sparsematmat(bd_vec_surface, sprs[i])
-                # sina = csdl.expand(csdl.sin(alpha), (num_nodes, delta_eval, 1),
-                #                    'ki->kji')
-                # cosa = csdl.expand(csdl.cos(alpha), (num_nodes, delta_eval, 1),
-                #                    'ki->kji')
-                # sinb = csdl.expand(csdl.sin(beta), (num_nodes, delta_eval, 1),
-                #                    'ki->kji')
-                # cosb = csdl.expand(csdl.cos(beta), (num_nodes, delta_eval, 1),
-                #                    'ki->kji')
-                # sina_eval = csdl.sparsematmat(sina, sprs[i])
-                # cosa_eval = csdl.sparsematmat(cosa, sprs[i])
-
-                circulation_repeat_surface = circulation_repeat[start:start +
-                                                                delta, :]
-                circulation_repeat_surface_eval = csdl.sparsematmat(
-                    circulation_repeat_surface, sprs[i])
-
-                vel_surface = self.declare_variable(v_total_wake_names[i],
-                                                    shape=(num_nodes,
-                                                           delta_eval, 3))
-                velocities[start:start + delta, :] = vel_surface
-                start = start + delta
-
-                panel_forces = rho * circulation_repeat_surface_eval * csdl.cross(
-                    vel_surface, bd_vec_eval, axis=2)
-
-                self.register_output(surface_names[i] + 'panel_forces',
-                                     panel_forces)
-
-                # bd_vec_surface = bd_vec[start:start + delta, :]
-                # circulation_repeat_surface = circulation_repeat[start:start +
-                #                                                 delta, :]
-                # bd_vec_eval = csdl.sparsematmat(bd_vec_surface, sprs[i])
-                # sina_eval = csdl.sparsematmat(sina, sprs[i])
-                # cosa_eval = csdl.sparsematmat(cosa, sprs[i])
-                # # vel_surface_eval = csdl.sparsematmat(vel_surface, sprs[i])
-                # circulation_repeat_surface_eval = csdl.sparsematmat(
-                #     circulation_repeat_surface, sprs[i])
-
-                # print('\nbd_vec_eval shape', bd_vec_eval.shape)
-                # print('vel_surface shape', vel_surface.shape)
-                # print('circulation_repeat_surface_eval shape',
-                #       circulation_repeat_surface_eval.shape)
-
-                panel_forces_surface = rho * circulation_repeat_surface_eval * csdl.cross(
-                    vel_surface, bd_vec_eval, axis=1)
 
 
 if __name__ == "__main__":
