@@ -47,12 +47,12 @@ class AcStates_vlm(enum.Enum):
 num_nodes = 1
 
 # v_inf = np.array([50])
-alpha_deg = np.array([3.125382526501336])
+alpha_deg = np.array([1.25])
 alpha = alpha_deg / 180 * np.pi
 # vx = -v_inf * np.cos(alpha)
 # vz = -v_inf * np.sin(alpha)
 
-vx = np.array([50.39014388])
+vx = np.array([50.39014388])*1
 vz = np.array([2.75142193])
 # vx**2+vz**2=v_inf
 
@@ -206,11 +206,17 @@ submodel = VLMSolverModel(
     eval_pts_location=0.25,
     # The location of the evaluation point is on the quarter-chord,
     # if this is not provided, it is defaulted to be 0.25.
+    # coeffs_aoa = [(0.519, 0.0832)],
+    # coeffs_cd = [(7.76e-03, 3.3e-04, 1.15e-04)],   
+    coeffs_aoa = [(0.467, 6.37)],
+    coeffs_cd = [(7.76E-03 , 0.0189, 0.377)],    
     eval_pts_shapes=eval_pts_shapes,
     AcStates=AcStates_vlm,
-    cl0=[0.]
+    cl0=[0.53]
 )
 
+# 6.37*x + 0.467
+# 7.76E-03 + 0.0189x + 0.377x^2
 model_1.add(submodel, 'VLMSolverModel')
 
 sim = Simulator(model_1)
@@ -297,6 +303,11 @@ print('wing_L',sim['wing_L'])
 print('wing_D',sim['wing_D'])
 print('wing_C_L',sim['wing_C_L'])
 print('wing_C_D_i',sim['wing_C_D_i'])
+print('F',sim['F'])
+print('total_drag',sim['total_drag'])
+print('total_lift',sim['total_lift'])
+print('total_CD',sim['total_CD'])
+print('total_CL',sim['total_CL'])
 # print('wing_1_D',sim['wing_1_D'])
 import pyvista as pv
 ############################################
@@ -331,4 +342,4 @@ p.add_mesh(grid, color="blue", show_edges=True, opacity=.5)
 p.camera.view_angle = 60.0
 p.add_axes_at_origin(labels_off=True, line_width=5)
 
-p.show()
+# p.show()
