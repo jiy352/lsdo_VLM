@@ -97,11 +97,11 @@ for data in AcStates_vlm:
 nx = 3  # number of points in streamwise direction
 ny = 11  # number of points in spanwise direction
 
-# surface_names = ['wing', 'wing_1']
-# surface_shapes = [(num_nodes, nx, ny, 3), (num_nodes, nx, ny, 3)]
+surface_names = ['wing', 'wing_1']
+surface_shapes = [(num_nodes, nx, ny, 3), (num_nodes, nx, ny, 3)]
 
-surface_names = ['wing']
-surface_shapes = [(num_nodes, nx, ny, 3)]
+# surface_names = ['wing']
+# surface_shapes = [(num_nodes, nx, ny, 3)]
 
 chord = 1.49352
 span = 16.2 / chord
@@ -124,15 +124,24 @@ offset = span / 2
 
 # mesh_val = generate_simple_mesh(nx, ny, num_nodes)
 mesh_val = np.zeros((num_nodes, nx, ny, 3))
-# mesh_val_1 = np.zeros((num_nodes, nx, ny, 3))
+mesh_val_1 = np.zeros((num_nodes, nx, ny, 3))
+
 
 for i in range(num_nodes):
     mesh_val[i, :, :, :] = mesh
     mesh_val[i, :, :, 0] = mesh.copy()[:, :, 0]
     mesh_val[i, :, :, 1] = mesh.copy()[:, :, 1] + offset
 
-
 wing = model_1.create_input('wing', val=mesh_val)
+
+offset_1 = offset*3
+
+for i in range(num_nodes):
+    mesh_val_1[i, :, :, :] = mesh.copy()
+    mesh_val_1[i, :, :, 0] = mesh.copy()[:, :, 0]
+    mesh_val_1[i, :, :, 1] = mesh.copy()[:, :, 1] + offset_1
+
+wing = model_1.create_input('wing_1', val=mesh_val_1)
 
 
 ####################################################################
@@ -141,7 +150,8 @@ wing = model_1.create_input('wing', val=mesh_val)
 
 rot_vel = model_1.create_input(surface_names[0] + '_rot_vel',
                                val=np.zeros((num_nodes, nx, ny, 3)))
-
+rot_vel = model_1.create_input(surface_names[1] + '_rot_vel',
+                               val=np.zeros((num_nodes, nx, ny, 3)))
 # v_inf = model_1.create_input('v_inf', val=v_inf.reshape(-1, 1))
 
 # ##################################################################
@@ -161,13 +171,31 @@ rot_vel = model_1.create_input(surface_names[0] + '_rot_vel',
 # ###################################################################
 
 # rho = model_1.create_input('rho', val=0.96 * np.ones((num_nodes, 1)))
+# '''test #1 2 surfaces, 3 sets of eval pts'''
+# eval_pts_shapes = [(num_nodes, nx-1, ny, 3), (num_nodes, nx, ny-1, 3),(num_nodes, nx-1, ny-1, 3)]
+# eval_pts_names = ['ev_1', 'ev_2', 'ev_3']
 
-eval_pts_shapes = [(num_nodes, x[1] - 1, x[2] - 1, 3) for x in surface_shapes]
-eval_pts_names = [x + '_eval_pts_coords' for x in surface_names]
+# eval_pts = model_1.create_input(eval_pts_names[0],
+#                                val=np.random.random(eval_pts_shapes[0]))
+
+# eval_pts = model_1.create_input(eval_pts_names[1],
+#                                val=np.random.random(eval_pts_shapes[1]))
+
+# eval_pts = model_1.create_input(eval_pts_names[2],
+#                                val=np.random.random(eval_pts_shapes[2]))
+
+'''test #1 2 surfaces, 1 set of eval pts'''
+eval_pts_shapes = [(num_nodes, nx-1, ny, 3)]
+eval_pts_names = ['ev_1']
 
 eval_pts = model_1.create_input(eval_pts_names[0],
                                val=np.random.random(eval_pts_shapes[0]))
 
+# eval_pts = model_1.create_input(eval_pts_names[1],
+#                                val=np.random.random(eval_pts_shapes[1]))
+
+# eval_pts = model_1.create_input(eval_pts_names[2],
+#                                val=np.random.random(eval_pts_shapes[2]))
 
 submodel = VLMSolverModel(
     surface_names=surface_names,
@@ -177,8 +205,8 @@ submodel = VLMSolverModel(
     eval_pts_location=0.25,
     # The location of the evaluation point is on the quarter-chord,
     # if this is not provided, it is defaulted to be 0.25.
-    eval_pts_names=eval_pts_names,
     eval_pts_option='user_defined',
+    eval_pts_names=eval_pts_names,
     eval_pts_shapes=eval_pts_shapes,
     AcStates=AcStates_vlm,
     cl0=[0.]
@@ -199,7 +227,8 @@ sim.run()
 
 print('#'*100)
 print('print outputs\n')
-print('_dynamic_pressure',sim[eval_pts_names[0]+'_dynamic_pressure'].shape,'\n',sim[eval_pts_names[0]+'_dynamic_pressure'])
+for i in range(len(eval_pts_names)):
+    print('_dynamic_pressure',sim[eval_pts_names[i]+'_dynamic_pressure'].shape,'\n',sim[eval_pts_names[i]+'_dynamic_pressure'])
 # print('_dynamic_pressure',sim[eval_pts_names[1]+'_dynamic_pressure'].shape,'\n',sim[eval_pts_names[1]+'_dynamic_pressure'])
 # print('_dynamic_pressure',sim[eval_pts_names[2]+'_dynamic_pressure'].shape,'\n',sim[eval_pts_names[2]+'_dynamic_pressure'])
 # print('F',sim['F'])

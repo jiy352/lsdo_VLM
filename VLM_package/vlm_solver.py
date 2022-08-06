@@ -19,6 +19,7 @@ class VLMSolverModel(csdl.Model):
         self.parameters.declare('free_stream_velocities', default=None)
 
         self.parameters.declare('eval_pts_location', default=0.25)
+        self.parameters.declare('eval_pts_names', default=None)
 
         self.parameters.declare('eval_pts_option', default='auto')
         self.parameters.declare('eval_pts_shapes', types=list)
@@ -63,8 +64,10 @@ class VLMSolverModel(csdl.Model):
                 TE_idx=self.parameters['TE_idx'],
                 mesh_unit=mesh_unit,
             ), 'VLM_system')
-
-        eval_pts_names = [x + '_eval_pts_coords' for x in surface_names]
+        if eval_pts_option=='auto':
+            eval_pts_names = [x + '_eval_pts_coords' for x in surface_names]
+        else:
+            eval_pts_names=self.parameters['eval_pts_names']
 
         # compute lift and drag
         sub = Outputs(

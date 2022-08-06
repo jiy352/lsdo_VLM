@@ -69,7 +69,11 @@ class LiftDrag(Model):
         coeffs_aoa = self.parameters['coeffs_aoa']
         coeffs_cd = self.parameters['coeffs_cd']
 
-        v_total_wake_names = [x + '_eval_total_vel' for x in surface_names]
+        if eval_pts_option=='auto':
+            eval_pts_names = [x + '_eval_pts_coords' for x in surface_names]
+        else:
+            eval_pts_names=self.parameters['eval_pts_names']
+        v_total_wake_names = [x + '_eval_total_vel' for x in eval_pts_names]
 
         bd_vec = self.declare_variable('bd_vec',
                                        shape=((num_nodes, system_size, 3)))
@@ -298,8 +302,8 @@ class LiftDrag(Model):
 
             #TODO: discuss about the drag computation
             D_0_total = self.declare_variable('D_0_total',
-                                              shape=(num_nodes,
-                                                     len(surface_names), 1))
+                                              val=np.zeros((num_nodes,
+                                                     len(surface_names), 1)))
             D_0 = csdl.sum(D_0_total, axes=(1, ))
 
             L_0 = self.create_output('L_0',shape=(num_nodes,len(v_total_wake_names))) 
@@ -365,7 +369,8 @@ class LiftDrag(Model):
 
         # !TODO: need to fix eval_pts for main branch
         if eval_pts_option == 'user_defined':
-            v_total_eval_names = [x + '_eval_total_vel' for x in surface_names]
+            v_total_eval_names = [x + '_eval_total_vel' for x in eval_pts_names]
+            print('v_total_eval_names',v_total_eval_names)
             eval_vel_shapes = [(num_nodes, x[1] * x[2], 3) for x in eval_pts_shapes]
             # sina = csdl.expand(csdl.sin(alpha), (system_size, 1), 'i->ji')
             # cosa = csdl.expand(csdl.cos(alpha), (system_size, 1), 'i->ji')
@@ -380,12 +385,16 @@ class LiftDrag(Model):
 
             # L_panel = -panel_forces_x * sina + panel_forces_z * cosa
             # D_panel = panel_forces_x * cosa + panel_forces_z * sina
+
             start = 0
-            for i in range(len(surface_names)):
+            for i in range(len(eval_vel_shapes)):
                 v_total_eval = self.declare_variable(v_total_eval_names[i],shape=eval_vel_shapes[i])
-                rho_exp_1 = csdl.expand(csdl.reshape(rho,new_shape=(num_nodes,)), eval_vel_shapes[i],'i->ijk')
-                dynamic_presure = 0.5*rho_exp_1*(v_total_eval**2)
-                self.register_output(surface_names[i]+'_dynamic_pressure',dynamic_presure)
+                rho_exp_1 = csdl.expand(csdl.reshape(rho,new_shape=(num_nodes,)), (eval_vel_shapes[i][0], eval_vel_shapes[i][1]),'i->ij')
+                print('rho_exp_1',rho_exp_1.shape)
+                print('csdl.sum(v_total_eval**2, axes=(2,))',csdl.sum(v_total_eval**2, axes=(2,)).shape)
+                dynamic_presure = 0.5*rho_exp_1*(csdl.sum(v_total_eval**2, axes=(2,)))
+                print('dynamic_presure',dynamic_presure.shape,dynamic_presure.name)
+                self.register_output(eval_pts_names[i]+'_dynamic_pressure',dynamic_presure)
 
 
 

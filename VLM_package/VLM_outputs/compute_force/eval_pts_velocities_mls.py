@@ -49,12 +49,13 @@ class EvalPtsVel(Model):
         self.parameters.declare('mesh_unit', default='m')
 
     def define(self):
-        eval_pts_names = self.parameters['eval_pts_names']
+        # eval_pts_names = self.parameters['eval_pts_names']
         eval_pts_shapes = self.parameters['eval_pts_shapes']
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
         eval_pts_location = self.parameters['eval_pts_location']
         mesh_unit = self.parameters['mesh_unit']
+        eval_pts_option = self.parameters['eval_pts_option']
 
         num_nodes = surface_shapes[0][0]
 
@@ -62,7 +63,15 @@ class EvalPtsVel(Model):
         delta_t = self.parameters['delta_t']
 
         bdnwake_coords_names = [x + '_bdnwake_coords' for x in surface_names]
-        eval_pts_names = [x + '_eval_pts_coords' for x in surface_names]
+        if eval_pts_option=='auto':
+            eval_pts_names = [x + '_eval_pts_coords' for x in surface_names]
+
+        else:
+            eval_pts_names=self.parameters['eval_pts_names']
+
+        eval_induced_velocities_col_names = [
+            x + '_eval_pts_induced_vel_col' for x in eval_pts_names
+        ]
 
         wake_coords_reshaped_names = [
             x + '_wake_coords_reshaped' for x in surface_names
@@ -90,32 +99,35 @@ class EvalPtsVel(Model):
             for x, y in zip(surface_shapes, wake_vortex_pts_shapes)
         ]
         eval_induced_velocities_names = [
-            x + '_eval_pts_induced_vel' for x in surface_names
+            x + '_eval_pts_induced_vel' for x in eval_pts_names
         ]
 
-        eval_induced_velocities_col_names = [
-            x + '_eval_pts_induced_vel_col' for x in surface_names
-        ]
 
-        v_total_eval_names = [x + '_eval_total_vel' for x in surface_names]
+        if eval_pts_option=='auto':
+            eval_pts_names = [x + '_eval_pts_coords' for x in surface_names]
+        else:
+            eval_pts_names=self.parameters['eval_pts_names']
+
+        # v_total_eval_names = [x + '_eval_total_vel' for x in surface_names]
+        v_total_eval_names = [x + '_eval_total_vel' for x in eval_pts_names]
 
         eval_vel_shapes = [(num_nodes, x[1] * x[2], 3)
                            for x in eval_pts_shapes]
 
         #!TODO!: rewrite this comp for mls
         # !fixed!: defining the eval_pts
-        for i in range(len(eval_pts_names)):
-            if mesh_unit == 'm':
-                mesh = self.declare_variable(surface_names[i],
-                                             shape=surface_shapes[i])
-            elif mesh_unit == 'ft':
-                mesh_ft = self.declare_variable(surface_names[i],
-                                                shape=surface_shapes[i])
-                mesh = mesh_ft * 0.3048
 
-            nx = surface_shapes[i][1]
-            ny = surface_shapes[i][2]
-            if self.parameters['eval_pts_option'] == 'auto':
+
+        if self.parameters['eval_pts_option'] == 'auto':
+            for i in range(len(surface_shapes)):
+                if mesh_unit == 'm':
+                    mesh = self.declare_variable(surface_names[i],
+                                                shape=surface_shapes[i])
+                elif mesh_unit == 'ft':
+                    mesh_ft = self.declare_variable(surface_names[i],
+                                                    shape=surface_shapes[i])
+                    mesh = mesh_ft * 0.3048
+
                 eval_pts_coords = (
                     (1 - eval_pts_location) * 0.5 * mesh[:, 0:-1, 0:-1, :] +
                     (1 - eval_pts_location) * 0.5 * mesh[:, 0:-1, 1:, :] +
@@ -124,7 +136,8 @@ class EvalPtsVel(Model):
 
                 self.register_output(eval_pts_names[i], eval_pts_coords)
 
-            elif self.parameters['eval_pts_option'] == 'user_defined':
+        elif self.parameters['eval_pts_option'] == 'user_defined':
+            for i in range(len(eval_pts_shapes)):
                 eval_pts_coords = self.declare_variable(
                     eval_pts_names[i], shape=(eval_pts_shapes[i]))
 
@@ -188,6 +201,7 @@ class EvalPtsVel(Model):
                 v_induced_names=induced_vel_bdnwake_names),
                      name='eval_pts_ind_vel' + str(i))
             # !!!!!!!!!!!TODO: need to check what is this April 18 2022
+            # 08/03 this is used to add up the induced velocites
             surface_total_induced_col = self.create_output(
                 eval_induced_velocities_col_names[i],
                 shape=(num_nodes, len(bdnwake_coords_names),
@@ -212,7 +226,6 @@ class EvalPtsVel(Model):
             v_induced_wake_name = eval_induced_velocities_names[i]
             eval_vel_shape = eval_vel_shapes[i]
 
-            wake_vortex_pts_shape = wake_vortex_pts_shapes[i]
             # kinematic_vel_name = kinematic_vel_names[i]
 
             v_induced_wake = model_wake_total_vel.declare_variable(
@@ -222,8 +235,7 @@ class EvalPtsVel(Model):
             # Note - April 7 2022: the wake velocity seems to just
             # need to be the sum of free stream and the induced velocity - this part seems to be fine for now
 
-            # kinematic_vel = model_wake_total_vel.declare_variable(
-            #     kinematic_vel_name, shape=wake_vel_shape)
+
             frame_vel = model_wake_total_vel.declare_variable('frame_vel',
                                                               shape=(num_nodes,
                                                                      3))
