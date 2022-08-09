@@ -34,8 +34,7 @@ class AOA_CD(Model):
         num_nodes = surface_shapes[0][0]
 
         # TODO: fix this rho name
-        rho = self.declare_variable('rho',
-                                    val=np.ones((num_nodes, 1)) * 0.9652)
+        rho = self.declare_variable('rho', shape=((num_nodes, 1)))
 
         frame_vel = self.declare_variable('frame_vel', shape=(num_nodes, 3))
 

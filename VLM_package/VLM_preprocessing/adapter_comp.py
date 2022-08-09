@@ -2,8 +2,8 @@ from csdl_om import Simulator
 from csdl import Model
 import csdl
 import numpy as np
-from fluids import atmosphere as atmosphere
-
+# from fluids import atmosphere as atmosphere
+from lsdo_atmos.atmosphere_model import AtmosphereModel
 
 class AdapterComp(Model):
     """
@@ -135,8 +135,12 @@ class AdapterComp(Model):
         # h = 1000
         # atmosisa = atmosphere.ATMOSPHERE_1976(Z=h)
         # rho_val = atmosisa.rho
-        rho_val=1.1
-        self.create_input('rho', val=rho_val * np.ones((num_nodes, 1)))
+
+        self.add(AtmosphereModel(
+            shape=(num_nodes,1),
+        ),name='atmosphere_model')
+
+        # self.create_input('rho', val=rho_val * np.ones((num_nodes, 1)))
 
         # self.create_input('rho', val=(num_nodes, 1))
 
