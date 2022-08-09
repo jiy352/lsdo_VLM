@@ -56,9 +56,12 @@ class LiftDrag(Model):
             ny = surface_shapes[i][2]
             system_size += (nx - 1) * (ny - 1)
 
-        rho = self.declare_variable('rho', shape=(num_nodes, 1))
+        # rho = self.declare_variable('rho', shape=(num_nodes, 1))
+        rho = self.declare_variable('density', shape=(num_nodes, 1))
+        # self.print_var(rho)
         rho_expand = csdl.expand(csdl.reshape(rho, (num_nodes, )),
                                  (num_nodes, system_size, 3), 'k->kij')
+        # self.print_var(rho_expand)
         alpha = self.declare_variable('alpha', shape=(num_nodes, 1))
         beta = self.declare_variable('beta', shape=(num_nodes, 1))
 
@@ -328,8 +331,8 @@ class LiftDrag(Model):
                 
 
             self.register_output('viscous_drag',D_0)
-            self.print_var(D_0)
-            self.print_var(L_0)
+            # self.print_var(D_0)
+            # self.print_var(L_0)
 
             total_forces_temp = csdl.sum(panel_forces, axes=(1, ))
             F = self.create_output('F', shape=(num_nodes, 3))
@@ -341,6 +344,7 @@ class LiftDrag(Model):
             # self.print_var(D_0 * csdl.cos(alpha))
             drag_coeff = 1.7*(0.092903)
             fuselage_drag = 0.5*rho*b*drag_coeff
+            self.register_output('fuselage_drag',fuselage_drag)
             F[:, 0] = -(total_forces_temp[:, 0] + D_0 * csdl.cos(alpha) - L_0_total * csdl.sin(alpha) + fuselage_drag* csdl.cos(alpha))
             F[:, 1] = total_forces_temp[:, 1] * 0
             F[:, 2] = -(total_forces_temp[:, 2] + D_0 * csdl.sin(alpha) + L_0_total * csdl.cos(alpha))
@@ -359,7 +363,7 @@ class LiftDrag(Model):
 
             M[:, 0] = total_moment[:, 0] * 0
             M[:, 1] = -total_moment[:, 1]
-            M[:, 2] = total_moment[:, 2]
+            M[:, 2] = total_moment[:, 2] * 0
             '''hardcode for testing'''
 
             D_total = -F[:, 0]*csdl.cos(alpha) - F[:, 2]*csdl.sin(alpha)
