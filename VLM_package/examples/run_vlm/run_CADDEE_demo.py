@@ -68,7 +68,7 @@ AcStates_val_dict = {
     AcStates_vlm.psi.value: np.zeros((num_nodes, 1)),
     AcStates_vlm.x.value: np.zeros((num_nodes, 1)),
     AcStates_vlm.y.value: np.zeros((num_nodes, 1)),
-    AcStates_vlm.z.value: np.zeros((num_nodes, 1)),
+    AcStates_vlm.z.value: np.ones((num_nodes, 1))*1000,
     AcStates_vlm.phiw.value: np.zeros((num_nodes, 1)),
     AcStates_vlm.gamma.value: np.zeros((num_nodes, 1)),
     AcStates_vlm.psiw.value: np.zeros((num_nodes, 1)),
