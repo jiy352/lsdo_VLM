@@ -342,7 +342,7 @@ class LiftDrag(Model):
             # print('s_panels_sum_surface',s_panels_sum_surface.shape)
             # print('C_L_0',C_L_0)
             # self.print_var(D_0 * csdl.cos(alpha))
-            drag_coeff = 1.7*(0.092903)
+            drag_coeff = 13.7221 * (0.092903)
             fuselage_drag = 0.5*rho*b*drag_coeff
             self.register_output('fuselage_drag',fuselage_drag)
             F[:, 0] = -(total_forces_temp[:, 0] + D_0 * csdl.cos(alpha) - L_0_total * csdl.sin(alpha) + fuselage_drag* csdl.cos(alpha))
@@ -372,6 +372,9 @@ class LiftDrag(Model):
             C_L_total = L_total/(0.5 *rho*b*s_panels_sum_surface)           
             self.register_output('total_drag', D_total)
             self.register_output('total_lift', L_total)
+            L_over_D = L_total / D_total
+            self.register_output('L_over_D', L_over_D)
+            self.print_var(L_over_D)
             self.register_output('total_CD', C_D_total)
             self.register_output('total_CL', C_L_total)
             # else:
