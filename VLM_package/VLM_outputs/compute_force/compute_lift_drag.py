@@ -407,9 +407,15 @@ class LiftDrag(Model):
                 rho_exp_1 = csdl.expand(csdl.reshape(rho,new_shape=(num_nodes,)), (eval_vel_shapes[i][0], eval_vel_shapes[i][1]),'i->ij')
                 print('rho_exp_1',rho_exp_1.shape)
                 print('csdl.sum(v_total_eval**2, axes=(2,))',csdl.sum(v_total_eval**2, axes=(2,)).shape)
-                dynamic_presure = 0.5*rho_exp_1*(csdl.sum(v_total_eval**2, axes=(2,)))
+
+                dynamic_presure = 0.5*rho_exp_1*(csdl.sum(v_total_eval**2, axes=(2,)))/1000
+                air_pressure = self.declare_variable('pressure', shape=(num_nodes,1))
+                air_pressure_flatten = csdl.reshape(air_pressure, (num_nodes,))
+                static_pressure = csdl.expand(air_pressure_flatten, (num_nodes, eval_vel_shapes[i][1]),'i->ij') - dynamic_presure #  kpa
+
                 print('dynamic_presure',dynamic_presure.shape,dynamic_presure.name)
                 self.register_output(eval_pts_names[i]+'_dynamic_pressure',dynamic_presure)
+                self.register_output(eval_pts_names[i]+'_static_pressure',static_pressure)
 
 
 
