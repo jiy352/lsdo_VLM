@@ -223,7 +223,7 @@ model_1.add(submodel, 'VLMSolverModel')
 
 rep = GraphRepresentation(model_1)
 rep.visualize_graph()
-rep.visualize_adjacency_mtx()
+rep.visualize_adjacency_mtx(markersize=0.1)
 rep.visualize_unflat_graph()
 
 sim = Simulator(model_1)

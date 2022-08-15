@@ -69,7 +69,7 @@ def get_pressure_contour(AcStates_val_dict, camber_mesh_dict, eval_pts_dict, Sim
     pressure_contour_dict = OrderedDict()
     for i in range(len(eval_pts_dict)):
         eval_pts_name = list(eval_pts_dict)[i]
-        pressure_contour_dict[eval_pts_name+'_static_pressure_diff'] = sim[eval_pts_name+'_static_pressure_diff']
+        pressure_contour_dict[eval_pts_name+'_pressure_coeff'] = sim[eval_pts_name+'_pressure_coeff']
 
     return pressure_contour_dict
 
@@ -154,15 +154,65 @@ if __name__ == "__main__":
 
     camber_mesh_dict = {
         'wing_camber_left': mesh_val, # nonzeros
-        'wing_camber_right': mesh_val_1,
+        # 'wing_camber_right': mesh_val_1,
         # 'tail_camber_left': np.zeros((num_nodes, 1)),
         # 'tail_camber_right': np.zeros((num_nodes, 1)),
 
     }
 
+    wing_upper_surface = mesh_val.copy()
+    wing_upper_surface[:,:,:,2] = mesh_val[:,:, :, 2].copy()+.5
+    wing_upper_surface_coll = 0.5*(wing_upper_surface[:,:-1,:-1,:]+wing_upper_surface[:,1:,1:,:])
+
+    wing_lower_surface = mesh_val.copy()
+    wing_lower_surface[:,:,:,2] = mesh_val[:,:, :, 2].copy()-.5
+    wing_lower_surface_coll = 0.5*(wing_lower_surface[:,:-1,:-1,:]+wing_lower_surface[:,1:,1:,:])
+
     eval_pts_dict = {
-        'wing_upper_surface': mesh_val+0.3, # nonzeros
-        'wing_lower_surface': mesh_val-0.3,
+        'wing_upper_surface': wing_upper_surface_coll, # nonzeros
+        'wing_lower_surface': wing_lower_surface_coll,
     }
 
     pressure_contour_dict = get_pressure_contour(AcStates_val_dict, camber_mesh_dict, eval_pts_dict, Simulator)
+    # import pyvista as pv
+    # pv.global_theme.axes.show = True
+    # pv.global_theme.font.label_size = 1
+    # x = mesh_val[0,:, :, 0]
+    # y = mesh_val[0,:, :, 1]
+    # z = mesh_val[0,:, :, 2]+0.5
+
+    # grid = pv.StructuredGrid(x, y, z)    
+    
+
+    # eval_pts_name = list(eval_pts_dict)[0]
+    # pressure = pressure_contour_dict[eval_pts_name+'_pressure_coeff'].reshape(nx-1, ny-1)
+    
+
+    # grid.cell_data["pressure"] = np.moveaxis( pressure.reshape(nx-1 , ny-1 ), 0, 1).reshape((nx-1)*(ny-1), )
+    #     # grid_1.cell_data["panel_forces"] = np.moveaxis(
+    #     #     sim["panel_forces"][0, 56:, :].reshape(nx - 1, ny - 1, 3), 0,
+    #     #     1).reshape(56, 3)
+    #     # grid.save("vtks/front_wing.vtk")
+    #     # grid_1.save("vtks/tail_wing.vtk")
+    # p = pv.Plotter()
+    # p.add_mesh(grid,  show_edges=True, opacity=1)
+
+
+    # x = mesh_val[0,:, :, 0]
+    # y = mesh_val[0,:, :, 1]
+    # z_1 = mesh_val[0,:, :, 2]-0.5
+
+    # grid_1 = pv.StructuredGrid(x, y, z_1)  
+    # eval_pts_name = list(eval_pts_dict)[1]
+    # pressure = pressure_contour_dict[eval_pts_name+'_pressure_coeff'].reshape(nx-1, ny-1)
+    
+
+    # grid_1.cell_data["pressure"] = np.moveaxis( pressure.reshape(nx-1 , ny-1 ), 0, 1).reshape((nx-1)*(ny-1), )
+    # # p.add_mesh(gridw, color="blue", show_edges=True, opacity=.5)
+    # # p.add_mesh(grid_1, color="red", show_edges=True, opacity=.5)
+    # # p.add_mesh(gridw_1, color="red", show_edges=True, opacity=.5)
+    # p.add_mesh(grid_1,  show_edges=True, opacity=1)
+    # p.camera.view_angle = 60.0
+    # p.add_axes_at_origin(labels_off=True, line_width=5)
+
+    # p.show()

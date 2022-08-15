@@ -415,11 +415,12 @@ class LiftDrag(Model):
                 freestream_pressure_flatten = csdl.reshape(freestream_pressure, (num_nodes,))
                 static_pressure = csdl.expand(air_pressure_flatten, (num_nodes, eval_vel_shapes[i][1]),'i->ij') - dynamic_presure #  kpa
                 static_pressure_diff = csdl.expand(freestream_pressure_flatten, (num_nodes, eval_vel_shapes[i][1]),'i->ij') - dynamic_presure #  kpa
-
+                pressure_coeff = static_pressure_diff/csdl.expand(freestream_pressure_flatten, (num_nodes, eval_vel_shapes[i][1]),'i->ij')
                 print('dynamic_presure',dynamic_presure.shape,dynamic_presure.name)
                 self.register_output(eval_pts_names[i]+'_dynamic_pressure',dynamic_presure)
                 self.register_output(eval_pts_names[i]+'_static_pressure',static_pressure)
                 self.register_output(eval_pts_names[i]+'_static_pressure_diff',static_pressure_diff)
+                self.register_output(eval_pts_names[i]+'_pressure_coeff', pressure_coeff)
 
 
 
