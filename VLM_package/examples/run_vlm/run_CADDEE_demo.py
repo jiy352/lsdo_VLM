@@ -9,6 +9,7 @@ from VLM_package.vlm_solver import VLMSolverModel
 
 from VLM_package.examples.run_vlm.utils.generate_mesh import generate_mesh
 import enum
+from csdl import GraphRepresentation
 # import pyvista as pv
 '''
 This example demonstrates the basic VLM simulation 
@@ -219,10 +220,18 @@ submodel = VLMSolverModel(
 # 7.76E-03 + 0.0189x + 0.377x^2
 model_1.add(submodel, 'VLMSolverModel')
 
+
+rep = GraphRepresentation(model_1)
+rep.visualize_graph()
+rep.visualize_adjacency_mtx()
+rep.visualize_unflat_graph()
+
 sim = Simulator(model_1)
 # sim = csdl_lite.Simulator(model_1)
 
 sim.run()
+
+
 
 ####################################################################
 # Print VLM outputs
