@@ -1,4 +1,4 @@
-from csdl_om import Simulator
+# from csdl_om import Simulator
 from csdl import Model
 import csdl
 import numpy as np
@@ -82,8 +82,8 @@ class KinematicVelocityComp(Model):
             frame_vel_expand = csdl.expand(frame_vel,
                                            out_shape,
                                            indices='ij->ikj')
-            print('rot_vel shape', rot_vel.shape)
-            print('frame_vel_expand shape', frame_vel_expand.shape)
+            # print('rot_vel shape', rot_vel.shape)
+            # print('frame_vel_expand shape', frame_vel_expand.shape)
 
             kinematic_vel = -(rot_vel + frame_vel_expand)
             self.register_output(kinematic_vel_name, kinematic_vel)

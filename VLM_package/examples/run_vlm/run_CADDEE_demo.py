@@ -10,6 +10,8 @@ from VLM_package.vlm_solver import VLMSolverModel
 from VLM_package.examples.run_vlm.utils.generate_mesh import generate_mesh
 import enum
 from csdl import GraphRepresentation
+# from python_csdl_backend import Simulator
+from csdl_om import Simulator
 # import pyvista as pv
 '''
 This example demonstrates the basic VLM simulation 
@@ -96,7 +98,7 @@ for data in AcStates_vlm:
 ####################################################################
 # single lifting surface
 nx = 3  # number of points in streamwise direction
-ny = 11  # number of points in spanwise direction
+ny = 3  # number of points in spanwise direction
 
 # surface_names = ['wing', 'wing_1']
 # surface_shapes = [(num_nodes, nx, ny, 3), (num_nodes, nx, ny, 3)]
@@ -175,8 +177,8 @@ wing = model_1.create_input('wing', val=mesh_val)
 # 2. preprocessing to connect to the vlm solver
 ####################################################################
 
-rot_vel = model_1.create_input(surface_names[0] + '_rot_vel',
-                               val=np.zeros((num_nodes, nx, ny, 3)))
+# rot_vel = model_1.create_input(surface_names[0] + '_rot_vel',
+#                                val=np.zeros((num_nodes, nx, ny, 3)))
 
 # v_inf = model_1.create_input('v_inf', val=v_inf.reshape(-1, 1))
 
@@ -222,9 +224,9 @@ model_1.add(submodel, 'VLMSolverModel')
 
 
 rep = GraphRepresentation(model_1)
-rep.visualize_graph()
-rep.visualize_adjacency_mtx(markersize=0.1)
-rep.visualize_unflat_graph()
+# rep.visualize_graph()
+# rep.visualize_adjacency_mtx(markersize=0.1)
+# rep.visualize_unflat_graph()
 
 sim = Simulator(model_1)
 # sim = csdl_lite.Simulator(model_1)
@@ -282,15 +284,22 @@ print(
 )
 
 # b = sim.check_partials(compact_print=True, out_stream=None)
-# b = sim.check_partials(compact_print=True)
+b = sim.check_partials(compact_print=True)
 # sim.assert_check_partials(b, 5e-3, 1e-5)
-# c = np.zeros(len(b.keys()))
+c = []
+d = np.zeros(len(b.keys()))
 # i = 0
-# keys = []
-# for key in b.keys():
-#     c[i] = b[key]['relative_error_norm']
-#     keys.append(key)
-#     i = i + 1
+keys = []
+for key in b.keys():
+    node = b[key]
+    for inner_keys in b[key].keys():
+        c.append(b[key][inner_keys]['rel error'][0])
+    
+    
+    # ['relative_error_norm']
+    # c[i] = b[key]['a']
+    keys.append(key)
+    i = i + 1
 
 # sorted_array = np.sort(c)[::-1]
 # indices = np.argsort(c)[::-1]

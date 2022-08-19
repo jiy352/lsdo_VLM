@@ -1,5 +1,5 @@
 from turtle import shape
-from csdl_om import Simulator
+# from csdl_om import Simulator
 from csdl import Model
 import csdl
 from matplotlib.pyplot import axis
@@ -342,7 +342,7 @@ class LiftDrag(Model):
             # print('s_panels_sum_surface',s_panels_sum_surface.shape)
             # print('C_L_0',C_L_0)
             # self.print_var(D_0 * csdl.cos(alpha))
-            drag_coeff = 13.7221 * (0.092903)
+            drag_coeff = 9 * (0.092903)
             fuselage_drag = 0.5*rho*b*drag_coeff
             self.register_output('fuselage_drag',fuselage_drag)
             F[:, 0] = -(total_forces_temp[:, 0] + D_0 * csdl.cos(alpha) - L_0_total * csdl.sin(alpha) + fuselage_drag* csdl.cos(alpha))
@@ -374,7 +374,7 @@ class LiftDrag(Model):
             self.register_output('total_lift', L_total)
             L_over_D = L_total / D_total
             self.register_output('L_over_D', L_over_D)
-            self.print_var(L_over_D)
+            # self.print_var(L_over_D)
             self.register_output('total_CD', C_D_total)
             self.register_output('total_CL', C_L_total)
             # else:
@@ -408,14 +408,17 @@ class LiftDrag(Model):
                 print('rho_exp_1',rho_exp_1.shape)
                 print('csdl.sum(v_total_eval**2, axes=(2,))',csdl.sum(v_total_eval**2, axes=(2,)).shape)
 
-                dynamic_presure = 0.5*rho_exp_1*(csdl.sum(v_total_eval**2, axes=(2,)))/1000
-                freestream_pressure = 0.5*rho*(frame_vel[:, 0]**2 + frame_vel[:, 1]**2 + frame_vel[:, 2]**2)/1000
-                air_pressure = self.declare_variable('pressure', shape=(num_nodes,1))
-                air_pressure_flatten = csdl.reshape(air_pressure, (num_nodes,))
+                dynamic_presure = 0.5*rho_exp_1*(csdl.sum(v_total_eval**2, axes=(2,))) # in kPa
+                freestream_pressure = 0.5*rho*(frame_vel[:, 0]**2 + frame_vel[:, 1]**2 + frame_vel[:, 2]**2) # in kPa
+                air_pressure = self.declare_variable('pressure', shape=(num_nodes,1)) # in kPa
+                air_pressure_flatten = csdl.reshape(air_pressure, (num_nodes,)) # in kPa
                 freestream_pressure_flatten = csdl.reshape(freestream_pressure, (num_nodes,))
                 static_pressure = csdl.expand(air_pressure_flatten, (num_nodes, eval_vel_shapes[i][1]),'i->ij') - dynamic_presure #  kpa
+
                 static_pressure_diff = csdl.expand(freestream_pressure_flatten, (num_nodes, eval_vel_shapes[i][1]),'i->ij') - dynamic_presure #  kpa
-                pressure_coeff = static_pressure_diff/csdl.expand(freestream_pressure_flatten, (num_nodes, eval_vel_shapes[i][1]),'i->ij')
+                b =csdl.reshape((frame_vel[:, 0]**2 + frame_vel[:, 1]**2 + frame_vel[:, 2]**2),(num_nodes,))
+                # pressure_coeff = static_pressure_diff/csdl.expand(freestream_pressure_flatten, (num_nodes, eval_vel_shapes[i][1]),'i->ij') #- (1-csdl.sum(v_total_eval**2, axes=(2,))/csdl.expand(b, (num_nodes, eval_vel_shapes[i][1]),'i->ij'))
+                pressure_coeff = 1- (csdl.sum(v_total_eval**2, axes=(2,))/csdl.expand(b, (num_nodes, eval_vel_shapes[i][1]),'i->ij'))
                 print('dynamic_presure',dynamic_presure.shape,dynamic_presure.name)
                 self.register_output(eval_pts_names[i]+'_dynamic_pressure',dynamic_presure)
                 self.register_output(eval_pts_names[i]+'_static_pressure',static_pressure)

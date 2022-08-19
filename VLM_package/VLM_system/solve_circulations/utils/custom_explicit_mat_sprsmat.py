@@ -2,7 +2,7 @@ import csdl
 import numpy as np
 
 from csdl import Model
-from csdl_om import Simulator
+# from csdl_om import Simulator
 from scipy.sparse import coo_array
 from scipy import sparse
 

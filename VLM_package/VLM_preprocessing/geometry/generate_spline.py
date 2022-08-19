@@ -2,7 +2,7 @@ import numpy as np
 from openmdao.components.interp_util.interp import InterpND
 
 import csdl
-import csdl_om
+# import csdl_om
 from VLM_package.VLM_preprocessing.utils.generate_simple_mesh import *
 from ufl import Or
 

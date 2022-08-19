@@ -1,5 +1,5 @@
 import csdl
-import csdl_om
+# import csdl_om
 
 import numpy as np
 from VLM_package.VLM_preprocessing.utils.generate_simple_mesh import *

@@ -1,5 +1,5 @@
 import csdl
-from csdl_om import Simulator
+# from csdl_om import Simulator
 
 import numpy as np
 from VLM_package.VLM_system.solve_circulations.solve_group import SolveMatrix

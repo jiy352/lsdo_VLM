@@ -122,7 +122,7 @@ if __name__ == "__main__":
     for i in range(num_nodes):
         mesh_val[i, :, :, :] = mesh
         mesh_val[i, :, :, 0] = mesh.copy()[:, :, 0]
-        mesh_val[i, :, :, 1] = mesh.copy()[:, :, 1] + offset
+        mesh_val[i, :, :, 1] = mesh.copy()[:, :, 1] 
 
 
     offset_1 = offset*3
@@ -160,12 +160,27 @@ if __name__ == "__main__":
 
     }
 
-    wing_upper_surface = mesh_val.copy()
-    wing_upper_surface[:,:,:,2] = mesh_val[:,:, :, 2].copy()+.5
+
+    mesh_dict_1 = {
+        "num_y": ny+10,
+        "num_x": nx+2,
+        "wing_type": "rect",
+        "symmetry": False,
+        "span": span*2,
+        "root_chord": chord,
+        "span_cos_spacing": False,
+        "chord_cos_spacing": False,
+    }
+
+    # Generate mesh of a rectangular wing
+    mesh_val_2 = generate_mesh(mesh_dict_1).reshape(1,nx+2,ny+10,3) #(nx,ny,3)
+
+    wing_upper_surface = mesh_val_2.copy()
+    wing_upper_surface[:,:,:,2] = mesh_val_2[:,:, :, 2].copy()+.5
     wing_upper_surface_coll = 0.5*(wing_upper_surface[:,:-1,:-1,:]+wing_upper_surface[:,1:,1:,:])
 
-    wing_lower_surface = mesh_val.copy()
-    wing_lower_surface[:,:,:,2] = mesh_val[:,:, :, 2].copy()-.5
+    wing_lower_surface = mesh_val_2.copy()
+    wing_lower_surface[:,:,:,2] = mesh_val_2[:,:, :, 2].copy()-.5
     wing_lower_surface_coll = 0.5*(wing_lower_surface[:,:-1,:-1,:]+wing_lower_surface[:,1:,1:,:])
 
     eval_pts_dict = {
@@ -174,45 +189,49 @@ if __name__ == "__main__":
     }
 
     pressure_contour_dict = get_pressure_contour(AcStates_val_dict, camber_mesh_dict, eval_pts_dict, Simulator)
-    # import pyvista as pv
-    # pv.global_theme.axes.show = True
-    # pv.global_theme.font.label_size = 1
-    # x = mesh_val[0,:, :, 0]
-    # y = mesh_val[0,:, :, 1]
-    # z = mesh_val[0,:, :, 2]+0.5
+    import pyvista as pv
+    pv.global_theme.axes.show = True
+    pv.global_theme.font.label_size = 1
+    x = mesh_val_2[0,:, :, 0]
+    y = mesh_val_2[0,:, :, 1]
+    z = mesh_val_2[0,:, :, 2]+0.5
 
-    # grid = pv.StructuredGrid(x, y, z)    
+    grid = pv.StructuredGrid(x, y, z)    
     
 
-    # eval_pts_name = list(eval_pts_dict)[0]
-    # pressure = pressure_contour_dict[eval_pts_name+'_pressure_coeff'].reshape(nx-1, ny-1)
+    eval_pts_name = list(eval_pts_dict)[0]
+    pressure = pressure_contour_dict[eval_pts_name+'_pressure_coeff'].reshape(nx+1, ny+9)
     
 
-    # grid.cell_data["pressure"] = np.moveaxis( pressure.reshape(nx-1 , ny-1 ), 0, 1).reshape((nx-1)*(ny-1), )
-    #     # grid_1.cell_data["panel_forces"] = np.moveaxis(
-    #     #     sim["panel_forces"][0, 56:, :].reshape(nx - 1, ny - 1, 3), 0,
-    #     #     1).reshape(56, 3)
-    #     # grid.save("vtks/front_wing.vtk")
-    #     # grid_1.save("vtks/tail_wing.vtk")
-    # p = pv.Plotter()
-    # p.add_mesh(grid,  show_edges=True, opacity=1)
+    grid.cell_data["pressure"] = np.moveaxis( pressure.reshape(nx+1 , ny+9 ), 0, 1).reshape((nx+1)*(ny+9), )
+        # grid_1.cell_data["panel_forces"] = np.moveaxis(
+        #     sim["panel_forces"][0, 56:, :].reshape(nx - 1, ny - 1, 3), 0,
+        #     1).reshape(56, 3)
+        # grid.save("vtks/front_wing.vtk")
+        # grid_1.save("vtks/tail_wing.vtk")
+    p = pv.Plotter()
+    p.add_mesh(grid,  show_edges=True, opacity=1)
 
 
-    # x = mesh_val[0,:, :, 0]
-    # y = mesh_val[0,:, :, 1]
-    # z_1 = mesh_val[0,:, :, 2]-0.5
+    x = mesh_val_2[0,:, :, 0]
+    y = mesh_val_2[0,:, :, 1]
+    z_1 = mesh_val_2[0,:, :, 2]-0.5
 
-    # grid_1 = pv.StructuredGrid(x, y, z_1)  
-    # eval_pts_name = list(eval_pts_dict)[1]
-    # pressure = pressure_contour_dict[eval_pts_name+'_pressure_coeff'].reshape(nx-1, ny-1)
+    grid_1 = pv.StructuredGrid(x, y, z_1)  
+    eval_pts_name = list(eval_pts_dict)[1]
+    pressure = pressure_contour_dict[eval_pts_name+'_pressure_coeff'].reshape(nx+1, ny+9)
     
+    x_2 = mesh_val[0,:, :, 0]
+    y_2 = mesh_val[0,:, :, 1]
+    z_2 = mesh_val[0,:, :, 2]
+    grid_w = pv.StructuredGrid(x_2, y_2, z_2)  
 
-    # grid_1.cell_data["pressure"] = np.moveaxis( pressure.reshape(nx-1 , ny-1 ), 0, 1).reshape((nx-1)*(ny-1), )
-    # # p.add_mesh(gridw, color="blue", show_edges=True, opacity=.5)
-    # # p.add_mesh(grid_1, color="red", show_edges=True, opacity=.5)
-    # # p.add_mesh(gridw_1, color="red", show_edges=True, opacity=.5)
-    # p.add_mesh(grid_1,  show_edges=True, opacity=1)
-    # p.camera.view_angle = 60.0
-    # p.add_axes_at_origin(labels_off=True, line_width=5)
+    grid_1.cell_data["pressure"] = np.moveaxis( pressure.reshape(nx+1 , ny+9 ), 0, 1).reshape((nx+1)*(ny+9), )
+    p.add_mesh(grid_w, color="blue", show_edges=True, opacity=.5)
+    # p.add_mesh(grid_1, color="red", show_edges=True, opacity=.5)
+    # p.add_mesh(gridw_1, color="red", show_edges=True, opacity=.5)
+    p.add_mesh(grid_1,  show_edges=True, opacity=1)
+    p.camera.view_angle = 60.0
+    p.add_axes_at_origin(labels_off=True, line_width=5)
 
-    # p.show()
+    p.show()
