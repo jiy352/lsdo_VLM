@@ -10,7 +10,7 @@ from VLM_package.VLM_preprocessing.utils.generate_simple_mesh import generate_si
 import enum
 
 import csdl
-import csdl_om
+# import csdl_om
 import numpy as np
 from VLM_package.examples.run_vlm.utils.generate_mesh import generate_mesh
 

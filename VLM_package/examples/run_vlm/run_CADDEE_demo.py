@@ -10,6 +10,7 @@ from VLM_package.vlm_solver import VLMSolverModel
 from VLM_package.examples.run_vlm.utils.generate_mesh import generate_mesh
 import enum
 from csdl import GraphRepresentation
+from python_csdl_backend import Simulator
 # import pyvista as pv
 '''
 This example demonstrates the basic VLM simulation 
@@ -45,27 +46,25 @@ class AcStates_vlm(enum.Enum):
     # rho = 'rho'
 
 
-num_nodes = 1
-
 # v_inf = np.array([50])
-alpha_deg = np.array([1.25])
+alpha_deg = np.ones((num_nodes,1))*1.25
 alpha = alpha_deg / 180 * np.pi
 # vx = -v_inf * np.cos(alpha)
 # vz = -v_inf * np.sin(alpha)
 
-vx = np.array([50.39014388])*1
-vz = np.array([2.75142193])
+vx = 50
+vz = 2
 # vx**2+vz**2=v_inf
 
 AcStates_val_dict = {
-    AcStates_vlm.u.value: vx.reshape(num_nodes, 1),
+    AcStates_vlm.u.value: np.ones((num_nodes,1))*vx,
     AcStates_vlm.v.value: np.zeros((num_nodes, 1)),
-    AcStates_vlm.w.value: vz.reshape(num_nodes, 1),
+    AcStates_vlm.w.value: np.ones((num_nodes,1))*vz,
     AcStates_vlm.p.value: np.zeros((num_nodes, 1)),
     AcStates_vlm.q.value: np.zeros((num_nodes, 1)),
     AcStates_vlm.r.value: np.zeros((num_nodes, 1)),
     AcStates_vlm.phi.value: np.zeros((num_nodes, 1)),
-    AcStates_vlm.theta.value: np.ones((num_nodes, 1))*alpha,
+    AcStates_vlm.theta.value: alpha,
     AcStates_vlm.psi.value: np.zeros((num_nodes, 1)),
     AcStates_vlm.x.value: np.zeros((num_nodes, 1)),
     AcStates_vlm.y.value: np.zeros((num_nodes, 1)),
@@ -96,7 +95,7 @@ for data in AcStates_vlm:
 ####################################################################
 # single lifting surface
 nx = 3  # number of points in streamwise direction
-ny = 11  # number of points in spanwise direction
+ny = 41  # number of points in spanwise direction
 
 # surface_names = ['wing', 'wing_1']
 # surface_shapes = [(num_nodes, nx, ny, 3), (num_nodes, nx, ny, 3)]
@@ -221,10 +220,10 @@ submodel = VLMSolverModel(
 model_1.add(submodel, 'VLMSolverModel')
 
 
-rep = GraphRepresentation(model_1)
-rep.visualize_graph()
-rep.visualize_adjacency_mtx(markersize=0.1)
-rep.visualize_unflat_graph()
+# rep = GraphRepresentation(model_1)
+# rep.visualize_graph()
+# rep.visualize_adjacency_mtx(markersize=0.1)
+# rep.visualize_unflat_graph()
 
 sim = Simulator(model_1)
 # sim = csdl_lite.Simulator(model_1)
@@ -317,38 +316,41 @@ print('total_drag',sim['total_drag'])
 print('total_lift',sim['total_lift'])
 print('total_CD',sim['total_CD'])
 print('total_CL',sim['total_CL'])
-# print('wing_1_D',sim['wing_1_D'])
-import pyvista as pv
-############################################
-# Plot the lifting surfaces
-############################################
-pv.global_theme.axes.show = True
-pv.global_theme.font.label_size = 1
-x = mesh[:, :, 0]
-y = mesh[:, :, 1]
-z = mesh[:, :, 2]
-# x_1 = wing_2_mesh[0, :, :, 0]
-# y_1 = wing_2_mesh[0, :, :, 1]
-# z_1 = wing_2_mesh[0, :, :, 2]
 
-# xw = sim['wing_1_wake_coords'][0, :, :, 0]
-# yw = sim['wing_1_wake_coords'][0, :, :, 1]
-# zw = sim['wing_1_wake_coords'][0, :, :, 2]
+print(sim.compute_totals(of='VLMSolverModel.VLM_outputs.LiftDrag.total_CL', wrt=['alpha']))
 
-# xw_1 = sim['wing_2_wake_coords'][0, :, :, 0]
-# yw_1 = sim['wing_2_wake_coords'][0, :, :, 1]
-# zw_1 = sim['wing_2_wake_coords'][0, :, :, 2]
+# # print('wing_1_D',sim['wing_1_D'])
+# import pyvista as pv
+# ############################################
+# # Plot the lifting surfaces
+# ############################################
+# pv.global_theme.axes.show = True
+# pv.global_theme.font.label_size = 1
+# x = mesh[:, :, 0]
+# y = mesh[:, :, 1]
+# z = mesh[:, :, 2]
+# # x_1 = wing_2_mesh[0, :, :, 0]
+# # y_1 = wing_2_mesh[0, :, :, 1]
+# # z_1 = wing_2_mesh[0, :, :, 2]
 
-grid = pv.StructuredGrid(x, y, z)
-# grid_1 = pv.StructuredGrid(x_1, y_1, z_1)
-# gridw = pv.StructuredGrid(xw, yw, zw)
-# gridw_1 = pv.StructuredGrid(xw_1, yw_1, zw_1)
-p = pv.Plotter()
-p.add_mesh(grid, color="blue", show_edges=True, opacity=.5)
-# p.add_mesh(gridw, color="blue", show_edges=True, opacity=.5)
-# p.add_mesh(grid_1, color="red", show_edges=True, opacity=.5)
-# p.add_mesh(gridw_1, color="red", show_edges=True, opacity=.5)
-p.camera.view_angle = 60.0
-p.add_axes_at_origin(labels_off=True, line_width=5)
+# # xw = sim['wing_1_wake_coords'][0, :, :, 0]
+# # yw = sim['wing_1_wake_coords'][0, :, :, 1]
+# # zw = sim['wing_1_wake_coords'][0, :, :, 2]
 
-# p.show()
+# # xw_1 = sim['wing_2_wake_coords'][0, :, :, 0]
+# # yw_1 = sim['wing_2_wake_coords'][0, :, :, 1]
+# # zw_1 = sim['wing_2_wake_coords'][0, :, :, 2]
+
+# grid = pv.StructuredGrid(x, y, z)
+# # grid_1 = pv.StructuredGrid(x_1, y_1, z_1)
+# # gridw = pv.StructuredGrid(xw, yw, zw)
+# # gridw_1 = pv.StructuredGrid(xw_1, yw_1, zw_1)
+# p = pv.Plotter()
+# p.add_mesh(grid, color="blue", show_edges=True, opacity=.5)
+# # p.add_mesh(gridw, color="blue", show_edges=True, opacity=.5)
+# # p.add_mesh(grid_1, color="red", show_edges=True, opacity=.5)
+# # p.add_mesh(gridw_1, color="red", show_edges=True, opacity=.5)
+# p.camera.view_angle = 60.0
+# p.add_axes_at_origin(labels_off=True, line_width=5)
+
+# # p.show()

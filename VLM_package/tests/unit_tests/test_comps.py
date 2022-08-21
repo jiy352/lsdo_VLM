@@ -8,7 +8,7 @@ from csdl import Model
 from VLM_package.VLM_preprocessing.utils.generate_simple_mesh import generate_simple_mesh
 
 import csdl
-import csdl_om
+# import csdl_om
 import numpy as np
 import enum
 

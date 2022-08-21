@@ -10,7 +10,7 @@ from VLM_package.vlm_solver import VLMSolverModel
 from VLM_package.examples.run_vlm.utils.generate_mesh import generate_mesh
 
 from VLM_package.examples.run_vlm.AcStates_enum_vlm import *
-import pyvista as pv
+from python_csdl_backend import Simulator
 '''
 This example demonstrates the basic VLM simulation 
 with a single lifting surface with internal function to generate evaluation pts

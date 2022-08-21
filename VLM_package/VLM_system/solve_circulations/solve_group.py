@@ -1,9 +1,10 @@
 from csdl import Model, ImplicitOperation, ScipyKrylov, NewtonSolver, NonlinearBlockGS
 import numpy as np
-from csdl_om import Simulator
+# from csdl_om import Simulator
 import csdl
 
 from VLM_package.VLM_system.solve_circulations.rhs_group import RHS
+from VLM_package.VLM_system.solve_circulations.utils.einsum_kij_kj_ki import EinsumKijKjKi
 
 
 class SolveMatrix(Model):
@@ -103,8 +104,17 @@ class SolveMatrix(Model):
                                          shape=(num_nodes, gamma_b_shape))
         b = model.declare_variable('b', shape=(num_nodes, gamma_b_shape))
 
-        y = csdl.einsum(MTX, gamma_b, subscripts='kij,kj->ki') + b
+        product = csdl.custom(MTX,
+                            gamma_b,
+                            op=EinsumKijKjKi(in_name_1='MTX',
+                                                in_name_2='gamma_b',
+                                                in_shape=aic_bd_proj_shape,
+                                                out_name='product'))        
 
+        # y = csdl.einsum(MTX, gamma_b, subscripts='kij,kj->ki') + b
+
+        # model.register_output('product', product)
+        y = product+b
         model.register_output('y', y)
 
         solve = self.create_implicit_operation(model)

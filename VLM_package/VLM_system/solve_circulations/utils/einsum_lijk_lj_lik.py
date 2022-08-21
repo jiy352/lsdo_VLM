@@ -1,4 +1,4 @@
-import csdl_om
+# import csdl_om
 import csdl
 import numpy as np
 

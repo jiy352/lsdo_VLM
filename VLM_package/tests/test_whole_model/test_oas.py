@@ -12,7 +12,7 @@ import enum
 from VLM_package.examples.run_vlm.utils.generate_mesh import generate_mesh
 
 import csdl
-import csdl_om
+# import csdl_om
 import numpy as np
 
 

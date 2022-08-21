@@ -1,6 +1,6 @@
 from csdl import Model, ImplicitOperation, ScipyKrylov, NewtonSolver, NonlinearBlockGS
 import numpy as np
-from csdl_om import Simulator
+# from csdl_om import Simulator
 import csdl
 
 from VLM_package.VLM_system.solve_circulations.rhs_group import RHS
@@ -114,7 +114,7 @@ class ComputeResidual(Model):
         gamma_b = model.declare_variable('gamma_b',
                                          shape=(num_nodes, gamma_b_shape))
         b = model.declare_variable('b', shape=(num_nodes, gamma_b_shape))
-
+        # exit()
         y = csdl.einsum(MTX, gamma_b, subscripts='kij,kj->ki') + b
 
         model.register_output('residual', y)

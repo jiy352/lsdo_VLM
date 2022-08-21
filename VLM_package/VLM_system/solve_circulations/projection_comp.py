@@ -1,4 +1,4 @@
-from csdl_om import Simulator
+# from csdl_om import Simulator
 from csdl import Model
 import csdl
 import numpy as np
@@ -90,6 +90,8 @@ class Projection(Model):
                                3))
 
                 if len(input_vel_shape) == 3:
+                    # print('run csdl.einsum ijk,ijk->ij')
+                    # exit()
                     velocity_projections = csdl.einsum(
                         input_vel,
                         normals_reshaped,

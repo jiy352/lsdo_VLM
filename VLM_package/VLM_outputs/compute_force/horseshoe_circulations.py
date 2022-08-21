@@ -1,4 +1,4 @@
-from csdl_om import Simulator
+# from csdl_om import Simulator
 from csdl import Model
 import csdl
 from matplotlib.pyplot import clabel
@@ -6,7 +6,7 @@ import numpy as np
 from numpy.core.fromnumeric import size
 
 from scipy.sparse import csc_matrix
-
+from VLM_package.VLM_system.solve_circulations.utils.einsum_ij_kj_ki import EinsumIjKjKi
 
 class HorseshoeCirculations(Model):
     """
@@ -85,9 +85,18 @@ class HorseshoeCirculations(Model):
 
         # print(gamma_b.shape)
         # print(mtx.shape)
-        horseshoe_circulation = csdl.einsum(mtx,
+        horseshoe_circulation = csdl.custom(mtx,
                                             surface_gamma_b,
-                                            subscripts='ij,kj->ki')
+                                            op=EinsumIjKjKi(in_name_1='mtx',
+                                                                in_name_2='gamma_b',
+                                                                ijk=(system_size, system_size,num_nodes),
+                                                                out_name='horseshoe_circulation'))
+
+        
+        
+        # csdl.einsum(mtx,
+        #                                     surface_gamma_b,
+        #                                     subscripts='ij,kj->ki')
         # print('horseshoe_circulation horseshoe_circulation shape',
         #       horseshoe_circulation.shape)
 
