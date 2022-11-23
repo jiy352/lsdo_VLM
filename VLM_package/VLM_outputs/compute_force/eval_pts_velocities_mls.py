@@ -46,7 +46,7 @@ class EvalPtsVel(Model):
         # stands for quarter-chord
         self.parameters.declare('n_wake_pts_chord')
         self.parameters.declare('delta_t')
-        self.parameters.declare('mesh_unit', default='m')
+        self.parameters.declare('mesh_unit', default='ft')
 
     def define(self):
         # eval_pts_names = self.parameters['eval_pts_names']

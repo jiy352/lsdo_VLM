@@ -77,7 +77,7 @@ class AdapterComp(Model):
 
         num_nodes = surface_shapes[0][0]
 
-        u = self.declare_variable('u', shape=(num_nodes, 1))
+        u = self.declare_variable('u', shape=(num_nodes, 1)) 
         v = self.declare_variable('v', shape=(num_nodes, 1))
         w = self.declare_variable('w', shape=(num_nodes, 1))
 

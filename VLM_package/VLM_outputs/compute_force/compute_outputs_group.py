@@ -52,7 +52,7 @@ class Outputs(Model):
 
         self.parameters.declare('coeffs_aoa', default=None)
         self.parameters.declare('coeffs_cd', default=None)
-        self.parameters.declare('mesh_unit', default='m')
+        self.parameters.declare('mesh_unit', default='ft')
         self.parameters.declare('cl0', types=list)
 
     def define(self):

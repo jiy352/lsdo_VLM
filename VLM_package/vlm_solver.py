@@ -28,7 +28,7 @@ class VLMSolverModel(csdl.Model):
         self.parameters.declare('coeffs_cd', default=None)
         self.parameters.declare('solve_option', default='direct')
         self.parameters.declare('TE_idx', default='last')
-        self.parameters.declare('mesh_unit', default='m')
+        self.parameters.declare('mesh_unit', default='ft')
         self.parameters.declare('cl0', default=[0])
 
     def define(self):

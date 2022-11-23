@@ -1,4 +1,4 @@
-from turtle import shape
+# from turtle import shape
 # from csdl_om import Simulator
 from csdl import Model
 import csdl
@@ -128,7 +128,7 @@ class LiftDrag(Model):
                 s_panels_all[:, start:start + delta] = csdl.reshape(
                     s_panels, (num_nodes, delta))
                 eval_pts_all[:, start:start + delta, :] = csdl.reshape(
-                    eval_pts, (num_nodes, delta, 3))
+                    eval_pts, (num_nodes, delta, 3)) 
                 # spans_all[:, start:start + delta] = csdl.reshape(
                 #     spans, (num_nodes, delta))
                 # chords_all[:, start:start + delta] = csdl.reshape(
@@ -350,7 +350,7 @@ class LiftDrag(Model):
             F[:, 2] = -(total_forces_temp[:, 2] + D_0 * csdl.sin(alpha) + L_0_total * csdl.cos(alpha))
 
             evaluation_pt = self.declare_variable('evaluation_pt',
-                                                  val=np.zeros(3, ))
+                                                  val=np.zeros(3, )) 
             evaluation_pt_exp = csdl.expand(
                 evaluation_pt,
                 (eval_pts_all.shape),
