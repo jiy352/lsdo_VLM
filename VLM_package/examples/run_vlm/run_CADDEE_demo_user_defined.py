@@ -9,6 +9,7 @@ from VLM_package.vlm_solver import VLMSolverModel
 
 from VLM_package.examples.run_vlm.utils.generate_mesh import generate_mesh
 import enum
+from python_csdl_backend import Simulator
 # import pyvista as pv
 '''
 This example demonstrates the basic VLM simulation 
@@ -165,8 +166,16 @@ rot_vel = model_1.create_input(surface_names[0] + '_rot_vel',
 eval_pts_shapes = [(num_nodes, x[1] - 1, x[2] - 1, 3) for x in surface_shapes]
 eval_pts_names = [x + '_eval_pts_coords' for x in surface_names]
 
+num_pts_chord=nx
+num_pts_span = ny
+coll_pts_coords = 0.25 * (mesh_val[:,0:num_pts_chord-1, 0:num_pts_span-1, :] +\
+                                mesh_val[:,0:num_pts_chord-1, 1:num_pts_span, :] +\
+                                mesh_val[:,1:, 0:num_pts_span-1, :]+\
+                                mesh_val[:,1:, 1:, :])
+
+
 eval_pts = model_1.create_input(eval_pts_names[0],
-                               val=np.random.random(eval_pts_shapes[0]))
+                               val=coll_pts_coords)
 
 
 submodel = VLMSolverModel(
@@ -231,15 +240,17 @@ z = mesh[:, :, 2]
 # zw_1 = sim['wing_2_wake_coords'][0, :, :, 2]
 
 grid = pv.StructuredGrid(x, y, z)
+grid.cell_data["pressure"] = np.moveaxis( sim[eval_pts_names[0]+'_static_pressure_diff'].reshape(nx-1 , ny-1 ), 0, 1).reshape((nx-1)*(ny-1), )
 # grid_1 = pv.StructuredGrid(x_1, y_1, z_1)
 # gridw = pv.StructuredGrid(xw, yw, zw)
 # gridw_1 = pv.StructuredGrid(xw_1, yw_1, zw_1)
 p = pv.Plotter()
-p.add_mesh(grid, color="blue", show_edges=True, opacity=.5)
+p.add_mesh(grid, color="blue", show_edges=True, opacity=1)
 # p.add_mesh(gridw, color="blue", show_edges=True, opacity=.5)
 # p.add_mesh(grid_1, color="red", show_edges=True, opacity=.5)
 # p.add_mesh(gridw_1, color="red", show_edges=True, opacity=.5)
 p.camera.view_angle = 60.0
 p.add_axes_at_origin(labels_off=True, line_width=5)
+grid.save("dp.vtk")
 
-p.show()
+# p.show()

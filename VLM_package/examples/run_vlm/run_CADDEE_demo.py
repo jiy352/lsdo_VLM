@@ -203,7 +203,7 @@ submodel = VLMSolverModel(
     surface_shapes=surface_shapes,
     num_nodes=num_nodes,
     # free_stream_velocities=free_stream_velocities,
-    eval_pts_location=0.25,
+    eval_pts_location=0.9,
     # The location of the evaluation point is on the quarter-chord,
     # if this is not provided, it is defaulted to be 0.25.
     # coeffs_aoa = [(0.519, 0.0832)],
@@ -218,7 +218,8 @@ submodel = VLMSolverModel(
 # 6.37*x + 0.467
 # 7.76E-03 + 0.0189x + 0.377x^2
 model_1.add(submodel, 'VLMSolverModel')
-
+# model_1.add(submodel, 'VLMSolverModel',promotes=[])
+# model_1.connect('wing', 'VLMSolverModel.wing')
 
 # rep = GraphRepresentation(model_1)
 # rep.visualize_graph()

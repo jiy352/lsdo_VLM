@@ -77,6 +77,7 @@ class WakeCoords(Model):
             wake_coords = TE_reshaped_expand + delta_x
 
             self.register_output(wake_coords_names[i], wake_coords)
+            # print('wake_coords name-----', wakecoords.name)
 
 
 if __name__ == "__main__":

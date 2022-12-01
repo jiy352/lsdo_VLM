@@ -73,7 +73,16 @@ class KinematicVelocityComp(Model):
                                              shape=(num_nodes,
                                                     num_pts_chord - 1,
                                                     num_pts_span - 1, 3))
-            r_vec = coll_pts - 0.
+
+            evaluation_pt = self.declare_variable('evaluation_pt',
+                                                  val=np.zeros(3, ))
+            evaluation_pt_exp = csdl.expand(
+                evaluation_pt,
+                (coll_pts.shape),
+                'i->ljki',
+            )
+
+            r_vec = coll_pts - evaluation_pt_exp
             ang_vel_exp = csdl.expand(
                 ang_vel, (num_nodes, num_pts_chord - 1, num_pts_span - 1, 3),
                 indices='il->ijkl')
