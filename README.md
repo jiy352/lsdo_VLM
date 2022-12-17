@@ -21,8 +21,15 @@ pip install -e .
 
 Install CSDL Backend
 
+(csdl_om)
 ```
 git clone https://github.com/LSDOlab/csdl_om.git
+pip install -e .
+```
+
+(new backend)
+```
+https://github.com/LSDOlab/python_csdl_backend
 pip install -e .
 ```
 
