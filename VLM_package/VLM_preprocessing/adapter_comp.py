@@ -98,6 +98,69 @@ class AdapterComp(Model):
         psiw = self.declare_variable('psiw', shape=(num_nodes, 1))
 
         ################################################################################
+        # Block for checking the inputs into VLM
+        ################################################################################
+
+        trashU = u * np.ones((num_nodes, 1))
+        trashV = v * np.ones((num_nodes, 1))
+        trashW = w * np.ones((num_nodes, 1))
+
+        trashP = p * np.ones((num_nodes, 1))
+        trashQ = q * np.ones((num_nodes, 1))
+        trashR = r * np.ones((num_nodes, 1))
+
+        trashPhi   = phi * np.ones((num_nodes, 1))
+        trashTheta = theta * np.ones((num_nodes, 1))
+        trashPsi   = psi * np.ones((num_nodes, 1))
+        
+        trashX = x * np.ones((num_nodes, 1))
+        trashY = y * np.ones((num_nodes, 1))
+        trashZ = z * np.ones((num_nodes, 1))
+
+        trashPhiW  = phiw * np.ones((num_nodes, 1))
+        trashGamma = gamma * np.ones((num_nodes, 1))
+        trashPsiW  = psiw * np.ones((num_nodes, 1))
+
+        tempU = self.register_output('VLM_u', trashU)
+        tempV = self.register_output('VLM_v', trashV)
+        tempW = self.register_output('VLM_w', trashW)
+
+        tempP = self.register_output('VLM_p', trashP)
+        tempQ = self.register_output('VLM_q', trashQ)
+        tempR = self.register_output('VLM_r', trashR)
+
+        tempPhi   = self.register_output('VLM_phi', trashPhi)
+        tempTheta = self.register_output('VLM_theta', trashTheta)
+        tempPsi   = self.register_output('VLM_psi', trashPsi)
+
+        tempX   = self.register_output('VLM_x', trashX)
+        tempY   = self.register_output('VLM_y', trashY)
+        tempZ   = self.register_output('VLM_z', trashZ)
+
+        tempPhiW   = self.register_output('VLM_phiW', trashPhiW)
+        tempGamma  = self.register_output('VLM_gamma', trashGamma)
+        tempPsiW   = self.register_output('VLM_psiW', trashPsiW)       
+
+        self.print_var(tempU)
+        self.print_var(tempV)
+        self.print_var(tempW)
+        self.print_var(tempP)
+        self.print_var(tempQ)
+        self.print_var(tempR)
+        self.print_var(tempPhi)
+        self.print_var(tempTheta)
+        self.print_var(tempPsi)
+        self.print_var(tempX)
+        self.print_var(tempY)
+        self.print_var(tempZ)
+        self.print_var(tempPhiW)
+        self.print_var(tempGamma)
+        self.print_var(tempPsiW)
+        
+        
+        
+        
+        ################################################################################
         # compute the output: 3. v_inf_sq (num_nodes,1)
         ################################################################################
         v_inf_sq = (u**2 + v**2 + w**2)
@@ -108,15 +171,18 @@ class AdapterComp(Model):
         # compute the output: 3. alpha (num_nodes,1)
         ################################################################################
         alpha = theta - gamma
+        # alpha = csdl.arctan(w/u)
+        self.print_var(theta)
+        self.print_var(gamma)
         self.register_output('alpha', alpha)
-
+        self.print_var(alpha)
         ################################################################################
         # compute the output: 4. beta (num_nodes,1)
         ################################################################################
         beta = psi + psiw
         # we always assume v_inf > 0 here
-        self.register_output('beta', beta)
-
+        tempBeta = self.register_output('beta', beta)
+        self.print_var(tempBeta)
         ################################################################################
         # create the output: 1. frame_vel (num_nodes,3)
         # TODO:fix this

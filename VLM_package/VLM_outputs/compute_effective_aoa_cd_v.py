@@ -37,7 +37,6 @@ class AOA_CD(Model):
         # rho = self.declare_variable('rho',
         #                             val=np.ones((num_nodes, 1)) * 0.9652)
         rho = self.declare_variable('density',val=np.ones((num_nodes, 1)) * 0.9652)
-        self.print_var(rho)
 
         frame_vel = self.declare_variable('frame_vel', shape=(num_nodes, 3))
 
@@ -124,6 +123,22 @@ class AOA_CD(Model):
             D_0_total[:, i, :] = csdl.reshape(D_0_list[i],
                                               D_0_total[:, i, :].shape)
 
+        ''' PRINTING VARIABLES TO CHECK '''
+        tempRho = rho*np.ones((num_nodes, 1))
+        self.register_output('ComputeEffectiveAoa_tempRho', tempRho)
+        self.print_var(tempRho)
+
+        tempFrameVel = frame_vel * np.ones((num_nodes, 3))
+        self.register_output('ComputeEffectiveAoa_tempFrameVel', tempFrameVel)
+        self.print_var(tempFrameVel)
+
+        tempClSpan = cl_span * np.ones((num_nodes, num_span))
+        self.register_output('ComputeEffectiveAoa_tempClSpan', tempClSpan)
+        self.print_var(tempClSpan)
+
+        tempEffectiveAoa = effective_aoa * np.ones((num_nodes, num_span))
+        self.register_output('ComputeEffectiveAoa_tempEffectiveAoa', tempEffectiveAoa)
+        self.print_var(tempEffectiveAoa)
 
 if __name__ == "__main__":
     np.random.seed(0)

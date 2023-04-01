@@ -331,8 +331,8 @@ class LiftDrag(Model):
                 
 
             self.register_output('viscous_drag',D_0)
-            # self.print_var(D_0)
-            # self.print_var(L_0)
+            self.print_var(D_0)
+            self.print_var(L_0)
 
             total_forces_temp = csdl.sum(panel_forces, axes=(1, ))
             F = self.create_output('F', shape=(num_nodes, 3))
@@ -345,9 +345,45 @@ class LiftDrag(Model):
             drag_coeff = 9 * (0.092903)
             fuselage_drag = 0.5*rho*b*drag_coeff
             self.register_output('fuselage_drag',fuselage_drag)
+            self.print_var(fuselage_drag)
             F[:, 0] = -(total_forces_temp[:, 0] + D_0 * csdl.cos(alpha) - L_0_total * csdl.sin(alpha) + fuselage_drag* csdl.cos(alpha))
             F[:, 1] = total_forces_temp[:, 1] * 0
             F[:, 2] = -(total_forces_temp[:, 2] + D_0 * csdl.sin(alpha) + L_0_total * csdl.cos(alpha))
+
+            ''' Testing forces computation '''
+            tempD0Total = D_0_total * np.ones((num_nodes,len(surface_names), 1))
+            self.register_output('TempD0Total', tempD0Total)
+            self.print_var(tempD0Total)
+
+            tempF = F * np.ones((num_nodes, 3))
+            self.register_output('Forces_IN_VLM', tempF)
+            self.print_var(tempF)
+
+            tempTotalForces = total_forces_temp * np.ones((num_nodes, 3))
+            self.register_output('TotalForces_IN_VLM', tempTotalForces)
+            self.print_var(tempTotalForces)
+
+            tempAlpha = alpha * np.ones((num_nodes, 1))
+            self.register_output('TempAlpha_IN_VLM', tempAlpha)
+            self.print_var(tempAlpha)
+
+            tempL0Total = L_0_total * np.ones((num_nodes, 1))
+            self.register_output('TempL0total_IN_VLM', tempL0Total)
+            self.print_var(tempL0Total)
+
+            tempRho = rho*np.ones((num_nodes, 1))
+            self.register_output('TempRho_IN_VLM', tempRho)
+            self.print_var(tempRho)
+
+            tempB = b*np.ones((num_nodes, 1))
+            self.register_output('Tempb_IN_VLM', tempB)
+            self.print_var(tempB)
+
+
+
+
+
+
 
             evaluation_pt = self.declare_variable('evaluation_pt',
                                                   val=np.zeros(3, )) 
