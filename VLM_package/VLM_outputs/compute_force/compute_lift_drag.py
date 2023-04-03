@@ -374,7 +374,7 @@ class LiftDrag(Model):
             self.register_output('total_lift', L_total)
             L_over_D = L_total / D_total
             self.register_output('L_over_D', L_over_D)
-            self.print_var(L_over_D)
+            # self.print_var(L_over_D)
             self.register_output('total_CD', C_D_total)
             self.register_output('total_CL', C_L_total)
             # else:
