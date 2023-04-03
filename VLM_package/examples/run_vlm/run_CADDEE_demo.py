@@ -11,7 +11,7 @@ from VLM_package.examples.run_vlm.utils.generate_mesh import generate_mesh
 import enum
 from csdl import GraphRepresentation
 from python_csdl_backend import Simulator
-# import pyvista as pv
+import pyvista as pv
 '''
 This example demonstrates the basic VLM simulation 
 with a single lifting surface with internal function to generate evaluation pts
@@ -138,37 +138,6 @@ for i in range(num_nodes):
 wing = model_1.create_input('wing', val=mesh_val)
 # wing_1 = model_1.create_input('wing_1', val=mesh_val_1)
 # '''
-############################################
-# Plot the lifting surfaces
-############################################
-# pv.global_theme.axes.show = True
-# pv.global_theme.font.label_size = 1
-# x = mesh_val[0, :, :, 0]
-# y = mesh_val[0, :, :, 1]
-# z = mesh_val[0, :, :, 2]
-# x_1 = mesh_val_1[0, :, :, 0]
-# y_1 = mesh_val_1[0, :, :, 1]
-# z_1 = mesh_val_1[0, :, :, 2]
-
-# grid = pv.StructuredGrid(x, y, z)
-# grid_1 = pv.StructuredGrid(x_1, y_1, z_1)
-
-# grid.cell_data["panel_forces"] = np.moveaxis(
-#     sim["panel_forces"][0, :56, :].reshape(nx - 1, ny - 1, 3), 0,
-#     1).reshape(56, 3)
-# grid_1.cell_data["panel_forces"] = np.moveaxis(
-#     sim["panel_forces"][0, 56:, :].reshape(nx - 1, ny - 1, 3), 0,
-#     1).reshape(56, 3)
-# grid.save("vtks/left_wing.vtk")
-# grid_1.save("vtks/right_wing.vtk")
-# p = pv.Plotter()
-# p.add_mesh(grid, color="blue", show_edges=True, opacity=.5)
-# p.add_mesh(grid_1, color="red", show_edges=True, opacity=.5)
-# p.camera.view_angle = 60.0
-# p.add_axes_at_origin(labels_off=True, line_width=5)
-
-# p.show()
-# exit()
 
 ####################################################################
 # 2. preprocessing to connect to the vlm solver
@@ -325,33 +294,66 @@ print(sim.compute_totals(of='VLMSolverModel.VLM_outputs.LiftDrag.total_CL', wrt=
 # ############################################
 # # Plot the lifting surfaces
 # ############################################
+pv.global_theme.axes.show = True
+pv.global_theme.font.label_size = 1
+x = mesh[:, :, 0]
+y = mesh[:, :, 1]
+z = mesh[:, :, 2]
+# x_1 = wing_2_mesh[0, :, :, 0]
+# y_1 = wing_2_mesh[0, :, :, 1]
+# z_1 = wing_2_mesh[0, :, :, 2]
+
+# xw = sim['wing_1_wake_coords'][0, :, :, 0]
+# yw = sim['wing_1_wake_coords'][0, :, :, 1]
+# zw = sim['wing_1_wake_coords'][0, :, :, 2]
+
+# xw_1 = sim['wing_2_wake_coords'][0, :, :, 0]
+# yw_1 = sim['wing_2_wake_coords'][0, :, :, 1]
+# zw_1 = sim['wing_2_wake_coords'][0, :, :, 2]
+
+grid = pv.StructuredGrid(x, y, z)
+# grid_1 = pv.StructuredGrid(x_1, y_1, z_1)
+# gridw = pv.StructuredGrid(xw, yw, zw)
+# gridw_1 = pv.StructuredGrid(xw_1, yw_1, zw_1)
+p = pv.Plotter()
+p.add_mesh(grid, color="blue", show_edges=True, opacity=.5)
+# p.add_mesh(gridw, color="blue", show_edges=True, opacity=.5)
+# p.add_mesh(grid_1, color="red", show_edges=True, opacity=.5)
+# p.add_mesh(gridw_1, color="red", show_edges=True, opacity=.5)
+p.camera.view_angle = 60.0
+p.add_axes_at_origin(labels_off=True, line_width=5)
+
+p.show()
+
+
+# ############################################
+# # Plot the lifting surfaces
+# ############################################
 # pv.global_theme.axes.show = True
 # pv.global_theme.font.label_size = 1
-# x = mesh[:, :, 0]
-# y = mesh[:, :, 1]
-# z = mesh[:, :, 2]
-# # x_1 = wing_2_mesh[0, :, :, 0]
-# # y_1 = wing_2_mesh[0, :, :, 1]
-# # z_1 = wing_2_mesh[0, :, :, 2]
-
-# # xw = sim['wing_1_wake_coords'][0, :, :, 0]
-# # yw = sim['wing_1_wake_coords'][0, :, :, 1]
-# # zw = sim['wing_1_wake_coords'][0, :, :, 2]
-
-# # xw_1 = sim['wing_2_wake_coords'][0, :, :, 0]
-# # yw_1 = sim['wing_2_wake_coords'][0, :, :, 1]
-# # zw_1 = sim['wing_2_wake_coords'][0, :, :, 2]
+# x = mesh_val[0, :, :, 0]
+# y = mesh_val[0, :, :, 1]
+# z = mesh_val[0, :, :, 2]
+# # x_1 = mesh_val_1[0, :, :, 0]
+# # y_1 = mesh_val_1[0, :, :, 1]
+# # z_1 = mesh_val_1[0, :, :, 2]
 
 # grid = pv.StructuredGrid(x, y, z)
 # # grid_1 = pv.StructuredGrid(x_1, y_1, z_1)
-# # gridw = pv.StructuredGrid(xw, yw, zw)
-# # gridw_1 = pv.StructuredGrid(xw_1, yw_1, zw_1)
+
+# grid.cell_data["panel_forces"] = np.moveaxis(
+#     sim["panel_forces"][0, :56, :].reshape(nx - 1, ny - 1, 3), 0,
+#     1).reshape(56, 3)
+# grid_1.cell_data["panel_forces"] = np.moveaxis(
+#     sim["panel_forces"][0, 56:, :].reshape(nx - 1, ny - 1, 3), 0,
+#     1).reshape(56, 3)
+# grid.save("vtks/left_wing.vtk")
+# grid_1.save("vtks/right_wing.vtk")
 # p = pv.Plotter()
 # p.add_mesh(grid, color="blue", show_edges=True, opacity=.5)
-# # p.add_mesh(gridw, color="blue", show_edges=True, opacity=.5)
-# # p.add_mesh(grid_1, color="red", show_edges=True, opacity=.5)
-# # p.add_mesh(gridw_1, color="red", show_edges=True, opacity=.5)
+# p.add_mesh(grid_1, color="red", show_edges=True, opacity=.5)
 # p.camera.view_angle = 60.0
 # p.add_axes_at_origin(labels_off=True, line_width=5)
 
-# # p.show()
+# p.show()
+# exit()

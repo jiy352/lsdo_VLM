@@ -69,7 +69,7 @@ mesh_dict = {
 
 # Generate mesh of a rectangular wing
 mesh = generate_mesh(mesh_dict)
-offset = 10
+offset = 5
 
 # mesh_val = generate_simple_mesh(nx, ny, num_nodes)
 mesh_val = np.zeros((num_nodes, nx, ny, 3))
@@ -78,14 +78,14 @@ mesh_val_1 = np.zeros((num_nodes, nx, ny, 3))
 for i in range(num_nodes):
     mesh_val[i, :, :, :] = mesh
     mesh_val[i, :, :, 0] = mesh.copy()[:, :, 0]
-    mesh_val[i, :, :, 1] = mesh.copy()[:, :, 1] + offset
+    mesh_val[i, :, :, 1] = mesh.copy()[:, :, 1] 
 
     mesh_val_1[i, :, :, :] = mesh.copy()
-    mesh_val_1[i, :, :, 1] = mesh.copy()[:, :, 1] - offset
-    mesh_val_1[i, :, :, 0] = mesh.copy()[:, :, 0]
+    mesh_val_1[i, :, :, 1] = mesh.copy()[:, :, 1]/2
+    mesh_val_1[i, :, :, 0] = mesh.copy()[:, :, 0]/2 - offset
 
 wing = model_1.create_input('wing', val=mesh_val)
-wing = model_1.create_input('wing_1', val=mesh_val)
+wing = model_1.create_input('wing_1', val=mesh_val_1)
 # wing_1 = model_1.create_input('wing_1', val=mesh_val_1)
 # '''
 ############################################
@@ -247,15 +247,22 @@ print('wing_1_D',sim['wing_1_D'])
 
 # b = sim.check_partials(compact_print=True, out_stream=None)
 # sim.assert_check_partials(b, 5e-3, 1e-5)
-x = mesh[:, :, 0]
-y = mesh[:, :, 1]
-z = mesh[:, :, 2]
+import pyvista as pv
+x = mesh_val.reshape(mesh.shape)[:, :, 0]
+y = mesh_val.reshape(mesh.shape)[:, :, 1]
+z = mesh_val.reshape(mesh.shape)[:, :, 2]
 grid = pv.StructuredGrid(x, y, z)
+
+x = mesh_val_1.reshape(mesh.shape)[:, :, 0]
+y = mesh_val_1.reshape(mesh.shape)[:, :, 1]
+z = mesh_val_1.reshape(mesh.shape)[:, :, 2]
+grid_1 = pv.StructuredGrid(x, y, z)
 # grid_1 = pv.StructuredGrid(x_1, y_1, z_1)
 # gridw = pv.StructuredGrid(xw, yw, zw)
 # gridw_1 = pv.StructuredGrid(xw_1, yw_1, zw_1)
 p = pv.Plotter()
 p.add_mesh(grid, color="blue", show_edges=True, opacity=.5)
+p.add_mesh(grid_1, color="red", show_edges=True, opacity=.5)
 # p.add_mesh(gridw, color="blue", show_edges=True, opacity=.5)
 # p.add_mesh(grid_1, color="red", show_edges=True, opacity=.5)
 # p.add_mesh(gridw_1, color="red", show_edges=True, opacity=.5)
