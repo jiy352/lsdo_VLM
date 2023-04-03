@@ -5,6 +5,7 @@ import numpy as np
 from VLM_package.VLM_system.solve_circulations.solve_group import SolveMatrix
 from VLM_package.VLM_system.solve_circulations.compute_residual import ComputeResidual
 from VLM_package.VLM_preprocessing.mesh_preprocessing_comp import MeshPreprocessingComp
+# from VLM_package.VLM_preprocessing.mesh_preprocessing_comp_hack import MeshPreprocessingComp
 from VLM_package.VLM_preprocessing.wake_coords_comp import WakeCoords
 
 from VLM_package.VLM_system.solve_circulations.seperate_gamma_b import SeperateGammab
