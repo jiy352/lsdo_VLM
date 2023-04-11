@@ -3,9 +3,10 @@ from csdl import Model
 import csdl
 import numpy as np
 from numpy.core.fromnumeric import size
+from lsdo_modules.module_csdl.module_csdl import ModuleCSDL
 
 
-class MeshPreprocessingComp(Model):
+class MeshPreprocessingComp(ModuleCSDL):
     """
     Compute various geometric properties for VLM analysis.
 
@@ -67,11 +68,11 @@ class MeshPreprocessingComp(Model):
             # this should come from CADDEE geometry if connected,
             # or up to the user to create an input if using the solver alone.
             if mesh_unit == 'm':
-                def_mesh = self.declare_variable(surface_name,
-                                                 shape=surface_shapes[i])
+                def_mesh = self.register_module_input(surface_name,
+                                                 shape=surface_shapes[i], promotes=True)
             elif mesh_unit == 'ft':
-                def_mesh_ft = self.declare_variable(surface_name,
-                                                    shape=surface_shapes[i])
+                def_mesh_ft = self.register_module_input(surface_name,
+                                                    shape=surface_shapes[i], promotes=True)
                 def_mesh = def_mesh_ft * 0.3048
             ################################################################################
             # create the output: 1. bd_vtx_coords
@@ -79,6 +80,8 @@ class MeshPreprocessingComp(Model):
             bd_vtx_coords = self.create_output(bd_vtx_coords_name,
                                                shape=(def_mesh.shape))
             # the 0th until the second last one chordwise is (0.75*left +0.25*right)
+            print('bd_vtx_coords', bd_vtx_coords.shape)
+            # exit()
             bd_vtx_coords[:, 0:num_pts_chord -
                           1, :, :] = def_mesh[:, 0:num_pts_chord -
                                               1, :, :] * .75 + def_mesh[:, 1:

@@ -6,12 +6,12 @@ from VLM_package.VLM_system.solve_circulations.solve_group import SolveMatrix
 from VLM_package.VLM_system.solve_circulations.compute_residual import ComputeResidual
 from VLM_package.VLM_preprocessing.mesh_preprocessing_comp import MeshPreprocessingComp
 from VLM_package.VLM_preprocessing.wake_coords_comp import WakeCoords
-
 from VLM_package.VLM_system.solve_circulations.seperate_gamma_b import SeperateGammab
 from VLM_package.VLM_preprocessing.adapter_comp import AdapterComp
+from lsdo_modules.module_csdl.module_csdl import ModuleCSDL
 
 
-class VLMSystem(csdl.Model):
+class VLMSystem(ModuleCSDL):
     '''
     contains
     1. MeshPreprocessing_comp
@@ -60,7 +60,7 @@ class VLMSystem(csdl.Model):
         ]
         wake_vel_shapes = [(x[0] * x[1], 3) for x in wake_vortex_pts_shapes]
 
-        self.add(MeshPreprocessingComp(surface_names=surface_names,
+        self.add_module(MeshPreprocessingComp(surface_names=surface_names,
                                        surface_shapes=surface_shapes,
                                        mesh_unit=mesh_unit),
                  name='MeshPreprocessing_comp')
@@ -76,7 +76,10 @@ class VLMSystem(csdl.Model):
                 surface_shapes=surface_shapes,
             )
             # m.optimize_ir(False)
-            self.add(m, name='adapter_comp')
+            self.add_module(m, name='adapter_comp')
+        else:
+            print(self.parameters["AcStates"])
+            raise Exception('No adapter comp')
 
         m = WakeCoords(surface_names=surface_names,
                        surface_shapes=surface_shapes,

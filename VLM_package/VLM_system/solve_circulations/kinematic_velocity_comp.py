@@ -50,9 +50,9 @@ class KinematicVelocityComp(Model):
 
         frame_vel = self.declare_variable('frame_vel', shape=(num_nodes, 3))
 
-        p = self.declare_variable('p', shape=(num_nodes, 1))
-        q = self.declare_variable('q', shape=(num_nodes, 1))
-        r = self.declare_variable('r', shape=(num_nodes, 1))
+        p = self.declare_variable('p_active_nodes', shape=(num_nodes, 1))
+        q = self.declare_variable('q_active_nodes', shape=(num_nodes, 1))
+        r = self.declare_variable('r_active_nodes', shape=(num_nodes, 1))
 
         ang_vel = self.create_output('ang_vel', shape=(num_nodes, 3))
         ang_vel[:, 0] = p

@@ -54,6 +54,8 @@ class Outputs(Model):
         self.parameters.declare('coeffs_cd', default=None)
         self.parameters.declare('mesh_unit', default='m')
         self.parameters.declare('cl0', types=list)
+        self.parameters.declare('num_total_nodes', types=int)
+        self.parameters.declare('active_nodes', types=np.ndarray)
 
     def define(self):
         n_wake_pts_chord = self.parameters['n_wake_pts_chord']
@@ -71,6 +73,9 @@ class Outputs(Model):
         delta_t = self.parameters['delta_t']
         coeffs_aoa = self.parameters['coeffs_aoa']
         coeffs_cd = self.parameters['coeffs_cd']
+
+        num_total_nodes = self.parameters['num_total_nodes']
+        active_nodes = self.parameters['active_nodes']
 
         submodel = HorseshoeCirculations(
             surface_names=surface_names,
@@ -100,6 +105,8 @@ class Outputs(Model):
             coeffs_aoa=coeffs_aoa,
             coeffs_cd=coeffs_cd,
             cl0=cl0,
+            num_total_nodes=num_total_nodes,
+            active_nodes=active_nodes,
         )
         self.add(submodel, name='LiftDrag')
 

@@ -18,7 +18,7 @@ class VLMSolverModel(csdl.Model):
 
         self.parameters.declare('free_stream_velocities', default=None)
 
-        self.parameters.declare('eval_pts_location', default=0.25)
+        self.parameters.declare('eval_pts_location', default=0)
         self.parameters.declare('eval_pts_names', default=None)
 
         self.parameters.declare('eval_pts_option', default='auto')

@@ -227,9 +227,10 @@ class EvalPtsVel(Model):
             eval_vel_shape = eval_vel_shapes[i]
 
             # kinematic_vel_name = kinematic_vel_names[i]
-
+            print('eval_vel_shapes', eval_vel_shapes)
             v_induced_wake = model_wake_total_vel.declare_variable(
                 v_induced_wake_name, shape=eval_vel_shape)
+            print('v_induced_wake.shap', v_induced_wake.shape)
 
             # !!TODO!! this needs to be fixed for more general cases to compute the undisturbed vel
             # Note - April 7 2022: the wake velocity seems to just
