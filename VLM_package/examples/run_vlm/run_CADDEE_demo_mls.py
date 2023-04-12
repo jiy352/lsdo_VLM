@@ -1,5 +1,5 @@
 # import csdl_lite
-from VLM_package.examples.run_vlm.AcStates_enum_vlm import AcStates_vlm
+# from VLM_package.examples.run_vlm.AcStates_enum_vlm import AcStates_vlm
 from numpy import indices
 import numpy as np
 
@@ -9,8 +9,11 @@ from VLM_package.vlm_solver import VLMSolverModel
 
 from VLM_package.examples.run_vlm.utils.generate_mesh import generate_mesh
 
-from VLM_package.examples.run_vlm.AcStates_enum_vlm import *
+# from VLM_package.examples.run_vlm.AcStates_enum_vlm import *
 from python_csdl_backend import Simulator
+
+
+import enum
 '''
 This example demonstrates the basic VLM simulation 
 with a single lifting surface with internal function to generate evaluation pts
@@ -23,6 +26,53 @@ Please see vlm_scipt_mls.py for how to use user defined evaluation pts
 num_nodes = 1
 create_opt = 'create_inputs'
 model_1 = csdl.Model()
+
+class AcStates_vlm(enum.Enum):
+    u = 'u'
+    v = 'v'
+    w = 'w'
+    p = 'p'
+    q = 'q'
+    r = 'r'
+    phi = 'phi'
+    theta = 'theta'
+    psi = 'psi'
+    x = 'x'
+    y = 'y'
+    z = 'z'
+    phiw = 'phiw'
+    gamma = 'gamma'
+    psiw = 'psiw'
+
+alpha_deg = np.ones((num_nodes,1))*1.25
+alpha = alpha_deg / 180 * np.pi
+# vx = -v_inf * np.cos(alpha)
+# vz = -v_inf * np.sin(alpha)
+
+vx = 50
+vz = 2
+# vx**2+vz**2=v_inf
+
+AcStates_val_dict = {
+    AcStates_vlm.u.value: np.ones((num_nodes,1))*vx,
+    AcStates_vlm.v.value: np.zeros((num_nodes, 1)),
+    AcStates_vlm.w.value: np.ones((num_nodes,1))*vz,
+    AcStates_vlm.p.value: np.zeros((num_nodes, 1)),
+    AcStates_vlm.q.value: np.zeros((num_nodes, 1)),
+    AcStates_vlm.r.value: np.zeros((num_nodes, 1)),
+    AcStates_vlm.phi.value: np.zeros((num_nodes, 1)),
+    AcStates_vlm.theta.value: alpha,
+    AcStates_vlm.psi.value: np.zeros((num_nodes, 1)),
+    AcStates_vlm.x.value: np.zeros((num_nodes, 1)),
+    AcStates_vlm.y.value: np.zeros((num_nodes, 1)),
+    AcStates_vlm.z.value: np.ones((num_nodes, 1))*1000,
+    AcStates_vlm.phiw.value: np.zeros((num_nodes, 1)),
+    AcStates_vlm.gamma.value: np.zeros((num_nodes, 1)),
+    AcStates_vlm.psiw.value: np.zeros((num_nodes, 1)),
+    # AcStates_vlm.rho.value: np.ones((num_nodes, 1)) * 0.96,
+}
+
+
 
 print('creating inputs that share the same names within CADDEE:')
 
