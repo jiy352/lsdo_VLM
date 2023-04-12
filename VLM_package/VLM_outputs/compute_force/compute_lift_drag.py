@@ -344,11 +344,11 @@ class LiftDrag(Model):
             total_forces_temp = csdl.sum(panel_forces, axes=(1, ))
             F_active = self.create_output('F_active', shape=(num_nodes, 3))
             drag_coeff = 9 * (0.092903)
-            fuselage_drag = 0.5*rho*b*drag_coeff
-            self.register_output('fuselage_drag',fuselage_drag)
-            F_active[:, 0] = -(total_forces_temp[:, 0] + D_0 * csdl.cos(alpha) - L_0_total * csdl.sin(alpha) + fuselage_drag* csdl.cos(alpha))
+            other_viscous_drag = 0.5*rho*b*drag_coeff
+            self.register_output('other_viscous_drag',other_viscous_drag)
+            F_active[:, 0] =  -(total_forces_temp[:, 0] + D_0 * csdl.cos(alpha) - L_0_total * csdl.sin(alpha) + other_viscous_drag * csdl.cos(alpha))
             F_active[:, 1] = total_forces_temp[:, 1] * 0
-            F_active[:, 2] = -(total_forces_temp[:, 2] + D_0 * csdl.sin(alpha) + L_0_total * csdl.cos(alpha))
+            F_active[:, 2] = -(total_forces_temp[:, 2] + D_0 * csdl.sin(alpha) + L_0_total * csdl.cos(alpha) - other_viscous_drag * csdl.sin(alpha))
 
 
             evaluation_pt = self.declare_variable('evaluation_pt',
@@ -358,7 +358,40 @@ class LiftDrag(Model):
                 (eval_pts_all.shape),
                 'i->jki',
             )
+
+
+            for i in range(len(v_total_wake_names)):
+
+                nx = surface_shapes[i][1]
+                ny = surface_shapes[i][2]
+                delta = (nx - 1) * (ny - 1)
+            
             r_M = eval_pts_all - evaluation_pt_exp
+
+
+            total_forces = self.create_output('total_forces_active',shape=panel_forces.shape)
+            forces_x_exp = csdl.expand(-D_0 * csdl.cos(alpha) + L_0_total * csdl.sin(alpha) - other_viscous_drag * csdl.cos(alpha),(num_nodes,panel_forces.shape[1],1),'ik->ijk')
+            forces_z_exp = csdl.expand(- D_0 * csdl.sin(alpha) - L_0_total * csdl.cos(alpha) + other_viscous_drag * csdl.sin(alpha),(num_nodes,panel_forces.shape[1],1),'ik->ijk')
+
+            total_forces[:,:,0] = -panel_forces[:,:,0] + forces_x_exp
+            total_forces[:,:,1] = panel_forces[:,:,1] * 0
+            total_forces[:,:,2] = -panel_forces[:,:,2] + forces_z_exp
+
+            total_moment_panels = csdl.cross(r_M, total_forces, axis=2)
+            start=0
+
+            for i in range(len(surface_names)):
+                nx = surface_shapes[i][1]
+                ny = surface_shapes[i][2]
+                delta = int((nx-1)*(ny-1))
+
+
+                total_forces_strip = csdl.sum(csdl.reshape(var=total_forces[:,start:start+delta,:], new_shape=(num_nodes,nx-1,ny-1,3)),axes=(1,))
+                total_moment_strip = csdl.sum(csdl.reshape(var=total_moment_panels[:,start:start+delta,:], new_shape=(num_nodes,nx-1,ny-1,3)),axes=(1,))
+                self.register_output(surface_names[i]+'_F_strip_active', total_forces_strip)
+                self.register_output(surface_names[i]+'_M_strip_active', total_moment_strip)
+                start = start+delta
+
             total_moment = csdl.sum(csdl.cross(r_M, panel_forces, axis=2),
                                     axes=(1, ))
             M_active = self.create_output('M_active', shape=total_moment.shape)
