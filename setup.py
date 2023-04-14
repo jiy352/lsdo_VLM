@@ -3,9 +3,7 @@ from distutils.core import setup
 setup(
     name='VLM_package',
     version='-1',
-    packages=[
-        'VLM_package',
-    ],
+    packages=find_packages()
     install_requires=[
         # 'numpy',
         # 'dash==1.2.0',
