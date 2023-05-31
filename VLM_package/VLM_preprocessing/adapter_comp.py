@@ -97,6 +97,9 @@ class AdapterComp(Model):
         gamma = self.declare_variable('gamma', shape=(num_nodes, 1))
         psiw = self.declare_variable('psiw', shape=(num_nodes, 1))
 
+        frontAct = self.declare_variable('frontAct', shape=(num_nodes, 1))
+        rearAct = self.declare_variable('rearAct', shape=(num_nodes, 1))
+        
         ################################################################################
         # Block for checking the inputs into VLM
         ################################################################################
@@ -141,25 +144,47 @@ class AdapterComp(Model):
         tempGamma  = self.register_output('VLM_gamma', trashGamma)
         tempPsiW   = self.register_output('VLM_psiW', trashPsiW)       
 
-        self.print_var(tempU)
-        self.print_var(tempV)
-        self.print_var(tempW)
-        self.print_var(tempP)
-        self.print_var(tempQ)
-        self.print_var(tempR)
-        self.print_var(tempPhi)
-        self.print_var(tempTheta)
-        self.print_var(tempPsi)
-        self.print_var(tempX)
-        self.print_var(tempY)
-        self.print_var(tempZ)
-        self.print_var(tempPhiW)
-        self.print_var(tempGamma)
-        self.print_var(tempPsiW)
+        trashFrontAct = frontAct * np.ones((num_nodes, 1))
+        trashRearAct  = rearAct * np.ones((num_nodes, 1))
+
+        tempFrontAct = self.register_output('VLM_frontAct', trashFrontAct)
+        tempRearAct = self.register_output('VLM_rearAct', trashRearAct)
         
+
+        # self.print_var(tempU)
+        # self.print_var(tempV)
+        # self.print_var(tempW)
+        # self.print_var(tempP)
+        # self.print_var(tempQ)
+        # self.print_var(tempR)
+        # self.print_var(tempPhi)
+        # self.print_var(tempTheta)
+        # self.print_var(tempPsi)
+        # self.print_var(tempX)
+        # self.print_var(tempY)
+        # self.print_var(tempZ)
+        # self.print_var(tempPhiW)
+        # self.print_var(tempGamma)
+        # self.print_var(tempPsiW)
+
+        # self.print_var(tempFrontAct)
+        # self.print_var(tempRearAct)
+
+        # u_e = u * csdl.cos(theta) + w * csdl.sin(theta)
+        # w_e = -u * csdl.sin(theta) + w * csdl.cos(theta)
+
+        # testGamma = csdl.arctan(w_e/u_e) +  np.ones((num_nodes, 1))*1e-12
+
+        testGamma = csdl.arctan(w/u)
+        self.register_output('testGamma', testGamma)
+        self.print_var(testGamma)
         
-        
-        
+        alphaConstraint1 = frontAct - testGamma
+        alphaConstraint2 = rearAct - testGamma
+
+        self.register_output('frontConst', alphaConstraint1)
+        self.register_output('rearConst', alphaConstraint2)
+
         ################################################################################
         # compute the output: 3. v_inf_sq (num_nodes,1)
         ################################################################################
@@ -170,10 +195,12 @@ class AdapterComp(Model):
         ################################################################################
         # compute the output: 3. alpha (num_nodes,1)
         ################################################################################
+        # alpha = frontAct - testGamma
         alpha = theta - gamma
         # alpha = csdl.arctan(w/u)
-        self.print_var(theta)
-        self.print_var(gamma)
+        # alpha = 
+        # self.print_var(theta)
+        # self.print_var(gamma)
         self.register_output('alpha', alpha)
         self.print_var(alpha)
         ################################################################################
@@ -182,7 +209,7 @@ class AdapterComp(Model):
         beta = psi + psiw
         # we always assume v_inf > 0 here
         tempBeta = self.register_output('beta', beta)
-        self.print_var(tempBeta)
+        # self.print_var(tempBeta)
         ################################################################################
         # create the output: 1. frame_vel (num_nodes,3)
         # TODO:fix this
@@ -193,6 +220,8 @@ class AdapterComp(Model):
         frame_vel[:, 0] = -v_inf * csdl.cos(beta) * csdl.cos(alpha)
         frame_vel[:, 1] = v_inf * csdl.sin(beta)
         frame_vel[:, 2] = -v_inf * csdl.cos(beta) * csdl.sin(alpha)
+
+        self.print_var(frame_vel)
 
         ################################################################################
         # compute the output: 5. rho

@@ -126,7 +126,7 @@ class AOA_CD(Model):
         ''' PRINTING VARIABLES TO CHECK '''
         tempRho = rho*np.ones((num_nodes, 1))
         self.register_output('ComputeEffectiveAoa_tempRho', tempRho)
-        self.print_var(tempRho)
+        # self.print_var(tempRho)
 
         tempFrameVel = frame_vel * np.ones((num_nodes, 3))
         self.register_output('ComputeEffectiveAoa_tempFrameVel', tempFrameVel)
@@ -134,7 +134,7 @@ class AOA_CD(Model):
 
         tempClSpan = cl_span * np.ones((num_nodes, num_span))
         self.register_output('ComputeEffectiveAoa_tempClSpan', tempClSpan)
-        self.print_var(tempClSpan)
+        # self.print_var(tempClSpan)
 
         tempEffectiveAoa = effective_aoa * np.ones((num_nodes, num_span))
         self.register_output('ComputeEffectiveAoa_tempEffectiveAoa', tempEffectiveAoa)
